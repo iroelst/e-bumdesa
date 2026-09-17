@@ -2,778 +2,885 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>e-BUMDesa — Sistem Keuangan BUM Desa</title>
 
-    <title>e-BUMDesa</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --primary: #2f67b7;
+            --primary-dark: #24549a;
+            --accent: #f5b900;
+            --green: #6b9b45;
+            --bg: #f4f6f9;
+            --border: #d9dee7;
+            --text: #25313c;
+            --muted: #71808f;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f7f6;
-            color: #263238;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
 
-        .page {
+        /* LOGIN */
+        #loginPage {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 24px;
+            background: linear-gradient(135deg, #eef3fa 0%, #f8fafc 100%);
         }
 
-        .card {
+        .login-card {
             width: 100%;
-            max-width: 520px;
-            background: white;
+            max-width: 430px;
+            background: #fff;
+            border: 1px solid var(--border);
             border-radius: 18px;
-            padding: 32px;
-            box-shadow: 0 10px 35px rgba(0,0,0,.10);
+            box-shadow: 0 18px 50px rgba(30, 50, 80, .12);
+            overflow: hidden;
         }
 
-        .logo {
+        .login-brand {
+            background: var(--primary);
+            color: #fff;
+            padding: 28px 24px;
             text-align: center;
-            margin-bottom: 25px;
         }
 
-        .logo h1 {
+        .login-brand h1 {
             margin: 0;
-            font-size: 32px;
-            color: #176b4d;
+            font-weight: 700;
+            letter-spacing: .2px;
         }
 
-        .logo p {
-            margin: 8px 0 0;
-            color: #607d73;
+        .login-brand p {
+            margin: 6px 0 0;
+            opacity: .9;
         }
 
-        h2 {
-            margin-top: 0;
-        }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin: 15px 0 7px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #ccd6d2;
-            border-radius: 9px;
-            font-size: 15px;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #176b4d;
-        }
-
-        button {
-            width: 100%;
-            padding: 13px;
-            border: 0;
-            border-radius: 9px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        .login-body { padding: 30px; }
 
         .google-btn {
-            background: white;
-            color: #333;
-            border: 1px solid #d4d9d7;
-            margin-top: 15px;
-        }
-
-        .primary-btn {
-            background: #176b4d;
-            color: white;
-            margin-top: 22px;
-        }
-
-        .logout-btn {
-            background: #eee;
-            color: #333;
-            margin-top: 20px;
-        }
-
-        .message {
-            margin-top: 15px;
-            padding: 12px;
+            width: 100%;
+            height: 48px;
+            border: 1px solid #dadce0;
+            background: #fff;
+            color: #3c4043;
             border-radius: 8px;
-            background: #fff3cd;
-            color: #664d03;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 600;
+            transition: .15s ease;
+        }
+
+        .google-btn:hover {
+            background: #f8f9fa;
+            box-shadow: 0 1px 3px rgba(60,64,67,.18);
+        }
+
+        .google-logo {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* APP */
+        #appPage {
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: var(--primary);
+            color: #fff;
+            z-index: 1040;
+            transition: transform .2s ease;
+            overflow-y: auto;
+        }
+
+        .brand {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            font-size: 19px;
+            border-bottom: 1px solid rgba(0,0,0,.08);
+        }
+
+        .side-section {
+            padding: 16px 14px 5px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            opacity: .65;
+        }
+
+        .side-link {
+            margin: 2px 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             font-size: 14px;
         }
 
-        .user-info {
-            background: #f1f7f4;
-            padding: 15px;
+        .side-link:hover, .side-link.active {
+            background: rgba(255,255,255,.14);
+            color: #fff;
+        }
+
+        .main {
+            margin-left: 250px;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .top-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #4d7bc5;
+            color: #fff;
+            display: grid;
+            place-items: center;
+        }
+
+        .content {
+            padding: 22px;
+        }
+
+        .summary-card, .unit-card, .panel {
+            background: #fff;
+            border: 1px solid var(--border);
             border-radius: 10px;
-            margin-bottom: 20px;
         }
 
-        .dashboard-box {
-            background: #f8faf9;
-            border: 1px solid #e0e8e4;
+        .summary-card {
+            min-height: 106px;
+            padding: 17px;
+        }
+
+        .summary-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            line-height: 1.35;
+            color: #3d4852;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 7px;
+        }
+
+        .unit-card {
+            padding: 16px;
+            border-color: #9bb97d;
+            min-height: 105px;
+        }
+
+        .unit-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .unit-stat {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .panel {
+            min-height: 300px;
             padding: 20px;
-            border-radius: 12px;
-            margin-top: 15px;
         }
 
-        .loading {
-            text-align: center;
-            color: #607d73;
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 15px;
         }
 
-        .required {
-            color: #c62828;
+        .empty-chart {
+            height: 230px;
+            border: 1px dashed #c7ced8;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .calendar-placeholder {
+            min-height: 230px;
+            border: 1px dashed #c7ced8;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+        }
+
+        .mobile-menu {
+            display: none;
+        }
+
+        /* REGISTRATION */
+        .register-wrap {
+            min-height: 100vh;
+            padding: 30px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg);
+        }
+
+        .register-card {
+            width: 100%;
+            max-width: 720px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(30,50,80,.08);
+        }
+
+        @media (max-width: 991px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; }
+            .mobile-menu { display: inline-flex; }
+        }
+
+        @media (max-width: 576px) {
+            .content { padding: 14px; }
+            .topbar { padding: 0 14px; }
+            .register-card { padding: 20px; }
         }
     </style>
 </head>
 
 <body>
 
-<!-- =========================
-     LOADING
-========================= -->
-
-<div id="loadingPage" class="page">
-    <div class="card">
-        <div class="loading">
-            Memuat e-BUMDesa...
-        </div>
+<!-- LOADING -->
+<div id="loadingPage" class="d-flex min-vh-100 align-items-center justify-content-center">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3"></div>
+        <div>Memuat e-BUMDesa...</div>
     </div>
 </div>
 
-
-<!-- =========================
-     LOGIN
-========================= -->
-
-<div id="loginPage" class="page hidden">
-    <div class="card">
-
-        <div class="logo">
+<!-- LOGIN -->
+<section id="loginPage" class="hidden">
+    <div class="login-card">
+        <div class="login-brand">
             <h1>e-BUMDesa</h1>
             <p>Sistem Keuangan BUM Desa</p>
         </div>
 
-        <p style="text-align:center;">
-            Silakan masuk menggunakan akun Google Anda.
-        </p>
+        <div class="login-body">
+            <h5 class="text-center mb-2">Selamat Datang</h5>
+            <p class="text-center text-secondary small mb-4">
+                Masuk menggunakan akun Google Anda.
+            </p>
 
-        <button
-            id="googleLoginBtn"
-            class="google-btn">
-            🔐 Masuk dengan Google
-        </button>
-
-        <div id="loginMessage" class="message hidden"></div>
-
-    </div>
-</div>
-
-
-<!-- =========================
-     PENDAFTARAN BUMDES
-========================= -->
-
-<div id="registerPage" class="page hidden">
-    <div class="card">
-
-        <div class="logo">
-            <h1>e-BUMDesa</h1>
-            <p>Pendaftaran BUMDes</p>
-        </div>
-
-        <h2>Daftarkan BUMDes</h2>
-
-        <p>
-            Akun Google Anda belum terdaftar.
-            Silakan lengkapi data BUMDes terlebih dahulu.
-        </p>
-
-        <form id="registerForm">
-
-            <label>
-                Nama BUMDes <span class="required">*</span>
-            </label>
-            <input
-                id="nama_bumdes"
-                required
-                placeholder="Contoh: BUM Desa Maju Sejahtera">
-
-            <label>
-                Kode BUMDes <span class="required">*</span>
-            </label>
-            <input
-                id="kode_bumdes"
-                required
-                placeholder="Contoh: BUMDES001">
-
-            <label>
-                Desa <span class="required">*</span>
-            </label>
-            <input
-                id="desa"
-                required>
-
-            <label>
-                Kecamatan <span class="required">*</span>
-            </label>
-            <input
-                id="kecamatan"
-                required>
-
-            <label>
-                Kabupaten <span class="required">*</span>
-            </label>
-            <input
-                id="kabupaten"
-                required>
-
-            <label>
-                Provinsi <span class="required">*</span>
-            </label>
-            <input
-                id="provinsi"
-                required>
-
-            <label>
-                Alamat
-            </label>
-            <input
-                id="alamat"
-                placeholder="Alamat BUMDes">
-
-            <hr style="margin:25px 0;border:0;border-top:1px solid #eee;">
-
-            <h3>Unit Usaha Pertama</h3>
-
-            <label>
-                Nama Unit Usaha <span class="required">*</span>
-            </label>
-            <input
-                id="nama_unit"
-                required
-                placeholder="Contoh: Unit Wisata">
-
-            <label>
-                Kode Unit <span class="required">*</span>
-            </label>
-            <input
-                id="kode_unit"
-                required
-                placeholder="Contoh: U01">
-
-            <button
-                type="submit"
-                class="primary-btn"
-                id="registerBtn">
-                Daftarkan BUMDes
+            <button id="googleLoginBtn" class="google-btn">
+                <svg class="google-logo" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M21.35 12.23c0-.68-.06-1.34-.18-1.97H12v3.73h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.15z"/>
+                    <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.93-3.31.93-2.54 0-4.69-1.72-5.46-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.6z"/>
+                    <path fill="#FBBC05" d="M6.54 13.69A5.86 5.86 0 0 1 6.23 12c0-.59.11-1.17.31-1.69V7.78H3.29A9.74 9.74 0 0 0 2.25 12c0 1.57.38 3.05 1.04 4.22l3.25-2.53z"/>
+                    <path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.84 3.3 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.71 5.38l3.25 2.53C7.31 8 9.46 6.28 12 6.28z"/>
+                </svg>
+                <span>Masuk dengan Google</span>
             </button>
 
-        </form>
-
-        <div id="registerMessage" class="message hidden"></div>
-
+            <div id="loginMessage" class="alert alert-danger mt-3 hidden"></div>
+        </div>
     </div>
-</div>
+</section>
 
+<!-- REGISTRATION -->
+<section id="registerPage" class="hidden">
+    <div class="register-wrap">
+        <div class="register-card">
+            <div class="text-center mb-4">
+                <h2 class="mb-1">Daftar BUMDes</h2>
+                <p class="text-secondary mb-0">
+                    Lengkapi data awal BUMDes Anda.
+                </p>
+            </div>
 
-<!-- =========================
-     DASHBOARD
-========================= -->
+            <form id="registerForm">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nama BUMDes *</label>
+                        <input id="nama_bumdes" class="form-control" required
+                               placeholder="Contoh: BUM Desa Maju Sejahtera">
+                    </div>
 
-<div id="dashboardPage" class="page hidden">
-    <div class="card">
+                    <div class="col-md-4">
+                        <label class="form-label">Kode BUMDes *</label>
+                        <input id="kode_bumdes" class="form-control" required
+                               placeholder="BUMDES001">
+                    </div>
 
-        <div class="logo">
-            <h1>e-BUMDesa</h1>
-            <p>Dashboard</p>
+                    <div class="col-md-6">
+                        <label class="form-label">Desa *</label>
+                        <input id="desa" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Kecamatan *</label>
+                        <input id="kecamatan" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Kabupaten *</label>
+                        <input id="kabupaten" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Provinsi *</label>
+                        <input id="provinsi" class="form-control" required>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Alamat</label>
+                        <input id="alamat" class="form-control">
+                    </div>
+
+                    <div class="col-12">
+                        <hr class="my-2">
+                        <h5>Unit Usaha Pertama</h5>
+                        <p class="text-secondary small">
+                            Setiap BUMDes baru otomatis memiliki satu Unit Usaha.
+                            Nama dan kode ini nantinya dapat diubah.
+                        </p>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="form-label">Nama Unit Usaha *</label>
+                        <input id="nama_unit" class="form-control" required
+                               placeholder="Contoh: Unit Wisata">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Kode Unit *</label>
+                        <input id="kode_unit" class="form-control" required
+                               placeholder="U01">
+                    </div>
+
+                    <div class="col-12">
+                        <button id="registerBtn" type="submit"
+                                class="btn btn-primary w-100 mt-2">
+                            <i class="bi bi-building-add me-1"></i>
+                            Daftarkan BUMDes
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="registerMessage" class="alert alert-danger mt-3 hidden"></div>
         </div>
-
-        <div class="user-info">
-            <strong id="userName">-</strong><br>
-            <span id="userEmail">-</span>
-        </div>
-
-        <div class="dashboard-box">
-            <h3 id="bumdesName">-</h3>
-
-            <p>
-                <strong>Peran:</strong>
-                <span id="userRole">-</span>
-            </p>
-
-            <p>
-                <strong>Unit Usaha:</strong>
-                <span id="unitName">-</span>
-            </p>
-        </div>
-
-        <div class="dashboard-box">
-            <h3>Keuangan Pusat</h3>
-            <p>
-                Modul keuangan akan kita bangun pada tahap berikutnya.
-            </p>
-        </div>
-
-        <div class="dashboard-box">
-            <h3>Unit Usaha</h3>
-            <p>
-                Pengelolaan Unit Usaha akan tersedia di sini.
-            </p>
-        </div>
-
-        <button
-            id="logoutBtn"
-            class="logout-btn">
-            Keluar
-        </button>
-
     </div>
-</div>
+</section>
 
+<!-- APP -->
+<section id="appPage" class="hidden">
+    <aside id="sidebar" class="sidebar">
+        <div class="brand">E-BUMDesa</div>
+
+        <div class="side-section">UTAMA</div>
+        <a class="side-link active" href="#">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+
+        <div class="side-section">KEUANGAN PUSAT</div>
+        <a class="side-link" href="#"><i class="bi bi-wallet2"></i> Kas & Bank</a>
+        <a class="side-link" href="#"><i class="bi bi-receipt"></i> Transaksi</a>
+        <a class="side-link" href="#"><i class="bi bi-journal-text"></i> Jurnal</a>
+        <a class="side-link" href="#"><i class="bi bi-book"></i> Buku Besar</a>
+        <a class="side-link" href="#"><i class="bi bi-arrow-down-left-square"></i> Saldo Awal</a>
+        <a class="side-link" href="#"><i class="bi bi-sliders"></i> Penyesuaian</a>
+        <a class="side-link" href="#"><i class="bi bi-box-seam"></i> Aset</a>
+
+        <div class="side-section">UNIT USAHA</div>
+        <a class="side-link" href="#"><i class="bi bi-buildings"></i> Daftar Unit</a>
+        <a class="side-link" href="#"><i class="bi bi-plus-circle"></i> Tambah Unit</a>
+
+        <div class="side-section">LAPORAN</div>
+        <a class="side-link" href="#"><i class="bi bi-graph-up"></i> Laba Rugi</a>
+        <a class="side-link" href="#"><i class="bi bi-bar-chart"></i> Neraca</a>
+        <a class="side-link" href="#"><i class="bi bi-cash-stack"></i> Arus Kas</a>
+        <a class="side-link" href="#"><i class="bi bi-pie-chart"></i> Perubahan Ekuitas</a>
+        <a class="side-link" href="#"><i class="bi bi-file-text"></i> CALK</a>
+
+        <div class="side-section">SISTEM</div>
+        <a class="side-link" href="#"><i class="bi bi-people"></i> Pengguna</a>
+        <a class="side-link" href="#"><i class="bi bi-gear"></i> Pengaturan</a>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-2">
+                <button id="mobileMenuBtn" class="btn btn-light mobile-menu">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div>
+                    <div class="fw-semibold">Dashboard</div>
+                    <div id="topBumdesName" class="small text-secondary"></div>
+                </div>
+            </div>
+
+            <div class="top-user">
+                <div id="topUserName" class="d-none d-sm-block">Admin</div>
+                <div class="avatar"><i class="bi bi-person"></i></div>
+                <button id="logoutBtn" class="btn btn-sm btn-outline-secondary">
+                    Keluar
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="row g-3">
+                <div class="col-6 col-xl-3">
+                    <div class="summary-card">
+                        <div class="summary-title">Semua Pendapatan<br>Bulan Ini</div>
+                        <div class="summary-value">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="summary-card">
+                        <div class="summary-title">Semua Pendapatan<br>Tahun Ini</div>
+                        <div class="summary-value">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="summary-card">
+                        <div class="summary-title">Semua Operasional<br>Bulan Ini</div>
+                        <div class="summary-value">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="summary-card">
+                        <div class="summary-title">Semua Operasional<br>Tahun Ini</div>
+                        <div class="summary-value">Rp 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                <h5 class="mb-0">Unit Usaha</h5>
+                <span class="badge text-bg-light border">Admin Pusat</span>
+            </div>
+
+            <div id="unitCards" class="row g-3">
+                <!-- Unit cards dibuat dari database -->
+            </div>
+
+            <div class="row g-3 mt-2">
+                <div class="col-lg-8">
+                    <div class="panel">
+                        <div class="panel-title">
+                            <i class="bi bi-bar-chart-line me-1"></i>
+                            Grafik Pendapatan & Operasional Bulanan
+                        </div>
+                        <div class="empty-chart">
+                            Grafik akan terhubung ke transaksi keuangan.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="panel">
+                        <div class="panel-title">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            Kalender
+                        </div>
+                        <div class="calendar-placeholder">
+                            Kalender
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel mt-3">
+                <div class="panel-title">Informasi BUMDes</div>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <span class="text-secondary small">Nama BUMDes</span>
+                        <div id="infoBumdesName" class="fw-semibold">-</div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <span class="text-secondary small">Kode</span>
+                        <div id="infoBumdesCode" class="fw-semibold">-</div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <span class="text-secondary small">Tahun Buku</span>
+                        <div id="infoTahunBuku" class="fw-semibold">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</section>
 
 <script>
+    // =========================================================
+    // SUPABASE CONFIG
+    // =========================================================
+    const SUPABASE_URL = "https://caqbwgquyfthgzpjiblx.supabase.co";
 
-    // =====================================================
-    // KONFIGURASI SUPABASE
-    // =====================================================
+    // GANTI dengan Publishable key / anon public key dari:
+    // Supabase > Project Settings > API
+    const SUPABASE_ANON_KEY = "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
 
-    const SUPABASE_URL =
-        "https://caqbwgquyfthgzpjiblx.supabase.co";
+    const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
 
-    const SUPABASE_ANON_KEY =
-        "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
+    // =========================================================
+    // HELPERS
+    // =========================================================
+    const $ = (id) => document.getElementById(id);
 
-    const supabaseClient =
-        window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_ANON_KEY
-        );
-
-
-    // =====================================================
-    // ELEMENT
-    // =====================================================
-
-    const loadingPage =
-        document.getElementById("loadingPage");
-
-    const loginPage =
-        document.getElementById("loginPage");
-
-    const registerPage =
-        document.getElementById("registerPage");
-
-    const dashboardPage =
-        document.getElementById("dashboardPage");
-
-
-    // =====================================================
-    // PAGE
-    // =====================================================
-
-    function showPage(page) {
-
-        loadingPage.classList.add("hidden");
-        loginPage.classList.add("hidden");
-        registerPage.classList.add("hidden");
-        dashboardPage.classList.add("hidden");
-
-        page.classList.remove("hidden");
-    }
-
-
-    function showMessage(element, message) {
-
-        element.textContent = message;
-        element.classList.remove("hidden");
-    }
-
-
-    // =====================================================
-    // GOOGLE LOGIN
-    // =====================================================
-
-    document
-        .getElementById("googleLoginBtn")
-        .addEventListener("click", async () => {
-
-            const button =
-                document.getElementById("googleLoginBtn");
-
-            button.disabled = true;
-            button.textContent = "Menghubungkan...";
-
-            const { error } =
-                await supabaseClient.auth.signInWithOAuth({
-                    provider: "google",
-                    options: {
-                        redirectTo:
-                            window.location.origin
-                    }
-                });
-
-            if (error) {
-
-                const message =
-                    document.getElementById("loginMessage");
-
-                showMessage(
-                    message,
-                    "Gagal Login: " + error.message
-                );
-
-                button.disabled = false;
-                button.textContent =
-                    "🔐 Masuk dengan Google";
-            }
-
+    function showOnly(id) {
+        ["loadingPage", "loginPage", "registerPage", "appPage"].forEach(x => {
+            $(x).classList.add("hidden");
         });
+        $(id).classList.remove("hidden");
+    }
 
+    function showError(id, message) {
+        const el = $(id);
+        el.textContent = message;
+        el.classList.remove("hidden");
+    }
 
-    // =====================================================
-    // CEK PROFILE
-    // =====================================================
+    function hideError(id) {
+        $(id).classList.add("hidden");
+    }
 
-    async function checkUser() {
+    function rupiah(value) {
+        return new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            maximumFractionDigits: 0
+        }).format(value || 0);
+    }
 
-        const {
-            data: {
-                session
-            }
-        } = await supabaseClient.auth.getSession();
+    // =========================================================
+    // LOAD SESSION
+    // =========================================================
+    async function startApp() {
+        const { data, error } = await supabaseClient.auth.getSession();
 
-        if (!session) {
-
-            showPage(loginPage);
-
+        if (error) {
+            console.error(error);
+            showOnly("loginPage");
             return;
         }
 
-        await loadUser(session.user);
+        if (!data.session) {
+            showOnly("loginPage");
+            return;
+        }
+
+        await handleUser(data.session.user);
     }
 
-
-    // =====================================================
-    // LOAD USER
-    // =====================================================
-
-    async function loadUser(user) {
-
-        const {
-            data: profile,
-            error
-        } = await supabaseClient
+    // =========================================================
+    // USER / PROFILE
+    // =========================================================
+    async function handleUser(user) {
+        const { data: profile, error } = await supabaseClient
             .from("profiles")
             .select("*")
             .eq("id", user.id)
             .maybeSingle();
 
-
         if (error) {
-
             console.error(error);
-
-            showPage(loginPage);
-
+            showError("loginMessage", "Gagal membaca profil: " + error.message);
+            showOnly("loginPage");
             return;
         }
 
-
-        // USER BARU
         if (!profile) {
-
-            showPage(registerPage);
-
+            showOnly("registerPage");
             return;
         }
 
-
-        // USER SUDAH TERDAFTAR
         await loadDashboard(profile);
     }
 
+    // =========================================================
+    // GOOGLE LOGIN
+    // =========================================================
+    $("googleLoginBtn").addEventListener("click", async () => {
+        const btn = $("googleLoginBtn");
+        hideError("loginMessage");
 
-    // =====================================================
-    // REGISTRASI BUMDES
-    // =====================================================
+        btn.disabled = true;
+        btn.innerHTML = `
+            <span class="spinner-border spinner-border-sm"></span>
+            <span>Menghubungkan ke Google...</span>
+        `;
 
-    document
-        .getElementById("registerForm")
-        .addEventListener("submit", async (event) => {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
 
-            event.preventDefault();
+        if (error) {
+            console.error(error);
+            showError("loginMessage", "Gagal Login: " + error.message);
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg class="google-logo" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M21.35 12.23c0-.68-.06-1.34-.18-1.97H12v3.73h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.15z"/>
+                    <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.93-3.31.93-2.54 0-4.69-1.72-5.46-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.6z"/>
+                    <path fill="#FBBC05" d="M6.54 13.69A5.86 5.86 0 0 1 6.23 12c0-.59.11-1.17.31-1.69V7.78H3.29A9.74 9.74 0 0 0 2.25 12c0 1.57.38 3.05 1.04 4.22l3.25-2.53z"/>
+                    <path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.84 3.3 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.71 5.38l3.25 2.53C7.31 8 9.46 6.28 12 6.28z"/>
+                </svg>
+                <span>Masuk dengan Google</span>
+            `;
+        }
+    });
 
-            const button =
-                document.getElementById("registerBtn");
+    // =========================================================
+    // REGISTER BUMDES
+    // =========================================================
+    $("registerForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-            const message =
-                document.getElementById("registerMessage");
+        const btn = $("registerBtn");
+        hideError("registerMessage");
 
+        btn.disabled = true;
+        btn.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            Mendaftarkan...
+        `;
 
-            button.disabled = true;
-            button.textContent = "Mendaftarkan...";
-
-            message.classList.add("hidden");
-
-
-            const {
-                data: {
-                    session
-                }
-            } = await supabaseClient.auth.getSession();
-
+        try {
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            const session = sessionData.session;
 
             if (!session) {
-
-                showMessage(
-                    message,
-                    "Sesi login sudah berakhir. Silakan login kembali."
-                );
-
-                button.disabled = false;
-                button.textContent =
-                    "Daftarkan BUMDes";
-
-                return;
+                throw new Error("Sesi login tidak ditemukan. Silakan login kembali.");
             }
 
-
-            const { data, error } =
-                await supabaseClient.rpc(
-                    "register_bumdes",
-                    {
-                        p_nama_bumdes:
-                            document
-                                .getElementById("nama_bumdes")
-                                .value,
-
-                        p_kode_bumdes:
-                            document
-                                .getElementById("kode_bumdes")
-                                .value,
-
-                        p_desa:
-                            document
-                                .getElementById("desa")
-                                .value,
-
-                        p_kecamatan:
-                            document
-                                .getElementById("kecamatan")
-                                .value,
-
-                        p_kabupaten:
-                            document
-                                .getElementById("kabupaten")
-                                .value,
-
-                        p_provinsi:
-                            document
-                                .getElementById("provinsi")
-                                .value,
-
-                        p_alamat:
-                            document
-                                .getElementById("alamat")
-                                .value,
-
-                        p_nama_unit:
-                            document
-                                .getElementById("nama_unit")
-                                .value,
-
-                        p_kode_unit:
-                            document
-                                .getElementById("kode_unit")
-                                .value
-                    }
-                );
-
-
-            if (error) {
-
-                console.error(error);
-
-                showMessage(
-                    message,
-                    "Pendaftaran gagal: " +
-                    error.message
-                );
-
-                button.disabled = false;
-                button.textContent =
-                    "Daftarkan BUMDes";
-
-                return;
-            }
-
-
-            alert(
-                "Pendaftaran BUMDes berhasil!"
+            const { data, error } = await supabaseClient.rpc(
+                "register_bumdes",
+                {
+                    p_nama_bumdes: $("nama_bumdes").value.trim(),
+                    p_kode_bumdes: $("kode_bumdes").value.trim(),
+                    p_desa: $("desa").value.trim(),
+                    p_kecamatan: $("kecamatan").value.trim(),
+                    p_kabupaten: $("kabupaten").value.trim(),
+                    p_provinsi: $("provinsi").value.trim(),
+                    p_alamat: $("alamat").value.trim(),
+                    p_nama_unit: $("nama_unit").value.trim(),
+                    p_kode_unit: $("kode_unit").value.trim()
+                }
             );
 
+            if (error) throw error;
 
-            await checkUser();
+            alert("Pendaftaran BUMDes berhasil.");
+            await handleUser(session.user);
 
-        });
+        } catch (error) {
+            console.error(error);
+            showError("registerMessage", "Pendaftaran gagal: " + error.message);
 
+            btn.disabled = false;
+            btn.innerHTML = `
+                <i class="bi bi-building-add me-1"></i>
+                Daftarkan BUMDes
+            `;
+        }
+    });
 
-    // =====================================================
+    // =========================================================
     // DASHBOARD
-    // =====================================================
-
+    // =========================================================
     async function loadDashboard(profile) {
-
         let bumdes = null;
-        let unit = null;
 
+        const bumdesResult = await supabaseClient
+            .from("bumdes")
+            .select("*")
+            .eq("id", profile.bumdes_id)
+            .maybeSingle();
 
-        // Ambil BUMDes
-        if (profile.bumdes_id) {
-
-            const result =
-                await supabaseClient
-                    .from("bumdes")
-                    .select("*")
-                    .eq("id", profile.bumdes_id)
-                    .maybeSingle();
-
-            bumdes = result.data;
+        if (bumdesResult.error) {
+            console.error(bumdesResult.error);
         }
 
+        bumdes = bumdesResult.data;
 
-        // Ambil unit jika profile memiliki unit
-        if (profile.unit_id) {
+        $("topUserName").textContent = profile.nama || profile.email || "Admin";
+        $("topBumdesName").textContent = bumdes?.nama || "";
+        $("infoBumdesName").textContent = bumdes?.nama || "-";
+        $("infoBumdesCode").textContent = bumdes?.kode || "-";
+        $("infoTahunBuku").textContent = bumdes?.tahun_buku || "-";
 
-            const result =
-                await supabaseClient
-                    .from("units")
-                    .select("*")
-                    .eq("id", profile.unit_id)
-                    .maybeSingle();
+        await loadUnits(profile.bumdes_id);
 
-            unit = result.data;
+        showOnly("appPage");
+    }
+
+    async function loadUnits(bumdesId) {
+        const container = $("unitCards");
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="text-secondary small">
+                    Memuat Unit Usaha...
+                </div>
+            </div>
+        `;
+
+        const { data: units, error } = await supabaseClient
+            .from("units")
+            .select("*")
+            .eq("bumdes_id", bumdesId)
+            .eq("status", "aktif")
+            .order("created_at", { ascending: true });
+
+        if (error) {
+            console.error(error);
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        Gagal memuat Unit Usaha: ${escapeHtml(error.message)}
+                    </div>
+                </div>
+            `;
+            return;
         }
 
+        if (!units?.length) {
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="unit-card">
+                        Belum ada Unit Usaha.
+                    </div>
+                </div>
+            `;
+            return;
+        }
 
-        document.getElementById("userName")
-            .textContent =
-            profile.nama || "-";
-
-        document.getElementById("userEmail")
-            .textContent =
-            profile.email || "-";
-
-        document.getElementById("bumdesName")
-            .textContent =
-            bumdes
-                ? bumdes.nama
-                : "-";
-
-        document.getElementById("userRole")
-            .textContent =
-            translateRole(profile.role);
-
-        document.getElementById("unitName")
-            .textContent =
-            unit
-                ? unit.nama_unit
-                : "Kantor Pusat";
-
-
-        showPage(dashboardPage);
+        container.innerHTML = units.map(unit => `
+            <div class="col-sm-6 col-xl-3">
+                <div class="unit-card">
+                    <div class="unit-title">
+                        ${escapeHtml(unit.nama_unit)}
+                    </div>
+                    <div class="unit-stat">
+                        PENDAPATAN = <strong>Rp 0</strong>
+                    </div>
+                    <div class="unit-stat">
+                        OPERASIONAL = <strong>Rp 0</strong>
+                    </div>
+                </div>
+            </div>
+        `).join("");
     }
 
-
-    function translateRole(role) {
-
-        const roles = {
-
-            super_admin:
-                "Super Admin",
-
-            admin_pusat:
-                "Admin Pusat",
-
-            admin_unit:
-                "Admin Unit",
-
-            operator_unit:
-                "Operator Unit"
-        };
-
-        return roles[role] || role;
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
-
-    // =====================================================
+    // =========================================================
     // LOGOUT
-    // =====================================================
+    // =========================================================
+    $("logoutBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        showOnly("loginPage");
+    });
 
-    document
-        .getElementById("logoutBtn")
-        .addEventListener("click", async () => {
+    // =========================================================
+    // MOBILE SIDEBAR
+    // =========================================================
+    $("mobileMenuBtn").addEventListener("click", () => {
+        $("sidebar").classList.toggle("open");
+    });
 
-            await supabaseClient.auth.signOut();
-
-            showPage(loginPage);
-        });
-
-
-    // =====================================================
+    // =========================================================
     // AUTH STATE
-    // =====================================================
+    // =========================================================
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_OUT") {
+            showOnly("loginPage");
+        }
+    });
 
-    supabaseClient.auth
-        .onAuthStateChange(
-            async (event, session) => {
-
-                if (event === "SIGNED_OUT") {
-
-                    showPage(loginPage);
-
-                    return;
-                }
-
-                if (
-                    session &&
-                    event === "SIGNED_IN"
-                ) {
-
-                    await loadUser(
-                        session.user
-                    );
-                }
-
-            }
-        );
-
-
-    // =====================================================
+    // =========================================================
     // START
-    // =====================================================
-
-    checkUser();
-
+    // =========================================================
+    startApp();
 </script>
 
 </body>
