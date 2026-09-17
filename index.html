@@ -64,6 +64,17 @@
             text-align: center;
         }
 
+        .login-logo {
+            width: 115px;
+            height: 115px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 10px;
+            background: #fff;
+            border-radius: 14px;
+            padding: 7px;
+        }
+
         .login-brand h1 {
             margin: 0;
             font-weight: 700;
@@ -122,15 +133,21 @@
         }
 
         .brand {
-            height: 64px;
+            height: 76px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: var(--accent);
-            color: #fff;
-            font-weight: 700;
-            font-size: 19px;
             border-bottom: 1px solid rgba(0,0,0,.08);
+        }
+
+        .sidebar-logo {
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            background: #fff;
+            border-radius: 10px;
+            padding: 4px;
         }
 
         .side-section {
@@ -323,6 +340,9 @@
 <section id="loginPage" class="hidden">
     <div class="login-card">
         <div class="login-brand">
+            <img src="e-bumdesa-logo.png"
+                 alt="Logo e-BUMDesa"
+                 class="login-logo">
             <h1>e-BUMDesa</h1>
             <p>Sistem Keuangan BUM Desa</p>
         </div>
@@ -437,7 +457,11 @@
 <!-- APP -->
 <section id="appPage" class="hidden">
     <aside id="sidebar" class="sidebar">
-        <div class="brand">E-BUMDesa</div>
+        <div class="brand">
+            <img src="e-bumdesa-logo.png"
+                 alt="e-BUMDesa"
+                 class="sidebar-logo">
+        </div>
 
         <div class="side-section">UTAMA</div>
         <a class="side-link active" href="#">
