@@ -1404,6 +1404,43 @@
             .invoice-print-label { font-size:25px; }
         }
 
+        /* ===== SUPER ADMIN ===== */
+        #superAdminPage { min-height:100vh; background:#f4f6f9; color:#25313c; overflow-y:auto; }
+        .sa-shell { width:min(1200px,calc(100% - 36px)); margin:0 auto; padding:26px 0 42px; }
+        .sa-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; background:#fff; border:1px solid var(--border); border-radius:14px; padding:15px 18px; margin-bottom:18px; }
+        .sa-brand { display:flex; align-items:center; gap:10px; }
+        .sa-brand img { width:42px; height:42px; object-fit:contain; }
+        .sa-brand strong { display:block; color:#24549a; font-size:19px; font-weight:800; }
+        .sa-brand span { display:block; color:#7a8999; font-size:10px; margin-top:2px; }
+        .sa-user { text-align:right; color:#63758a; font-size:11px; }
+        .sa-user strong { display:block; color:#25313c; font-size:12px; }
+        .sa-title { margin:4px 0 18px; }
+        .sa-title h1 { margin:0; color:#17365f; font-size:27px; font-weight:800; }
+        .sa-title p { margin:5px 0 0; color:#7a8999; font-size:12px; }
+        .sa-stat { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; height:100%; }
+        .sa-stat-label { color:#7b8a9a; font-size:10px; text-transform:uppercase; letter-spacing:.5px; }
+        .sa-stat-value { margin-top:6px; color:#24549a; font-size:24px; font-weight:800; }
+        .sa-panel { background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; height:100%; }
+        .sa-panel-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:13px; }
+        .sa-panel-title strong { color:#30445a; font-size:14px; }
+        .sa-table-wrap { overflow:auto; }
+        .sa-table { width:100%; border-collapse:collapse; min-width:650px; }
+        .sa-table th { background:#f7f9fb; color:#718093; font-size:9px; text-transform:uppercase; letter-spacing:.4px; padding:10px 9px; text-align:left; border-bottom:1px solid #e7ebf0; }
+        .sa-table td { color:#43566b; font-size:11px; padding:10px 9px; border-bottom:1px solid #edf0f4; vertical-align:middle; }
+        .sa-table tr:last-child td { border-bottom:0; }
+        .sa-badge { display:inline-flex; padding:4px 8px; border-radius:999px; font-size:9px; font-weight:800; }
+        .sa-badge.active { background:#eaf7ee; color:#2d7a48; }
+        .sa-badge.pending { background:#fff6df; color:#9a6a00; }
+        .sa-badge.expired,.sa-badge.failed,.sa-badge.cancelled,.sa-badge.suspended { background:#fcebed; color:#a33c48; }
+        .sa-empty { text-align:center; color:#8996a6; font-size:11px; padding:24px 10px; }
+        .sa-logout { border:1px solid #d8e0e9; background:#fff; color:#5e7187; border-radius:8px; padding:7px 10px; font-size:10px; font-weight:750; }
+        @media (max-width:700px) {
+            .sa-shell { width:min(100% - 20px,1200px); padding-top:16px; }
+            .sa-topbar { align-items:flex-start; }
+            .sa-user { display:none; }
+            .sa-title h1 { font-size:23px; }
+        }
+
 </style>
 
 
@@ -1794,6 +1831,56 @@
     </div>
 </section>
 
+
+<!-- SUPER ADMIN -->
+<section id="superAdminPage" class="hidden">
+    <div class="sa-shell">
+        <div class="sa-topbar">
+            <div class="sa-brand">
+                <img src="e-bumdesa-logo.png" alt="Logo e-BUMDesa">
+                <div>
+                    <strong>e-BUMDesa</strong>
+                    <span>Panel Super Admin</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div id="saUserInfo" class="sa-user">
+                    <strong id="saUserName">Super Admin</strong>
+                    <span id="saUserEmail">-</span>
+                </div>
+                <button id="superAdminLogoutBtn" class="sa-logout" type="button">Keluar</button>
+            </div>
+        </div>
+
+        <div class="sa-title">
+            <h1>Dashboard Super Admin</h1>
+            <p>Administrasi platform e-BUMDesa, BUMDes pelanggan, langganan, dan pembayaran.</p>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-xl-3"><div class="sa-stat"><div class="sa-stat-label">Total BUMDes</div><div id="saTotalBumdes" class="sa-stat-value">0</div></div></div>
+            <div class="col-6 col-xl-3"><div class="sa-stat"><div class="sa-stat-label">Langganan Aktif</div><div id="saActiveSubscriptions" class="sa-stat-value">0</div></div></div>
+            <div class="col-6 col-xl-3"><div class="sa-stat"><div class="sa-stat-label">Invoice Pending</div><div id="saPendingInvoices" class="sa-stat-value">0</div></div></div>
+            <div class="col-6 col-xl-3"><div class="sa-stat"><div class="sa-stat-label">Invoice Lunas</div><div id="saPaidInvoices" class="sa-stat-value">0</div></div></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="sa-panel">
+                    <div class="sa-panel-title"><strong>Daftar BUMDes</strong><span id="saBumdesCount" class="text-secondary" style="font-size:10px">0 data</span></div>
+                    <div id="saBumdesTable" class="sa-table-wrap"><div class="sa-empty">Memuat data...</div></div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="sa-panel">
+                    <div class="sa-panel-title"><strong>Pembayaran Terbaru</strong><span style="font-size:10px;color:#8996a6">10 terakhir</span></div>
+                    <div id="saPaymentTable" class="sa-table-wrap"><div class="sa-empty">Memuat data...</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- APP -->
 <section id="appPage" class="hidden">
     <aside id="sidebar" class="sidebar">
@@ -1966,7 +2053,7 @@
     const $ = (id) => document.getElementById(id);
 
     function showOnly(id) {
-        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "customerSubscriptionPage", "invoicePrintPage", "appPage"].forEach(x => {
+        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "customerSubscriptionPage", "invoicePrintPage", "superAdminPage", "appPage"].forEach(x => {
             $(x).classList.add("hidden");
         });
         $(id).classList.remove("hidden");
@@ -2041,9 +2128,9 @@
             return;
         }
 
-        // Super Admin tidak terikat langganan BUMDes.
+        // Super Admin adalah pengelola platform e-BUMDesa, bukan pelanggan BUMDes.
         if (profile.role === "super_admin") {
-            await loadDashboard(profile);
+            await loadSuperAdminDashboard(profile);
             return;
         }
 
@@ -2213,6 +2300,70 @@
             `;
         }
     });
+
+    // =========================================================
+    // SUPER ADMIN DASHBOARD
+    // =========================================================
+    async function loadSuperAdminDashboard(profile) {
+        $("saUserName").textContent = profile.nama || "Super Admin";
+        $("saUserEmail").textContent = profile.email || "";
+
+        const [bumdesRes, subsRes, paymentsRes] = await Promise.all([
+            supabaseClient.from("bumdes").select("id,nama,kode,desa,kecamatan,kabupaten,status,created_at").order("created_at", { ascending:false }),
+            supabaseClient.from("subscriptions").select("id,bumdes_id,status,plan_name,amount,expires_at"),
+            supabaseClient.from("payments").select("id,bumdes_id,invoice_number,amount,status,payment_method,paid_at,created_at").order("created_at", { ascending:false }).limit(10)
+        ]);
+
+        if (bumdesRes.error || subsRes.error || paymentsRes.error) {
+            console.error("Super Admin load error", bumdesRes.error, subsRes.error, paymentsRes.error);
+            alert("Gagal memuat data Super Admin. Silakan muat ulang halaman.");
+            showOnly("superAdminPage");
+            return;
+        }
+
+        const bumdes = bumdesRes.data || [];
+        const subs = subsRes.data || [];
+        const payments = paymentsRes.data || [];
+
+        $("saTotalBumdes").textContent = bumdes.length;
+        $("saActiveSubscriptions").textContent = subs.filter(x => x.status === "active" && x.expires_at && new Date(x.expires_at) > new Date()).length;
+        $("saPendingInvoices").textContent = payments.filter(x => x.status === "pending").length;
+        $("saPaidInvoices").textContent = payments.filter(x => x.status === "paid").length;
+        $("saBumdesCount").textContent = `${bumdes.length} data`;
+
+        const subByBumdes = Object.fromEntries(subs.map(x => [x.bumdes_id, x]));
+        const statusClass = status => String(status || "").toLowerCase().replace(/[^a-z]/g, "") || "pending";
+        const statusLabel = status => ({active:"Aktif",pending:"Menunggu",expired:"Berakhir",cancelled:"Dibatalkan",suspended:"Ditangguhkan"}[status] || status || "-");
+
+        $("saBumdesTable").innerHTML = bumdes.length ? `
+            <table class="sa-table">
+                <thead><tr><th>BUMDes</th><th>Kode</th><th>Lokasi</th><th>Langganan</th><th>Status</th></tr></thead>
+                <tbody>${bumdes.map(b => {
+                    const sub = subByBumdes[b.id];
+                    const st = sub?.status || "pending";
+                    return `<tr>
+                        <td><strong>${escapeHtml(b.nama || "-")}</strong></td>
+                        <td>${escapeHtml(b.kode || "-")}</td>
+                        <td>${escapeHtml([b.desa,b.kecamatan,b.kabupaten].filter(Boolean).join(", ") || "-")}</td>
+                        <td>${escapeHtml(sub?.plan_name || "-")}</td>
+                        <td><span class="sa-badge ${statusClass(st)}">${escapeHtml(statusLabel(st))}</span></td>
+                    </tr>`;
+                }).join("")}</tbody>
+            </table>` : '<div class="sa-empty">Belum ada BUMDes terdaftar.</div>';
+
+        $("saPaymentTable").innerHTML = payments.length ? `
+            <table class="sa-table" style="min-width:480px">
+                <thead><tr><th>Invoice</th><th>Jumlah</th><th>Status</th><th>Tanggal</th></tr></thead>
+                <tbody>${payments.map(p => `<tr>
+                    <td><strong>${escapeHtml(p.invoice_number || "-")}</strong></td>
+                    <td>${rupiah(p.amount)}</td>
+                    <td><span class="sa-badge ${statusClass(p.status)}">${escapeHtml(invoiceStatusLabel(p.status))}</span></td>
+                    <td>${p.paid_at ? new Date(p.paid_at).toLocaleDateString("id-ID") : new Date(p.created_at).toLocaleDateString("id-ID")}</td>
+                </tr>`).join("")}</tbody>
+            </table>` : '<div class="sa-empty">Belum ada pembayaran.</div>';
+
+        showOnly("superAdminPage");
+    }
 
     // =========================================================
     // DASHBOARD
@@ -2446,6 +2597,11 @@
         } else {
             alert("Invoice ini belum memiliki tautan pembayaran. Integrasi Midtrans akan mengisinya secara otomatis.");
         }
+    });
+
+    $("superAdminLogoutBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        showOnly("loginPage");
     });
 
     // =========================================================
