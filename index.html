@@ -1834,6 +1834,152 @@
             .sa-filter { width: 100%; }
         }
 
+
+        /* =====================================================
+           LANGGANAN & INVOICE - ADMIN PUSAT
+           ===================================================== */
+        #customerSubscriptionPage {
+            min-height: 100vh;
+            background: #f5f7fb;
+            overflow-y: auto;
+            color: #26364a;
+        }
+        .customer-sub-shell {
+            width: min(960px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 40px;
+        }
+        .customer-sub-head {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:15px;
+            margin-bottom:18px;
+        }
+        .customer-sub-brand {
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        .customer-sub-brand img { width:38px;height:38px;object-fit:contain; }
+        .customer-sub-brand strong { font-size:18px;font-weight:800; }
+        .customer-sub-user {
+            text-align:right;
+            font-size:10px;
+            color:#7f8d9e;
+        }
+        .customer-sub-card {
+            background:#fff;
+            border:1px solid #e7ecf2;
+            border-radius:15px;
+            box-shadow:0 8px 28px rgba(35,55,80,.06);
+            padding:20px;
+            margin-bottom:15px;
+        }
+        .customer-sub-title {
+            margin:0;
+            font-size:22px;
+            font-weight:800;
+        }
+        .customer-sub-muted { color:#8492a3;font-size:11px;margin-top:4px; }
+        .customer-sub-grid {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px;
+            margin-top:16px;
+        }
+        .customer-sub-stat {
+            background:#f8fafc;
+            border:1px solid #edf0f4;
+            border-radius:10px;
+            padding:12px;
+        }
+        .customer-sub-stat span {
+            display:block;color:#8996a6;font-size:9px;text-transform:uppercase;letter-spacing:.35px;
+        }
+        .customer-sub-stat strong { display:block;margin-top:4px;font-size:13px; }
+        .invoice-list { margin-top:16px; }
+        .invoice-row {
+            display:grid;
+            grid-template-columns:1.3fr .8fr .7fr .8fr auto;
+            align-items:center;
+            gap:10px;
+            padding:12px 0;
+            border-bottom:1px solid #edf0f4;
+            font-size:11px;
+        }
+        .invoice-row:last-child { border-bottom:0; }
+        .invoice-number { font-weight:800;color:#315f98; }
+        .invoice-meta { color:#7e8b9c;font-size:9px;margin-top:3px; }
+        .invoice-status {
+            display:inline-flex;padding:4px 8px;border-radius:999px;
+            font-size:9px;font-weight:800;
+        }
+        .invoice-status.paid { background:#eaf7ee;color:#2d7a48; }
+        .invoice-status.pending { background:#fff6df;color:#9a6a00; }
+        .invoice-status.failed,.invoice-status.expired,.invoice-status.cancelled {
+            background:#fcebed;color:#a33c48;
+        }
+        .invoice-btn {
+            border:1px solid #dce4ee;background:#fff;color:#315f98;
+            border-radius:8px;padding:7px 10px;font-size:10px;font-weight:750;
+        }
+        .invoice-btn.primary {
+            border:0;background:#2f67b7;color:#fff;
+        }
+        .invoice-empty { text-align:center;padding:28px 10px;color:#8a97a7;font-size:11px; }
+        .invoice-create {
+            display:flex;align-items:center;justify-content:space-between;gap:12px;
+        }
+        .invoice-create-btn {
+            border:0;background:#2f67b7;color:#fff;border-radius:9px;
+            padding:9px 13px;font-size:10px;font-weight:800;
+        }
+        .invoice-print {
+            width:min(800px,100%);
+            margin:0 auto;
+            background:#fff;
+            padding:36px;
+            color:#202b38;
+        }
+        .invoice-print-head {
+            display:flex;justify-content:space-between;gap:20px;
+            border-bottom:2px solid #e8edf3;padding-bottom:18px;margin-bottom:22px;
+        }
+        .invoice-print-brand { font-size:20px;font-weight:800; }
+        .invoice-print-label { font-size:26px;font-weight:900;text-align:right; }
+        .invoice-print-number { color:#64748b;font-size:11px;text-align:right;margin-top:4px; }
+        .invoice-print-grid {
+            display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;
+        }
+        .invoice-print-box {
+            border:1px solid #e5eaf0;border-radius:10px;padding:13px;
+        }
+        .invoice-print-box small { display:block;color:#8794a5;font-size:9px;text-transform:uppercase; }
+        .invoice-print-box strong { display:block;margin-top:5px;font-size:12px; }
+        .invoice-total {
+            display:flex;justify-content:space-between;align-items:center;
+            border-top:1px solid #dfe5ed;border-bottom:1px solid #dfe5ed;
+            padding:16px 0;margin-top:18px;
+        }
+        .invoice-total strong { font-size:21px; }
+        .invoice-print-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:18px; }
+        @media print {
+            body * { visibility:hidden !important; }
+            #invoicePrintArea, #invoicePrintArea * { visibility:visible !important; }
+            #invoicePrintArea { position:absolute !important;left:0;top:0;width:100%; }
+            .no-print { display:none !important; }
+        }
+        @media (max-width:700px) {
+            .customer-sub-shell { width:calc(100% - 20px);padding-top:18px; }
+            .customer-sub-head { align-items:flex-start; }
+            .customer-sub-user { display:none; }
+            .customer-sub-grid,.invoice-print-grid { grid-template-columns:1fr; }
+            .invoice-row { grid-template-columns:1fr 1fr; }
+            .invoice-row > :last-child { grid-column:1/-1; }
+            .invoice-print { padding:22px; }
+        }
+
 </style>
 
 
@@ -2327,6 +2473,125 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
     </div>
 </div>
 
+
+<!-- LANGGANAN ADMIN PUSAT -->
+<section id="customerSubscriptionPage" class="hidden">
+    <div class="customer-sub-shell">
+        <header class="customer-sub-head">
+            <div class="customer-sub-brand">
+                <img src="e-bumdesa-logo.png" alt="Logo e-BUMDesa">
+                <strong>e-BUMDesa</strong>
+            </div>
+            <div class="customer-sub-user">
+                <div id="customerSubUserName"></div>
+                <div id="customerSubUserEmail"></div>
+            </div>
+        </header>
+
+        <div class="customer-sub-card">
+            <h1 class="customer-sub-title">Langganan BUMDes</h1>
+            <div id="customerSubDescription" class="customer-sub-muted">
+                Kelola invoice dan status pembayaran layanan e-BUMDesa.
+            </div>
+            <div class="customer-sub-grid">
+                <div class="customer-sub-stat">
+                    <span>BUMDes</span>
+                    <strong id="customerSubBumdesName">-</strong>
+                </div>
+                <div class="customer-sub-stat">
+                    <span>Status Langganan</span>
+                    <strong id="customerSubStatus">-</strong>
+                </div>
+                <div class="customer-sub-stat">
+                    <span>Berlaku Sampai</span>
+                    <strong id="customerSubExpires">-</strong>
+                </div>
+                <div class="customer-sub-stat">
+                    <span>Paket</span>
+                    <strong id="customerSubPlan">-</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="customer-sub-card">
+            <div class="invoice-create">
+                <div>
+                    <strong>Invoice Pembayaran</strong>
+                    <div class="customer-sub-muted">Invoice dibuat untuk pembayaran langganan BUMDes.</div>
+                </div>
+                <button id="createInvoiceBtn" class="invoice-create-btn" type="button">
+                    <i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice
+                </button>
+            </div>
+            <div id="customerInvoiceList" class="invoice-list">
+                <div class="invoice-empty">Memuat invoice...</div>
+            </div>
+        </div>
+
+        <div style="text-align:center">
+            <button id="customerSubLogoutBtn" class="invoice-btn no-print" type="button">Keluar</button>
+        </div>
+    </div>
+</section>
+
+<!-- INVOICE DETAIL / PRINT -->
+<section id="invoicePrintPage" class="hidden">
+    <div id="invoicePrintArea" class="invoice-print">
+        <div class="invoice-print-head">
+            <div>
+                <div class="invoice-print-brand">e-BUMDesa</div>
+                <div style="font-size:10px;color:#8794a5;margin-top:4px">Sistem Keuangan BUM Desa</div>
+            </div>
+            <div>
+                <div class="invoice-print-label">INVOICE</div>
+                <div id="invoicePrintNumber" class="invoice-print-number">-</div>
+            </div>
+        </div>
+
+        <div class="invoice-print-grid">
+            <div class="invoice-print-box">
+                <small>Ditagihkan kepada</small>
+                <strong id="invoicePrintBumdes">-</strong>
+                <div id="invoicePrintAddress" style="font-size:10px;color:#64748b;margin-top:4px">-</div>
+            </div>
+            <div class="invoice-print-box">
+                <small>Tanggal Invoice</small>
+                <strong id="invoicePrintDate">-</strong>
+                <small style="margin-top:10px">Jatuh Tempo</small>
+                <strong id="invoicePrintDue">-</strong>
+            </div>
+        </div>
+
+        <table class="sa-table">
+            <thead><tr><th>Deskripsi</th><th>Periode</th><th style="text-align:right">Jumlah</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td id="invoicePrintPlan">Langganan e-BUMDesa</td>
+                    <td id="invoicePrintPeriod">1 Bulan</td>
+                    <td id="invoicePrintAmount" style="text-align:right">Rp 0</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="invoice-total">
+            <span>Total Tagihan</span>
+            <strong id="invoicePrintTotal">Rp 0</strong>
+        </div>
+
+        <div id="invoicePrintStatus" style="margin-top:14px;font-size:11px;font-weight:800">Status: Menunggu Pembayaran</div>
+
+        <div class="invoice-print-actions no-print">
+            <button id="invoiceBackBtn" class="invoice-btn" type="button">Kembali</button>
+            <button id="invoicePrintBtn" class="invoice-btn primary" type="button">
+                <i class="bi bi-printer me-1"></i> Cetak / Simpan PDF
+            </button>
+            <button id="invoicePayBtn" class="invoice-btn primary" type="button">
+                <i class="bi bi-credit-card me-1"></i> Bayar Sekarang
+            </button>
+        </div>
+    </div>
+</section>
+
 <!-- APP -->
 <section id="appPage" class="hidden">
     <aside id="sidebar" class="sidebar">
@@ -2602,7 +2867,12 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         const isActive = subscription?.status === "active" && expiresAt && expiresAt > new Date();
 
         if (isActive) {
-            await loadDashboard(profile);
+            if (profile.role === "admin_pusat") {
+            await loadCustomerSubscription(profile);
+            return;
+        }
+
+        await loadDashboard(profile);
             return;
         }
 
@@ -2923,6 +3193,184 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         window.__saData = {bumdesRows, subscriptions, payments, users, bumdesMap};
         applySuperAdminFilters();
     }
+
+    // =========================================================
+    // LANGGANAN ADMIN PUSAT / INVOICE
+    // =========================================================
+    async function loadCustomerSubscription(profile) {
+        const { data: bumdes, error } = await supabaseClient
+            .from("bumdes")
+            .select("id,nama,desa,kecamatan,kabupaten,provinsi,alamat")
+            .eq("id", profile.bumdes_id)
+            .maybeSingle();
+
+        if (error || !bumdes) {
+            console.error(error);
+            alert("Data BUMDes tidak ditemukan.");
+            return;
+        }
+
+        const { data: subscription } = await supabaseClient
+            .from("subscriptions")
+            .select("id,plan_name,amount,billing_period_months,status,started_at,expires_at")
+            .eq("bumdes_id", profile.bumdes_id)
+            .maybeSingle();
+
+        $("customerSubUserName").textContent = profile.nama || "";
+        $("customerSubUserEmail").textContent = profile.email || "";
+        $("customerSubBumdesName").textContent = bumdes.nama || "-";
+        $("customerSubStatus").textContent = subscription?.status === "active" ? "Aktif" : (subscription?.status || "Belum aktif");
+        $("customerSubExpires").textContent = subscription?.expires_at
+            ? new Date(subscription.expires_at).toLocaleDateString("id-ID")
+            : "-";
+        $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
+
+        window.__customerSubscription = { profile, bumdes, subscription };
+        showOnly("customerSubscriptionPage");
+        await loadCustomerInvoices(profile.bumdes_id);
+    }
+
+    async function loadCustomerInvoices(bumdesId) {
+        const box = $("customerInvoiceList");
+        box.innerHTML = '<div class="invoice-empty">Memuat invoice...</div>';
+
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("id,invoice_number,amount,status,payment_provider,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
+            .eq("bumdes_id", bumdesId)
+            .order("created_at", { ascending:false });
+
+        if (error) {
+            console.error(error);
+            box.innerHTML = `<div class="invoice-empty">Gagal memuat invoice: ${escapeHtml(error.message)}</div>`;
+            return;
+        }
+
+        const rows = data || [];
+        if (!rows.length) {
+            box.innerHTML = '<div class="invoice-empty">Belum ada invoice. Klik "Buat Invoice" untuk membuat invoice pertama.</div>';
+            return;
+        }
+
+        box.innerHTML = rows.map(p => `
+            <div class="invoice-row">
+                <div>
+                    <div class="invoice-number">${escapeHtml(p.invoice_number || "-")}</div>
+                    <div class="invoice-meta">${new Date(p.created_at).toLocaleDateString("id-ID")}</div>
+                </div>
+                <div>${rupiah(p.amount)}</div>
+                <div><span class="invoice-status ${escapeHtml(p.status || "pending")}">${escapeHtml(p.status || "pending")}</span></div>
+                <div class="invoice-meta">${p.paid_at ? "Dibayar " + new Date(p.paid_at).toLocaleDateString("id-ID") : (p.expired_at ? "Jatuh tempo " + new Date(p.expired_at).toLocaleDateString("id-ID") : "")}</div>
+                <div>
+                    <button class="invoice-btn" type="button" data-invoice-id="${escapeHtml(p.id)}">Lihat</button>
+                    ${p.status === "pending" ? `<button class="invoice-btn primary" type="button" data-pay-invoice="${escapeHtml(p.id)}">Bayar</button>` : ""}
+                </div>
+            </div>
+        `).join("");
+    }
+
+    async function createCustomerInvoice() {
+        const ctx = window.__customerSubscription;
+        if (!ctx?.profile?.bumdes_id) return;
+
+        const amount = Number(ctx.subscription?.amount || 100000);
+        const months = Number(ctx.subscription?.billing_period_months || 1);
+        const invoiceNumber = "INV-" +
+            new Date().toISOString().slice(0,10).replaceAll("-","") + "-" +
+            Math.random().toString(36).slice(2,7).toUpperCase();
+
+        const due = new Date();
+        due.setDate(due.getDate() + 1);
+
+        const btn = $("createInvoiceBtn");
+        btn.disabled = true;
+        btn.textContent = "Membuat...";
+
+        const { error } = await supabaseClient.from("payments").insert({
+            bumdes_id: ctx.profile.bumdes_id,
+            subscription_id: ctx.subscription?.id || null,
+            invoice_number: invoiceNumber,
+            amount: amount,
+            status: "pending",
+            payment_provider: "midtrans",
+            expired_at: due.toISOString(),
+            metadata: {
+                billing_period_months: months,
+                source: "customer_invoice"
+            }
+        });
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice';
+
+        if (error) {
+            alert("Gagal membuat invoice: " + error.message);
+            return;
+        }
+        await loadCustomerInvoices(ctx.profile.bumdes_id);
+    }
+
+    async function openCustomerInvoice(invoiceId) {
+        const ctx = window.__customerSubscription;
+        if (!ctx?.profile?.bumdes_id) return;
+
+        const { data: p, error } = await supabaseClient
+            .from("payments")
+            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
+            .eq("id", invoiceId)
+            .eq("bumdes_id", ctx.profile.bumdes_id)
+            .maybeSingle();
+
+        if (error || !p) {
+            alert("Invoice tidak ditemukan.");
+            return;
+        }
+
+        const b = ctx.bumdes;
+        $("invoicePrintNumber").textContent = p.invoice_number || "-";
+        $("invoicePrintBumdes").textContent = b.nama || "-";
+        $("invoicePrintAddress").textContent = [b.alamat,b.desa,b.kecamatan,b.kabupaten,b.provinsi].filter(Boolean).join(", ") || "-";
+        $("invoicePrintDate").textContent = new Date(p.created_at).toLocaleDateString("id-ID");
+        $("invoicePrintDue").textContent = p.expired_at ? new Date(p.expired_at).toLocaleDateString("id-ID") : "-";
+        $("invoicePrintPlan").textContent = ctx.subscription?.plan_name || "Langganan e-BUMDesa";
+        $("invoicePrintPeriod").textContent = `${p.metadata?.billing_period_months || ctx.subscription?.billing_period_months || 1} Bulan`;
+        $("invoicePrintAmount").textContent = rupiah(p.amount);
+        $("invoicePrintTotal").textContent = rupiah(p.amount);
+        $("invoicePrintStatus").textContent = "Status: " + (p.status || "pending");
+
+        window.__currentInvoice = p;
+        showOnly("invoicePrintPage");
+    }
+
+    $("createInvoiceBtn").addEventListener("click", createCustomerInvoice);
+    $("customerInvoiceList").addEventListener("click", event => {
+        const view = event.target.closest("[data-invoice-id]");
+        const pay = event.target.closest("[data-pay-invoice]");
+        if (view) openCustomerInvoice(view.dataset.invoiceId);
+        if (pay) {
+            openCustomerInvoice(pay.dataset.payInvoice);
+        }
+    });
+    $("invoiceBackBtn").addEventListener("click", () => {
+        showOnly("customerSubscriptionPage");
+        if (window.__customerSubscription?.profile?.bumdes_id) {
+            loadCustomerInvoices(window.__customerSubscription.profile.bumdes_id);
+        }
+    });
+    $("invoicePrintBtn").addEventListener("click", () => window.print());
+    $("invoicePayBtn").addEventListener("click", () => {
+        const p = window.__currentInvoice;
+        if (!p) return;
+        if (p.payment_url) {
+            window.location.href = p.payment_url;
+        } else {
+            alert("Pembayaran Midtrans belum diaktifkan. Invoice sudah tersimpan dan dapat dicetak.");
+        }
+    });
+    $("customerSubLogoutBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        showOnly("loginPage");
+    });
 
     // =========================================================
     // DASHBOARD
