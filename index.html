@@ -1323,656 +1323,55 @@
         }
 
     
-        /* =====================================================
-           SUPER ADMIN
-           ===================================================== */
-        #superAdminPage {
-            min-height: 100vh;
-            background: #f5f7fb;
-            color: #26364a;
-            overflow-y: auto;
-        }
-
-        .sa-shell {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sa-topbar {
-            height: 66px;
-            background: #fff;
-            border-bottom: 1px solid #e7ebf1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 28px;
-            position: sticky;
-            top: 0;
-            z-index: 20;
-        }
-
-        .sa-brand {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            font-weight: 800;
-            font-size: 19px;
-        }
-
-        .sa-brand img {
-            width: 38px;
-            height: 38px;
-            object-fit: contain;
-        }
-
-        .sa-badge {
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: .5px;
-            padding: 5px 9px;
-            border-radius: 999px;
-            background: #eef4ff;
-            color: #2f67b7;
-            text-transform: uppercase;
-        }
-
-        .sa-user {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .sa-user-info {
-            text-align: right;
-            line-height: 1.15;
-        }
-
-        .sa-user-name {
-            font-size: 13px;
-            font-weight: 750;
-        }
-
-        .sa-user-email {
-            font-size: 10px;
-            color: #8794a5;
-            margin-top: 3px;
-        }
-
-        .sa-logout {
-            border: 1px solid #dfe5ed;
-            background: #fff;
-            color: #5d6d80;
-            border-radius: 9px;
-            padding: 8px 12px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .sa-content {
-            width: min(1180px, calc(100% - 40px));
-            margin: 0 auto;
-            padding: 25px 0 35px;
-        }
-
-        .sa-heading {
-            margin-bottom: 20px;
-        }
-
-        .sa-heading h1 {
-            margin: 0;
-            font-size: 25px;
-            font-weight: 800;
-            letter-spacing: -.4px;
-        }
-
-        .sa-heading p {
-            margin: 5px 0 0;
-            color: #7b899a;
-            font-size: 12px;
-        }
-
-        .sa-stat-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .sa-stat {
-            background: #fff;
-            border: 1px solid #e8edf3;
-            border-radius: 13px;
-            padding: 16px 17px;
-            box-shadow: 0 5px 18px rgba(35,55,80,.045);
-        }
-
-        .sa-stat-label {
-            color: #8190a2;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .45px;
-        }
-
-        .sa-stat-value {
-            margin-top: 7px;
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -.5px;
-        }
-
-        .sa-grid {
-            display: grid;
-            grid-template-columns: 1.45fr .95fr;
-            gap: 16px;
-        }
-
-        .sa-card {
-            background: #fff;
-            border: 1px solid #e8edf3;
-            border-radius: 13px;
-            box-shadow: 0 5px 18px rgba(35,55,80,.045);
-            overflow: hidden;
-        }
-
-        .sa-card-head {
-            min-height: 52px;
-            padding: 13px 17px;
-            border-bottom: 1px solid #edf0f4;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .sa-card-title {
-            font-size: 13px;
-            font-weight: 800;
-        }
-
-        .sa-card-subtitle {
-            font-size: 10px;
-            color: #8b98a8;
-            margin-top: 2px;
-        }
-
-        .sa-table-wrap {
-            overflow-x: auto;
-        }
-
-        .sa-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-        }
-
-        .sa-table th,
-        .sa-table td {
-            padding: 10px 13px;
-            border-bottom: 1px solid #f0f2f5;
-            white-space: nowrap;
-            text-align: left;
-        }
-
-        .sa-table th {
-            color: #7e8b9c;
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            background: #fafbfd;
-        }
-
-        .sa-table td:first-child {
-            font-weight: 700;
-        }
-
-        .sa-status {
-            display: inline-flex;
-            align-items: center;
-            border-radius: 999px;
-            padding: 4px 8px;
-            font-size: 9px;
-            font-weight: 800;
-        }
-
-        .sa-status.active {
-            background: #eaf7ee;
-            color: #2d7a48;
-        }
-
-        .sa-status.pending {
-            background: #fff6df;
-            color: #9a6a00;
-        }
-
-        .sa-status.expired,
-        .sa-status.cancelled,
-        .sa-status.suspended {
-            background: #fcebed;
-            color: #a33c48;
-        }
-
-        .sa-empty,
-        .sa-loading {
-            padding: 25px 17px;
-            color: #8a97a7;
-            font-size: 11px;
-            text-align: center;
-        }
-
-        .sa-refresh {
-            border: 1px solid #dce4ee;
-            background: #fff;
-            color: #49627d;
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 10px;
-            font-weight: 750;
-        }
-
-        .sa-note {
-            padding: 13px 17px;
-            background: #f8fafc;
-            border-top: 1px solid #edf0f4;
-            color: #7c8999;
-            font-size: 10px;
-        }
-
-        @media (max-width: 900px) {
-            .sa-stat-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .sa-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .sa-topbar {
-                height: auto;
-                min-height: 66px;
-                padding: 11px 14px;
-                gap: 10px;
-            }
-
-            .sa-user-info {
-                display: none;
-            }
-
-            .sa-content {
-                width: calc(100% - 24px);
-                padding-top: 18px;
-            }
-
-            .sa-stat-grid {
-                gap: 9px;
-            }
-
-            .sa-stat {
-                padding: 13px;
-            }
-
-            .sa-stat-value {
-                font-size: 20px;
-            }
-        }
-
-
-        .sa-nav {
-            background: #fff;
-            border-bottom: 1px solid #e7ebf1;
-            padding: 0 28px;
-            display: flex;
-            gap: 4px;
-            overflow-x: auto;
-        }
-        .sa-nav button {
-            border: 0;
-            background: transparent;
-            color: #718095;
-            padding: 12px 14px;
-            font-size: 11px;
-            font-weight: 750;
-            white-space: nowrap;
-            border-bottom: 2px solid transparent;
-        }
-        .sa-nav button.active {
-            color: #2f67b7;
-            border-bottom-color: #2f67b7;
-        }
-        .sa-view.hidden { display: none !important; }
-        .sa-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-        .sa-search {
-            width: min(340px, 100%);
-            height: 36px;
-            border: 1px solid #dfe5ed;
-            border-radius: 9px;
-            padding: 0 12px;
-            font-size: 11px;
-            outline: none;
-        }
-        .sa-search:focus { border-color: #9ebbe0; }
-        .sa-full-card { margin-bottom: 16px; }
-        .sa-detail-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-        .sa-mini {
-            background: #f8fafc;
-            border: 1px solid #edf0f4;
-            border-radius: 10px;
-            padding: 12px;
-        }
-        .sa-mini-label {
-            color: #8996a6;
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: .35px;
-        }
-        .sa-mini-value {
-            margin-top: 5px;
-            font-size: 15px;
-            font-weight: 800;
-        }
-        @media (max-width: 600px) {
-            .sa-nav { padding: 0 12px; }
-            .sa-detail-grid { grid-template-columns: 1fr; }
-            .sa-toolbar { align-items: stretch; flex-direction: column; }
-            .sa-search { width: 100%; }
-        }
-
-
-        .sa-bumdes-link {
-            border: 0;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            color: #245da8;
-            font: inherit;
-            font-weight: 800;
-            cursor: pointer;
-            text-align: left;
-        }
-        .sa-bumdes-link:hover {
-            text-decoration: underline;
-            text-underline-offset: 3px;
-        }
-        .sa-modal {
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            background: rgba(22,35,52,.42);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .sa-modal.hidden { display: none !important; }
-        .sa-modal-card {
-            width: min(760px, 100%);
-            max-height: min(720px, 90vh);
-            overflow-y: auto;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 24px 70px rgba(20,35,55,.25);
-        }
-        .sa-modal-head {
-            padding: 18px 20px;
-            border-bottom: 1px solid #edf0f4;
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 15px;
-        }
-        .sa-modal-title {
-            font-size: 18px;
-            font-weight: 800;
-            margin: 0;
-        }
-        .sa-modal-sub {
-            color: #8190a2;
-            font-size: 10px;
-            margin-top: 4px;
-        }
-        .sa-modal-close {
-            border: 1px solid #dfe5ed;
-            background: #fff;
-            border-radius: 8px;
-            width: 32px;
-            height: 32px;
-            color: #64748b;
-        }
-        .sa-modal-body { padding: 18px 20px 20px; }
-        .sa-modal-section-title {
-            font-size: 11px;
-            font-weight: 800;
-            color: #52657b;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-            margin: 0 0 9px;
-        }
-        .sa-detail-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 9px;
-            margin-bottom: 18px;
-        }
-        .sa-detail-item {
-            background: #f8fafc;
-            border: 1px solid #edf0f4;
-            border-radius: 9px;
-            padding: 10px 12px;
-        }
-        .sa-detail-item span {
-            display: block;
-            color: #8a97a7;
-            font-size: 9px;
-        }
-        .sa-detail-item strong {
-            display: block;
-            margin-top: 3px;
-            font-size: 11px;
-        }
-        @media (max-width: 600px) {
-            .sa-detail-list { grid-template-columns: 1fr; }
-            .sa-modal { padding: 10px; }
-        }
-
-
-        .sa-sub-summary {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .sa-sub-summary .sa-stat { padding: 14px 15px; }
-        .sa-sub-summary .sa-stat-value { font-size: 21px; }
-        .sa-sub-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .sa-filter {
-            height: 36px;
-            border: 1px solid #dfe5ed;
-            border-radius: 9px;
-            background: #fff;
-            color: #53657a;
-            padding: 0 10px;
-            font-size: 11px;
-        }
-        .sa-days {
-            font-weight: 800;
-        }
-        .sa-days.safe { color: #2d7a48; }
-        .sa-days.warning { color: #a36a00; }
-        .sa-days.danger { color: #a33c48; }
-        .sa-sub-detail-btn {
-            border: 1px solid #dce4ee;
-            background: #fff;
-            color: #315f98;
-            border-radius: 7px;
-            padding: 5px 8px;
-            font-size: 9px;
-            font-weight: 750;
-        }
-        @media (max-width: 800px) {
-            .sa-sub-summary { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 520px) {
-            .sa-sub-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .sa-sub-actions { flex-direction: column; align-items: stretch; }
-            .sa-filter { width: 100%; }
-        }
-
-
-        /* =====================================================
-           LANGGANAN & INVOICE - ADMIN PUSAT
-           ===================================================== */
-        #customerSubscriptionPage {
-            min-height: 100vh;
-            background: #f5f7fb;
-            overflow-y: auto;
-            color: #26364a;
-        }
-        .customer-sub-shell {
-            width: min(960px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 28px 0 40px;
-        }
-        .customer-sub-head {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:15px;
-            margin-bottom:18px;
-        }
-        .customer-sub-brand {
-            display:flex;
-            align-items:center;
-            gap:10px;
-        }
-        .customer-sub-brand img { width:38px;height:38px;object-fit:contain; }
-        .customer-sub-brand strong { font-size:18px;font-weight:800; }
-        .customer-sub-user {
-            text-align:right;
-            font-size:10px;
-            color:#7f8d9e;
-        }
-        .customer-sub-card {
-            background:#fff;
-            border:1px solid #e7ecf2;
-            border-radius:15px;
-            box-shadow:0 8px 28px rgba(35,55,80,.06);
-            padding:20px;
-            margin-bottom:15px;
-        }
-        .customer-sub-title {
-            margin:0;
-            font-size:22px;
-            font-weight:800;
-        }
-        .customer-sub-muted { color:#8492a3;font-size:11px;margin-top:4px; }
-        .customer-sub-grid {
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:12px;
-            margin-top:16px;
-        }
-        .customer-sub-stat {
-            background:#f8fafc;
-            border:1px solid #edf0f4;
-            border-radius:10px;
-            padding:12px;
-        }
-        .customer-sub-stat span {
-            display:block;color:#8996a6;font-size:9px;text-transform:uppercase;letter-spacing:.35px;
-        }
-        .customer-sub-stat strong { display:block;margin-top:4px;font-size:13px; }
+        /* CUSTOMER SUBSCRIPTION / INVOICE */
+        #customerSubscriptionPage { min-height:100vh; background:#f5f7fb; overflow-y:auto; color:#26364a; }
+        .customer-sub-shell { width:min(960px,calc(100% - 32px)); margin:0 auto; padding:28px 0 40px; }
+        .customer-sub-head { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:18px; }
+        .customer-sub-brand { display:flex; align-items:center; gap:10px; }
+        .customer-sub-brand img { width:38px; height:38px; object-fit:contain; }
+        .customer-sub-brand strong { font-size:18px; font-weight:800; }
+        .customer-sub-user { text-align:right; font-size:10px; color:#7f8d9e; }
+        .customer-sub-card { background:#fff; border:1px solid #e7ecf2; border-radius:15px; box-shadow:0 8px 28px rgba(35,55,80,.06); padding:20px; margin-bottom:15px; }
+        .customer-sub-title { margin:0; font-size:22px; font-weight:800; }
+        .customer-sub-muted { color:#8492a3; font-size:11px; margin-top:4px; }
+        .customer-sub-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+        .customer-sub-stat { background:#f8fafc; border:1px solid #edf0f4; border-radius:10px; padding:12px; }
+        .customer-sub-stat span { display:block; color:#8996a6; font-size:9px; text-transform:uppercase; letter-spacing:.35px; }
+        .customer-sub-stat strong { display:block; margin-top:4px; font-size:13px; }
         .invoice-list { margin-top:16px; }
-        .invoice-row {
-            display:grid;
-            grid-template-columns:1.3fr .8fr .7fr .8fr auto;
-            align-items:center;
-            gap:10px;
-            padding:12px 0;
-            border-bottom:1px solid #edf0f4;
-            font-size:11px;
-        }
+        .invoice-row { display:grid; grid-template-columns:1.3fr .8fr .7fr .8fr auto; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid #edf0f4; font-size:11px; }
         .invoice-row:last-child { border-bottom:0; }
-        .invoice-number { font-weight:800;color:#315f98; }
-        .invoice-meta { color:#7e8b9c;font-size:9px;margin-top:3px; }
-        .invoice-status {
-            display:inline-flex;padding:4px 8px;border-radius:999px;
-            font-size:9px;font-weight:800;
-        }
-        .invoice-status.paid { background:#eaf7ee;color:#2d7a48; }
-        .invoice-status.pending { background:#fff6df;color:#9a6a00; }
-        .invoice-status.failed,.invoice-status.expired,.invoice-status.cancelled {
-            background:#fcebed;color:#a33c48;
-        }
-        .invoice-btn {
-            border:1px solid #dce4ee;background:#fff;color:#315f98;
-            border-radius:8px;padding:7px 10px;font-size:10px;font-weight:750;
-        }
-        .invoice-btn.primary {
-            border:0;background:#2f67b7;color:#fff;
-        }
-        .invoice-empty { text-align:center;padding:28px 10px;color:#8a97a7;font-size:11px; }
-        .invoice-create {
-            display:flex;align-items:center;justify-content:space-between;gap:12px;
-        }
-        .invoice-create-btn {
-            border:0;background:#2f67b7;color:#fff;border-radius:9px;
-            padding:9px 13px;font-size:10px;font-weight:800;
-        }
-        .invoice-print {
-            width:min(800px,100%);
-            margin:0 auto;
-            background:#fff;
-            padding:36px;
-            color:#202b38;
-        }
-        .invoice-print-head {
-            display:flex;justify-content:space-between;gap:20px;
-            border-bottom:2px solid #e8edf3;padding-bottom:18px;margin-bottom:22px;
-        }
-        .invoice-print-brand { font-size:20px;font-weight:800; }
-        .invoice-print-label { font-size:26px;font-weight:900;text-align:right; }
-        .invoice-print-number { color:#64748b;font-size:11px;text-align:right;margin-top:4px; }
-        .invoice-print-grid {
-            display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;
-        }
-        .invoice-print-box {
-            border:1px solid #e5eaf0;border-radius:10px;padding:13px;
-        }
-        .invoice-print-box small { display:block;color:#8794a5;font-size:9px;text-transform:uppercase; }
-        .invoice-print-box strong { display:block;margin-top:5px;font-size:12px; }
-        .invoice-total {
-            display:flex;justify-content:space-between;align-items:center;
-            border-top:1px solid #dfe5ed;border-bottom:1px solid #dfe5ed;
-            padding:16px 0;margin-top:18px;
-        }
+        .invoice-number { font-weight:800; color:#315f98; }
+        .invoice-meta { color:#7e8b9c; font-size:9px; margin-top:3px; }
+        .invoice-status { display:inline-flex; padding:4px 8px; border-radius:999px; font-size:9px; font-weight:800; }
+        .invoice-status.paid { background:#eaf7ee; color:#2d7a48; }
+        .invoice-status.pending { background:#fff6df; color:#9a6a00; }
+        .invoice-status.failed,.invoice-status.expired,.invoice-status.cancelled { background:#fcebed; color:#a33c48; }
+        .invoice-btn { border:1px solid #dce4ee; background:#fff; color:#315f98; border-radius:8px; padding:7px 10px; font-size:10px; font-weight:750; }
+        .invoice-btn.primary { border:0; background:#2f67b7; color:#fff; }
+        .invoice-empty { text-align:center; padding:28px 10px; color:#8a97a7; font-size:11px; }
+        .invoice-create { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .invoice-create-btn { border:0; background:#2f67b7; color:#fff; border-radius:9px; padding:9px 13px; font-size:10px; font-weight:800; }
+        .invoice-print { width:min(800px,100%); margin:0 auto; background:#fff; padding:36px; color:#202b38; }
+        .invoice-print-head { display:flex; justify-content:space-between; gap:20px; border-bottom:2px solid #e8edf3; padding-bottom:18px; margin-bottom:22px; }
+        .invoice-print-brand { font-size:20px; font-weight:800; }
+        .invoice-print-label { font-size:26px; font-weight:900; text-align:right; }
+        .invoice-print-number { color:#64748b; font-size:11px; text-align:right; margin-top:4px; }
+        .invoice-print-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:22px; }
+        .invoice-print-box { border:1px solid #e5eaf0; border-radius:10px; padding:13px; }
+        .invoice-print-box small { display:block; color:#8794a5; font-size:9px; text-transform:uppercase; }
+        .invoice-print-box strong { display:block; margin-top:5px; font-size:12px; }
+        .invoice-total { display:flex; justify-content:space-between; align-items:center; border-top:1px solid #dfe5ed; border-bottom:1px solid #dfe5ed; padding:16px 0; margin-top:18px; }
         .invoice-total strong { font-size:21px; }
-        .invoice-print-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:18px; }
+        .invoice-print-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
         @media print {
             body * { visibility:hidden !important; }
             #invoicePrintArea, #invoicePrintArea * { visibility:visible !important; }
-            #invoicePrintArea { position:absolute !important;left:0;top:0;width:100%; }
+            #invoicePrintArea { position:absolute !important; left:0; top:0; width:100%; }
             .no-print { display:none !important; }
         }
         @media (max-width:700px) {
-            .customer-sub-shell { width:calc(100% - 20px);padding-top:18px; }
-            .customer-sub-head { align-items:flex-start; }
+            .customer-sub-shell { width:calc(100% - 20px); padding-top:18px; }
             .customer-sub-user { display:none; }
             .customer-sub-grid,.invoice-print-grid { grid-template-columns:1fr; }
             .invoice-row { grid-template-columns:1fr 1fr; }
@@ -2263,217 +1662,6 @@
 </section>
 
 
-
-<!--
-SUPER ADMIN
-Email pemilik/operator platform:
-iroel.setyawan@gmail.com
-
-Akun ini harus memiliki:
-role = super_admin
-bumdes_id = NULL
-unit_id = NULL
-
-Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
--->
-<!-- SUPER ADMIN -->
-<section id="superAdminPage" class="hidden">
-    <div class="sa-shell">
-        <header class="sa-topbar">
-            <div class="sa-brand">
-                <img src="e-bumdesa-logo.png" alt="Logo e-BUMDesa">
-                <span>e-BUMDesa</span>
-                <span class="sa-badge">Super Admin</span>
-            </div>
-            <div class="sa-user">
-                <div class="sa-user-info">
-                    <div id="saUserName" class="sa-user-name">Super Admin</div>
-                    <div id="saUserEmail" class="sa-user-email">iroel.setyawan@gmail.com</div>
-                </div>
-                <button id="saLogoutBtn" class="sa-logout" type="button">
-                    <i class="bi bi-box-arrow-right me-1"></i> Keluar
-                </button>
-            </div>
-        </header>
-
-        <nav class="sa-nav" id="saNav">
-            <button class="active" data-sa-view="saDashboardView"><i class="bi bi-grid-1x2 me-1"></i>Dashboard</button>
-            <button data-sa-view="saBumdesView"><i class="bi bi-buildings me-1"></i>BUMDes</button>
-            <button data-sa-view="saSubscriptionView"><i class="bi bi-credit-card me-1"></i>Langganan</button>
-            <button data-sa-view="saPaymentView"><i class="bi bi-receipt me-1"></i>Pembayaran</button>
-            <button data-sa-view="saUsersView"><i class="bi bi-people me-1"></i>Pengguna</button>
-        </nav>
-
-        <main class="sa-content">
-            <!-- DASHBOARD -->
-            <section id="saDashboardView" class="sa-view">
-                <div class="sa-heading">
-                    <h1>Dashboard Super Admin</h1>
-                    <p>Administrasi platform e-BUMDesa, pelanggan BUMDes, langganan, dan pembayaran.</p>
-                </div>
-
-                <div class="sa-stat-grid">
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Total BUMDes</div>
-                        <div id="saTotalBumdes" class="sa-stat-value">0</div>
-                    </div>
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Langganan Aktif</div>
-                        <div id="saActiveSubscriptions" class="sa-stat-value">0</div>
-                    </div>
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Menunggu Pembayaran</div>
-                        <div id="saPendingSubscriptions" class="sa-stat-value">0</div>
-                    </div>
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Total Pembayaran</div>
-                        <div id="saTotalPayments" class="sa-stat-value">Rp 0</div>
-                    </div>
-                </div>
-
-                <div class="sa-grid">
-                    <section class="sa-card">
-                        <div class="sa-card-head">
-                            <div>
-                                <div class="sa-card-title">Daftar BUMDes</div>
-                                <div class="sa-card-subtitle">Seluruh BUMDes yang terdaftar di platform.</div>
-                            </div>
-                            <button id="saRefreshBtn" class="sa-refresh" type="button">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                            </button>
-                        </div>
-                        <div id="saBumdesTable" class="sa-table-wrap">
-                            <div class="sa-loading">Memuat data...</div>
-                        </div>
-                    </section>
-
-                    <section class="sa-card">
-                        <div class="sa-card-head">
-                            <div>
-                                <div class="sa-card-title">Pembayaran Terbaru</div>
-                                <div class="sa-card-subtitle">Riwayat pembayaran dari pelanggan.</div>
-                            </div>
-                        </div>
-                        <div id="saPaymentTable" class="sa-table-wrap">
-                            <div class="sa-loading">Memuat pembayaran...</div>
-                        </div>
-                        <div class="sa-note">Status langganan diaktifkan berdasarkan proses pembayaran/payment gateway.</div>
-                    </section>
-                </div>
-            </section>
-
-            <!-- BUMDES -->
-            <section id="saBumdesView" class="sa-view hidden">
-                <div class="sa-heading">
-                    <h1>Manajemen BUMDes</h1>
-                    <p>Daftar dan status seluruh pelanggan BUMDes e-BUMDesa.</p>
-                </div>
-                <div class="sa-toolbar">
-                    <input id="saBumdesSearch" class="sa-search" type="search" placeholder="Cari nama atau kode BUMDes...">
-                    <button id="saBumdesRefresh" class="sa-refresh" type="button"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
-                </div>
-                <section class="sa-card sa-full-card">
-                    <div id="saBumdesFullTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
-                </section>
-            </section>
-
-            <!-- LANGGANAN -->
-            <section id="saSubscriptionView" class="sa-view hidden">
-                <div class="sa-heading">
-                    <h1>Langganan</h1>
-                    <p>Monitoring masa aktif layanan setiap BUMDes.</p>
-                </div>
-
-                <div class="sa-sub-summary">
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Aktif</div>
-                        <div id="saSubActiveCount" class="sa-stat-value">0</div>
-                    </div>
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Segera Berakhir</div>
-                        <div id="saSubExpiringCount" class="sa-stat-value">0</div>
-                    </div>
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Expired</div>
-                        <div id="saSubExpiredCount" class="sa-stat-value">0</div>
-                    </div>
-                    <div class="sa-stat">
-                        <div class="sa-stat-label">Menunggu</div>
-                        <div id="saSubPendingCount" class="sa-stat-value">0</div>
-                    </div>
-                </div>
-
-                <div class="sa-toolbar">
-                    <input id="saSubscriptionSearch" class="sa-search" type="search" placeholder="Cari BUMDes...">
-                    <div class="sa-sub-actions">
-                        <select id="saSubscriptionFilter" class="sa-filter">
-                            <option value="all">Semua status</option>
-                            <option value="active">Aktif</option>
-                            <option value="expiring">Segera berakhir ≤ 30 hari</option>
-                            <option value="expired">Expired</option>
-                            <option value="pending">Menunggu pembayaran</option>
-                        </select>
-                    </div>
-                </div>
-
-                <section class="sa-card sa-full-card">
-                    <div id="saSubscriptionTable" class="sa-table-wrap">
-                        <div class="sa-loading">Memuat data...</div>
-                    </div>
-                </section>
-            </section>
-
-            <!-- PEMBAYARAN -->
-            <section id="saPaymentView" class="sa-view hidden">
-                <div class="sa-heading">
-                    <h1>Pembayaran</h1>
-                    <p>Riwayat invoice dan pembayaran pelanggan.</p>
-                </div>
-                <div class="sa-toolbar">
-                    <input id="saPaymentSearch" class="sa-search" type="search" placeholder="Cari invoice atau BUMDes...">
-                </div>
-                <section class="sa-card sa-full-card">
-                    <div id="saPaymentFullTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
-                </section>
-            </section>
-
-            <!-- PENGGUNA -->
-            <section id="saUsersView" class="sa-view hidden">
-                <div class="sa-heading">
-                    <h1>Pengguna</h1>
-                    <p>Daftar akun pengguna yang terdaftar pada platform.</p>
-                </div>
-                <div class="sa-toolbar">
-                    <input id="saUserSearch" class="sa-search" type="search" placeholder="Cari nama, email, atau BUMDes...">
-                </div>
-                <section class="sa-card sa-full-card">
-                    <div id="saUsersTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
-                </section>
-            </section>
-        </main>
-    </div>
-</section>
-
-
-<!-- SUPER ADMIN BUMDES DETAIL MODAL -->
-<div id="saBumdesModal" class="sa-modal hidden" role="dialog" aria-modal="true">
-    <div class="sa-modal-card">
-        <div class="sa-modal-head">
-            <div>
-                <h2 id="saModalTitle" class="sa-modal-title">Detail BUMDes</h2>
-                <div id="saModalSubtitle" class="sa-modal-sub"></div>
-            </div>
-            <button id="saModalClose" class="sa-modal-close" type="button" aria-label="Tutup">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-        <div id="saModalBody" class="sa-modal-body">
-            <div class="sa-loading">Memuat detail...</div>
-        </div>
-    </div>
-</div>
-
-
 <!-- LANGGANAN ADMIN PUSAT -->
 <section id="customerSubscriptionPage" class="hidden">
     <div class="customer-sub-shell">
@@ -2490,26 +1678,12 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
 
         <div class="customer-sub-card">
             <h1 class="customer-sub-title">Langganan BUMDes</h1>
-            <div id="customerSubDescription" class="customer-sub-muted">
-                Kelola invoice dan status pembayaran layanan e-BUMDesa.
-            </div>
+            <div class="customer-sub-muted">Kelola status langganan dan invoice pembayaran BUMDes.</div>
             <div class="customer-sub-grid">
-                <div class="customer-sub-stat">
-                    <span>BUMDes</span>
-                    <strong id="customerSubBumdesName">-</strong>
-                </div>
-                <div class="customer-sub-stat">
-                    <span>Status Langganan</span>
-                    <strong id="customerSubStatus">-</strong>
-                </div>
-                <div class="customer-sub-stat">
-                    <span>Berlaku Sampai</span>
-                    <strong id="customerSubExpires">-</strong>
-                </div>
-                <div class="customer-sub-stat">
-                    <span>Paket</span>
-                    <strong id="customerSubPlan">-</strong>
-                </div>
+                <div class="customer-sub-stat"><span>BUMDes</span><strong id="customerSubBumdesName">-</strong></div>
+                <div class="customer-sub-stat"><span>Status Langganan</span><strong id="customerSubStatus">-</strong></div>
+                <div class="customer-sub-stat"><span>Berlaku Sampai</span><strong id="customerSubExpires">-</strong></div>
+                <div class="customer-sub-stat"><span>Paket</span><strong id="customerSubPlan">-</strong></div>
             </div>
         </div>
 
@@ -2517,7 +1691,7 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             <div class="invoice-create">
                 <div>
                     <strong>Invoice Pembayaran</strong>
-                    <div class="customer-sub-muted">Invoice dibuat untuk pembayaran langganan BUMDes.</div>
+                    <div class="customer-sub-muted">Invoice hanya untuk pelanggan BUMDes ini.</div>
                 </div>
                 <button id="createInvoiceBtn" class="invoice-create-btn" type="button">
                     <i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice
@@ -2529,12 +1703,12 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         </div>
 
         <div style="text-align:center">
-            <button id="customerSubLogoutBtn" class="invoice-btn no-print" type="button">Keluar</button>
+            <button id="customerSubBackBtn" class="invoice-btn no-print" type="button">Kembali ke Aplikasi</button>
         </div>
     </div>
 </section>
 
-<!-- INVOICE DETAIL / PRINT -->
+<!-- DETAIL INVOICE -->
 <section id="invoicePrintPage" class="hidden">
     <div id="invoicePrintArea" class="invoice-print">
         <div class="invoice-print-head">
@@ -2547,7 +1721,6 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
                 <div id="invoicePrintNumber" class="invoice-print-number">-</div>
             </div>
         </div>
-
         <div class="invoice-print-grid">
             <div class="invoice-print-box">
                 <small>Ditagihkan kepada</small>
@@ -2555,31 +1728,22 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
                 <div id="invoicePrintAddress" style="font-size:10px;color:#64748b;margin-top:4px">-</div>
             </div>
             <div class="invoice-print-box">
-                <small>Tanggal Invoice</small>
-                <strong id="invoicePrintDate">-</strong>
-                <small style="margin-top:10px">Jatuh Tempo</small>
-                <strong id="invoicePrintDue">-</strong>
+                <small>Tanggal Invoice</small><strong id="invoicePrintDate">-</strong>
+                <small style="margin-top:10px">Jatuh Tempo</small><strong id="invoicePrintDue">-</strong>
             </div>
         </div>
-
         <table class="sa-table">
             <thead><tr><th>Deskripsi</th><th>Periode</th><th style="text-align:right">Jumlah</th></tr></thead>
-            <tbody>
-                <tr>
-                    <td id="invoicePrintPlan">Langganan e-BUMDesa</td>
-                    <td id="invoicePrintPeriod">1 Bulan</td>
-                    <td id="invoicePrintAmount" style="text-align:right">Rp 0</td>
-                </tr>
-            </tbody>
+            <tbody><tr>
+                <td id="invoicePrintPlan">Langganan e-BUMDesa</td>
+                <td id="invoicePrintPeriod">1 Bulan</td>
+                <td id="invoicePrintAmount" style="text-align:right">Rp 0</td>
+            </tr></tbody>
         </table>
-
         <div class="invoice-total">
-            <span>Total Tagihan</span>
-            <strong id="invoicePrintTotal">Rp 0</strong>
+            <span>Total Tagihan</span><strong id="invoicePrintTotal">Rp 0</strong>
         </div>
-
-        <div id="invoicePrintStatus" style="margin-top:14px;font-size:11px;font-weight:800">Status: Menunggu Pembayaran</div>
-
+        <div id="invoicePrintStatus" style="margin-top:14px;font-size:11px;font-weight:800">Status: pending</div>
         <div class="invoice-print-actions no-print">
             <button id="invoiceBackBtn" class="invoice-btn" type="button">Kembali</button>
             <button id="invoicePrintBtn" class="invoice-btn primary" type="button">
@@ -2628,6 +1792,9 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         <a class="side-link" href="#"><i class="bi bi-file-text"></i> CALK</a>
 
         <div class="side-section">SISTEM</div>
+        <a class="side-link" href="#" id="customerSubscriptionMenu">
+            <i class="bi bi-credit-card"></i> Langganan
+        </a>
         <a class="side-link" href="#"><i class="bi bi-people"></i> Pengguna</a>
         <a class="side-link" href="#"><i class="bi bi-gear"></i> Pengaturan</a>
     </aside>
@@ -2755,16 +1922,13 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         SUPABASE_ANON_KEY
     );
 
-    // Akun pemilik/operator platform e-BUMDesa.
-    const SUPER_ADMIN_EMAIL = "iroel.setyawan@gmail.com";
-
     // =========================================================
     // HELPERS
     // =========================================================
     const $ = (id) => document.getElementById(id);
 
     function showOnly(id) {
-        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "superAdminPage", "appPage"].forEach(x => {
+        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "customerSubscriptionPage", "invoicePrintPage", "appPage"].forEach(x => {
             $(x).classList.add("hidden");
         });
         $(id).classList.remove("hidden");
@@ -2839,13 +2003,9 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             return;
         }
 
-        // Super Admin adalah pemilik/operator platform e-BUMDesa.
-        // Tidak terikat BUMDes pelanggan dan tidak melalui pemeriksaan langganan.
-        if (
-            profile.role === "super_admin" &&
-            String(profile.email || user.email || "").toLowerCase() === SUPER_ADMIN_EMAIL
-        ) {
-            await loadSuperAdmin(profile);
+        // Super Admin tidak terikat langganan BUMDes.
+        if (profile.role === "super_admin") {
+            await loadDashboard(profile);
             return;
         }
 
@@ -2867,12 +2027,7 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         const isActive = subscription?.status === "active" && expiresAt && expiresAt > new Date();
 
         if (isActive) {
-            if (profile.role === "admin_pusat") {
-            await loadCustomerSubscription(profile);
-            return;
-        }
-
-        await loadDashboard(profile);
+            await loadDashboard(profile);
             return;
         }
 
@@ -3022,357 +2177,6 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
     });
 
     // =========================================================
-    // SUPER ADMIN
-    // =========================================================
-    async function loadSuperAdmin(profile) {
-        $("saUserName").textContent = profile.nama || "Super Admin";
-        $("saUserEmail").textContent = profile.email || SUPER_ADMIN_EMAIL;
-
-        showOnly("superAdminPage");
-        await refreshSuperAdmin();
-    }
-
-    async function refreshSuperAdmin() {
-        $("saBumdesTable").innerHTML = '<div class="sa-loading">Memuat data BUMDes...</div>';
-        $("saPaymentTable").innerHTML = '<div class="sa-loading">Memuat pembayaran...</div>';
-        $("saBumdesFullTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
-        $("saSubscriptionTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
-        $("saPaymentFullTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
-        $("saUsersTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
-
-        const [b, s, p, u] = await Promise.all([
-            supabaseClient.from("bumdes")
-                .select("id,nama,kode,desa,kecamatan,kabupaten,provinsi,status,created_at")
-                .order("created_at", {ascending:false}),
-            supabaseClient.from("subscriptions")
-                .select("id,bumdes_id,plan_name,amount,billing_period_months,status,started_at,expires_at"),
-            supabaseClient.from("payments")
-                .select("id,bumdes_id,invoice_number,amount,status,payment_provider,payment_method,paid_at,expired_at,created_at")
-                .order("created_at", {ascending:false}),
-            supabaseClient.from("profiles")
-                .select("id,nama,email,role,bumdes_id,unit_id,status,created_at")
-                .order("created_at", {ascending:false})
-        ]);
-
-        if (b.error) {
-            console.error(b.error);
-            $("saBumdesTable").innerHTML = `<div class="sa-empty">Gagal memuat BUMDes: ${escapeHtml(b.error.message)}</div>`;
-            return;
-        }
-
-        const bumdes = b.data || [];
-        const subscriptions = s.data || [];
-        const payments = p.data || [];
-        const users = u.data || [];
-
-        if (s.error) console.error(s.error);
-        if (p.error) console.error(p.error);
-        if (u.error) console.error(u.error);
-
-        const bumdesMap = new Map(bumdes.map(x => [x.id, x]));
-        const subMap = new Map(subscriptions.map(x => [x.bumdes_id, x]));
-
-        const active = subscriptions.filter(x =>
-            x.status === "active" && x.expires_at && new Date(x.expires_at) > new Date()
-        ).length;
-        const pending = subscriptions.filter(x => x.status === "pending").length;
-        const revenue = payments.filter(x => x.status === "paid")
-            .reduce((sum, x) => sum + Number(x.amount || 0), 0);
-
-        $("saTotalBumdes").textContent = bumdes.length;
-        $("saActiveSubscriptions").textContent = active;
-        $("saPendingSubscriptions").textContent = pending;
-        $("saTotalPayments").textContent = rupiah(revenue);
-
-        const statusLabel = s => s === "active" ? "Aktif" :
-            s === "pending" ? "Menunggu" :
-            s === "expired" ? "Expired" :
-            s === "cancelled" ? "Dibatalkan" :
-            s === "suspended" ? "Ditangguhkan" : (s || "-");
-
-        const statusClass = s => ["active","pending","expired","cancelled","suspended"].includes(s) ? s : "pending";
-
-        const bumdesRows = bumdes.map(x => {
-            const sub = subMap.get(x.id);
-            return {
-                id:x.id,
-                nama:x.nama || "-",
-                kode:x.kode || "-",
-                wilayah:[x.desa,x.kecamatan,x.kabupaten].filter(Boolean).join(", ") || "-",
-                status:sub?.status || "pending",
-                expires:sub?.expires_at ? new Date(sub.expires_at).toLocaleDateString("id-ID") : "-"
-            };
-        });
-
-        const renderBumdes = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr>
-                <th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th>
-            </tr></thead><tbody>${rows.map(x => `<tr>
-                <td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.id)}">${escapeHtml(x.nama)}</button></td>
-                <td>${escapeHtml(x.kode)}</td>
-                <td>${escapeHtml(x.wilayah)}</td>
-                <td><span class="sa-status ${x.status}">${escapeHtml(statusLabel(x.status))}</span></td>
-                <td>${x.expires}</td>
-            </tr>`).join("")}</tbody></table>`;
-        };
-
-        $("saBumdesTable").innerHTML = renderBumdes(bumdesRows);
-        $("saBumdesFullTable").innerHTML = renderBumdes(bumdesRows);
-
-        const subscriptionRows = subscriptions.map(x => {
-            const expiresAt = x.expires_at ? new Date(x.expires_at) : null;
-            const days = expiresAt
-                ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000)
-                : null;
-            return {...x, _days: days};
-        });
-
-        const renderSubscriptions = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr>
-                <th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th><th>Sisa</th><th></th>
-            </tr></thead><tbody>${rows.map(x => {
-                const daysClass = x._days === null ? "" : (x._days <= 7 ? "danger" : x._days <= 30 ? "warning" : "safe");
-                const daysText = x._days === null ? "-" : (x._days < 0 ? `Expired ${Math.abs(x._days)} hari` : `${x._days} hari`);
-                return `<tr>
-                    <td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.bumdes_id)}">${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || "-")}</button></td>
-                    <td>${escapeHtml(x.plan_name || "-")}</td>
-                    <td>${rupiah(x.amount)}</td>
-                    <td><span class="sa-status ${statusClass(x.status)}">${escapeHtml(statusLabel(x.status))}</span></td>
-                    <td>${x.started_at ? new Date(x.started_at).toLocaleDateString("id-ID") : "-"}</td>
-                    <td>${x.expires_at ? new Date(x.expires_at).toLocaleDateString("id-ID") : "-"}</td>
-                    <td><span class="sa-days ${daysClass}">${daysText}</span></td>
-                    <td><button type="button" class="sa-sub-detail-btn" data-bumdes-id="${escapeHtml(x.bumdes_id)}">Detail</button></td>
-                </tr>`;
-            }).join("")}</tbody></table>`;
-        };
-        $("saSubscriptionTable").innerHTML = renderSubscriptions(subscriptionRows);
-
-        const activeSubCount = subscriptionRows.filter(x => x.status === "active" && x._days !== null && x._days >= 0).length;
-        const expiringSubCount = subscriptionRows.filter(x => x.status === "active" && x._days !== null && x._days >= 0 && x._days <= 30).length;
-        const expiredSubCount = subscriptionRows.filter(x => x.status === "expired" || (x.status === "active" && x._days !== null && x._days < 0)).length;
-        const pendingSubCount = subscriptionRows.filter(x => x.status === "pending").length;
-
-        $("saSubActiveCount").textContent = activeSubCount;
-        $("saSubExpiringCount").textContent = expiringSubCount;
-        $("saSubExpiredCount").textContent = expiredSubCount;
-        $("saSubPendingCount").textContent = pendingSubCount;
-
-
-        const renderPayments = rows => {
-            if (!rows.length) return '<div class="sa-empty">Belum ada pembayaran.</div>';
-            return `<table class="sa-table"><thead><tr>
-                <th>Invoice</th><th>BUMDes</th><th>Nominal</th><th>Status</th><th>Metode</th><th>Dibayar</th>
-            </tr></thead><tbody>${rows.map(x => `<tr>
-                <td>${escapeHtml(x.invoice_number || "-")}</td>
-                <td>${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || "-")}</td>
-                <td>${rupiah(x.amount)}</td>
-                <td><span class="sa-status ${statusClass(x.status)}">${escapeHtml(statusLabel(x.status))}</span></td>
-                <td>${escapeHtml(x.payment_method || x.payment_provider || "-")}</td>
-                <td>${x.paid_at ? new Date(x.paid_at).toLocaleDateString("id-ID") : "-"}</td>
-            </tr>`).join("")}</tbody></table>`;
-        };
-        $("saPaymentTable").innerHTML = renderPayments(payments.slice(0,10));
-        $("saPaymentFullTable").innerHTML = renderPayments(payments);
-
-        const renderUsers = rows => {
-            if (!rows.length) return '<div class="sa-empty">Belum ada pengguna.</div>';
-            return `<table class="sa-table"><thead><tr>
-                <th>Nama</th><th>Email</th><th>Role</th><th>BUMDes</th><th>Status</th>
-            </tr></thead><tbody>${rows.map(x => `<tr>
-                <td>${escapeHtml(x.nama || "-")}</td>
-                <td>${escapeHtml(x.email || "-")}</td>
-                <td>${escapeHtml(x.role || "-")}</td>
-                <td>${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || (x.role === "super_admin" ? "Platform e-BUMDesa" : "-"))}</td>
-                <td><span class="sa-status ${x.status === "aktif" ? "active" : "pending"}">${escapeHtml(x.status || "-")}</span></td>
-            </tr>`).join("")}</tbody></table>`;
-        };
-        $("saUsersTable").innerHTML = renderUsers(users);
-
-        window.__saData = {bumdesRows, subscriptions, payments, users, bumdesMap};
-        applySuperAdminFilters();
-    }
-
-    // =========================================================
-    // LANGGANAN ADMIN PUSAT / INVOICE
-    // =========================================================
-    async function loadCustomerSubscription(profile) {
-        const { data: bumdes, error } = await supabaseClient
-            .from("bumdes")
-            .select("id,nama,desa,kecamatan,kabupaten,provinsi,alamat")
-            .eq("id", profile.bumdes_id)
-            .maybeSingle();
-
-        if (error || !bumdes) {
-            console.error(error);
-            alert("Data BUMDes tidak ditemukan.");
-            return;
-        }
-
-        const { data: subscription } = await supabaseClient
-            .from("subscriptions")
-            .select("id,plan_name,amount,billing_period_months,status,started_at,expires_at")
-            .eq("bumdes_id", profile.bumdes_id)
-            .maybeSingle();
-
-        $("customerSubUserName").textContent = profile.nama || "";
-        $("customerSubUserEmail").textContent = profile.email || "";
-        $("customerSubBumdesName").textContent = bumdes.nama || "-";
-        $("customerSubStatus").textContent = subscription?.status === "active" ? "Aktif" : (subscription?.status || "Belum aktif");
-        $("customerSubExpires").textContent = subscription?.expires_at
-            ? new Date(subscription.expires_at).toLocaleDateString("id-ID")
-            : "-";
-        $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
-
-        window.__customerSubscription = { profile, bumdes, subscription };
-        showOnly("customerSubscriptionPage");
-        await loadCustomerInvoices(profile.bumdes_id);
-    }
-
-    async function loadCustomerInvoices(bumdesId) {
-        const box = $("customerInvoiceList");
-        box.innerHTML = '<div class="invoice-empty">Memuat invoice...</div>';
-
-        const { data, error } = await supabaseClient
-            .from("payments")
-            .select("id,invoice_number,amount,status,payment_provider,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
-            .eq("bumdes_id", bumdesId)
-            .order("created_at", { ascending:false });
-
-        if (error) {
-            console.error(error);
-            box.innerHTML = `<div class="invoice-empty">Gagal memuat invoice: ${escapeHtml(error.message)}</div>`;
-            return;
-        }
-
-        const rows = data || [];
-        if (!rows.length) {
-            box.innerHTML = '<div class="invoice-empty">Belum ada invoice. Klik "Buat Invoice" untuk membuat invoice pertama.</div>';
-            return;
-        }
-
-        box.innerHTML = rows.map(p => `
-            <div class="invoice-row">
-                <div>
-                    <div class="invoice-number">${escapeHtml(p.invoice_number || "-")}</div>
-                    <div class="invoice-meta">${new Date(p.created_at).toLocaleDateString("id-ID")}</div>
-                </div>
-                <div>${rupiah(p.amount)}</div>
-                <div><span class="invoice-status ${escapeHtml(p.status || "pending")}">${escapeHtml(p.status || "pending")}</span></div>
-                <div class="invoice-meta">${p.paid_at ? "Dibayar " + new Date(p.paid_at).toLocaleDateString("id-ID") : (p.expired_at ? "Jatuh tempo " + new Date(p.expired_at).toLocaleDateString("id-ID") : "")}</div>
-                <div>
-                    <button class="invoice-btn" type="button" data-invoice-id="${escapeHtml(p.id)}">Lihat</button>
-                    ${p.status === "pending" ? `<button class="invoice-btn primary" type="button" data-pay-invoice="${escapeHtml(p.id)}">Bayar</button>` : ""}
-                </div>
-            </div>
-        `).join("");
-    }
-
-    async function createCustomerInvoice() {
-        const ctx = window.__customerSubscription;
-        if (!ctx?.profile?.bumdes_id) return;
-
-        const amount = Number(ctx.subscription?.amount || 100000);
-        const months = Number(ctx.subscription?.billing_period_months || 1);
-        const invoiceNumber = "INV-" +
-            new Date().toISOString().slice(0,10).replaceAll("-","") + "-" +
-            Math.random().toString(36).slice(2,7).toUpperCase();
-
-        const due = new Date();
-        due.setDate(due.getDate() + 1);
-
-        const btn = $("createInvoiceBtn");
-        btn.disabled = true;
-        btn.textContent = "Membuat...";
-
-        const { error } = await supabaseClient.from("payments").insert({
-            bumdes_id: ctx.profile.bumdes_id,
-            subscription_id: ctx.subscription?.id || null,
-            invoice_number: invoiceNumber,
-            amount: amount,
-            status: "pending",
-            payment_provider: "midtrans",
-            expired_at: due.toISOString(),
-            metadata: {
-                billing_period_months: months,
-                source: "customer_invoice"
-            }
-        });
-
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice';
-
-        if (error) {
-            alert("Gagal membuat invoice: " + error.message);
-            return;
-        }
-        await loadCustomerInvoices(ctx.profile.bumdes_id);
-    }
-
-    async function openCustomerInvoice(invoiceId) {
-        const ctx = window.__customerSubscription;
-        if (!ctx?.profile?.bumdes_id) return;
-
-        const { data: p, error } = await supabaseClient
-            .from("payments")
-            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
-            .eq("id", invoiceId)
-            .eq("bumdes_id", ctx.profile.bumdes_id)
-            .maybeSingle();
-
-        if (error || !p) {
-            alert("Invoice tidak ditemukan.");
-            return;
-        }
-
-        const b = ctx.bumdes;
-        $("invoicePrintNumber").textContent = p.invoice_number || "-";
-        $("invoicePrintBumdes").textContent = b.nama || "-";
-        $("invoicePrintAddress").textContent = [b.alamat,b.desa,b.kecamatan,b.kabupaten,b.provinsi].filter(Boolean).join(", ") || "-";
-        $("invoicePrintDate").textContent = new Date(p.created_at).toLocaleDateString("id-ID");
-        $("invoicePrintDue").textContent = p.expired_at ? new Date(p.expired_at).toLocaleDateString("id-ID") : "-";
-        $("invoicePrintPlan").textContent = ctx.subscription?.plan_name || "Langganan e-BUMDesa";
-        $("invoicePrintPeriod").textContent = `${p.metadata?.billing_period_months || ctx.subscription?.billing_period_months || 1} Bulan`;
-        $("invoicePrintAmount").textContent = rupiah(p.amount);
-        $("invoicePrintTotal").textContent = rupiah(p.amount);
-        $("invoicePrintStatus").textContent = "Status: " + (p.status || "pending");
-
-        window.__currentInvoice = p;
-        showOnly("invoicePrintPage");
-    }
-
-    $("createInvoiceBtn").addEventListener("click", createCustomerInvoice);
-    $("customerInvoiceList").addEventListener("click", event => {
-        const view = event.target.closest("[data-invoice-id]");
-        const pay = event.target.closest("[data-pay-invoice]");
-        if (view) openCustomerInvoice(view.dataset.invoiceId);
-        if (pay) {
-            openCustomerInvoice(pay.dataset.payInvoice);
-        }
-    });
-    $("invoiceBackBtn").addEventListener("click", () => {
-        showOnly("customerSubscriptionPage");
-        if (window.__customerSubscription?.profile?.bumdes_id) {
-            loadCustomerInvoices(window.__customerSubscription.profile.bumdes_id);
-        }
-    });
-    $("invoicePrintBtn").addEventListener("click", () => window.print());
-    $("invoicePayBtn").addEventListener("click", () => {
-        const p = window.__currentInvoice;
-        if (!p) return;
-        if (p.payment_url) {
-            window.location.href = p.payment_url;
-        } else {
-            alert("Pembayaran Midtrans belum diaktifkan. Invoice sudah tersimpan dan dapat dicetak.");
-        }
-    });
-    $("customerSubLogoutBtn").addEventListener("click", async () => {
-        await supabaseClient.auth.signOut();
-        showOnly("loginPage");
-    });
-
-    // =========================================================
     // DASHBOARD
     // =========================================================
     async function loadDashboard(profile) {
@@ -3467,214 +2271,168 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             .replaceAll("'", "&#039;");
     }
 
-    async function openBumdesDetail(bumdesId) {
-        const modal = $("saBumdesModal");
-        const body = $("saModalBody");
-        const bumdes = (window.__saData?.bumdesRows || []).find(x => x.id === bumdesId);
-        if (!bumdes) return;
 
-        $("saModalTitle").textContent = bumdes.nama;
-        $("saModalSubtitle").textContent = `Kode ${bumdes.kode}`;
-        body.innerHTML = '<div class="sa-loading">Memuat detail BUMDes...</div>';
-        modal.classList.remove("hidden");
+    // =========================================================
+    // LANGGANAN & INVOICE ADMIN PUSAT
+    // =========================================================
+    let customerSubscriptionContext = null;
+    let currentInvoice = null;
 
-        const [b, units, users, sub] = await Promise.all([
-            supabaseClient.from("bumdes")
-                .select("id,nama,kode,desa,kecamatan,kabupaten,provinsi,alamat,status,tahun_buku,created_at")
-                .eq("id", bumdesId)
-                .maybeSingle(),
-            supabaseClient.from("units")
-                .select("id,nama_unit,kode_unit,status,alamat,created_at")
-                .eq("bumdes_id", bumdesId)
-                .order("created_at", {ascending:true}),
-            supabaseClient.from("profiles")
-                .select("id,nama,email,role,unit_id,status,created_at")
-                .eq("bumdes_id", bumdesId)
-                .order("created_at", {ascending:true}),
-            supabaseClient.from("subscriptions")
-                .select("plan_name,amount,billing_period_months,status,started_at,expires_at,payment_provider")
-                .eq("bumdes_id", bumdesId)
-                .maybeSingle()
-        ]);
+    async function openCustomerSubscription() {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) return;
 
-        if (b.error) {
-            body.innerHTML = `<div class="sa-empty">Gagal memuat detail: ${escapeHtml(b.error.message)}</div>`;
+        const { data: profile, error: profileError } = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq("id", sessionData.session.user.id)
+            .maybeSingle();
+
+        if (profileError || !profile || profile.role !== "admin_pusat" || !profile.bumdes_id) {
+            alert("Menu Langganan hanya tersedia untuk Admin Pusat.");
             return;
         }
 
-        const data = b.data;
-        const unitRows = units.data || [];
-        const userRows = users.data || [];
-        const subscription = sub.data;
+        const [{ data: bumdes }, { data: subscription }] = await Promise.all([
+            supabaseClient.from("bumdes").select("id,nama,desa,kecamatan,kabupaten,provinsi,alamat").eq("id",profile.bumdes_id).maybeSingle(),
+            supabaseClient.from("subscriptions").select("id,plan_name,amount,billing_period_months,status,started_at,expires_at").eq("bumdes_id",profile.bumdes_id).maybeSingle()
+        ]);
 
-        const roleLabel = role => ({
-            admin_pusat: "Admin Pusat",
-            admin_unit: "Admin Unit",
-            operator_unit: "Operator Unit",
-            super_admin: "Super Admin"
-        }[role] || role || "-");
+        customerSubscriptionContext = { profile, bumdes, subscription };
+        $("customerSubUserName").textContent = profile.nama || "";
+        $("customerSubUserEmail").textContent = profile.email || "";
+        $("customerSubBumdesName").textContent = bumdes?.nama || "-";
+        $("customerSubStatus").textContent = subscription?.status === "active" ? "Aktif" : (subscription?.status || "Belum aktif");
+        $("customerSubExpires").textContent = subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString("id-ID") : "-";
+        $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
 
-        body.innerHTML = `
-            <div class="sa-modal-section-title">Profil BUMDes</div>
-            <div class="sa-detail-list">
-                <div class="sa-detail-item"><span>Nama BUMDes</span><strong>${escapeHtml(data.nama || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Kode BUMDes</span><strong>${escapeHtml(data.kode || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Desa</span><strong>${escapeHtml(data.desa || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Kecamatan</span><strong>${escapeHtml(data.kecamatan || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Kabupaten</span><strong>${escapeHtml(data.kabupaten || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Provinsi</span><strong>${escapeHtml(data.provinsi || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Tahun Buku</span><strong>${escapeHtml(data.tahun_buku || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Status BUMDes</span><strong>${escapeHtml(data.status || "-")}</strong></div>
-                <div class="sa-detail-item" style="grid-column:1/-1"><span>Alamat</span><strong>${escapeHtml(data.alamat || "-")}</strong></div>
+        showOnly("customerSubscriptionPage");
+        await loadCustomerInvoices(profile.bumdes_id);
+    }
+
+    async function loadCustomerInvoices(bumdesId) {
+        const box = $("customerInvoiceList");
+        box.innerHTML = '<div class="invoice-empty">Memuat invoice...</div>';
+
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("id,invoice_number,amount,status,payment_provider,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
+            .eq("bumdes_id", bumdesId)
+            .order("created_at", { ascending:false });
+
+        if (error) {
+            box.innerHTML = `<div class="invoice-empty">Gagal memuat invoice: ${escapeHtml(error.message)}</div>`;
+            return;
+        }
+        if (!data?.length) {
+            box.innerHTML = '<div class="invoice-empty">Belum ada invoice. Klik "Buat Invoice" untuk membuat invoice.</div>';
+            return;
+        }
+
+        box.innerHTML = data.map(p => `
+            <div class="invoice-row">
+                <div><div class="invoice-number">${escapeHtml(p.invoice_number || "-")}</div><div class="invoice-meta">${new Date(p.created_at).toLocaleDateString("id-ID")}</div></div>
+                <div>${rupiah(p.amount)}</div>
+                <div><span class="invoice-status ${escapeHtml(p.status || "pending")}">${escapeHtml(p.status || "pending")}</span></div>
+                <div class="invoice-meta">${p.paid_at ? "Dibayar " + new Date(p.paid_at).toLocaleDateString("id-ID") : (p.expired_at ? "Jatuh tempo " + new Date(p.expired_at).toLocaleDateString("id-ID") : "")}</div>
+                <div>
+                    <button class="invoice-btn" type="button" data-view-invoice="${escapeHtml(p.id)}">Lihat</button>
+                    ${p.status === "pending" ? `<button class="invoice-btn primary" type="button" data-pay-invoice="${escapeHtml(p.id)}">Bayar</button>` : ""}
+                </div>
             </div>
-
-            <div class="sa-modal-section-title">Langganan</div>
-            <div class="sa-detail-list">
-                <div class="sa-detail-item"><span>Paket</span><strong>${escapeHtml(subscription?.plan_name || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Nominal</span><strong>${subscription ? rupiah(subscription.amount) : "-"}</strong></div>
-                <div class="sa-detail-item"><span>Status</span><strong>${escapeHtml(subscription?.status || "-")}</strong></div>
-                <div class="sa-detail-item"><span>Berakhir</span><strong>${subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString("id-ID") : "-"}</strong></div>
-            </div>
-
-            <div class="sa-modal-section-title">Unit Usaha (${unitRows.length})</div>
-            ${unitRows.length ? `
-                <table class="sa-table" style="margin-bottom:18px">
-                    <thead><tr><th>Unit</th><th>Kode</th><th>Status</th></tr></thead>
-                    <tbody>${unitRows.map(u => `<tr>
-                        <td>${escapeHtml(u.nama_unit || "-")}</td>
-                        <td>${escapeHtml(u.kode_unit || "-")}</td>
-                        <td>${escapeHtml(u.status || "-")}</td>
-                    </tr>`).join("")}</tbody>
-                </table>
-            ` : '<div class="sa-empty">Belum ada unit usaha.</div>'}
-
-            <div class="sa-modal-section-title">Pengguna (${userRows.length})</div>
-            ${userRows.length ? `
-                <table class="sa-table">
-                    <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
-                    <tbody>${userRows.map(u => `<tr>
-                        <td>${escapeHtml(u.nama || "-")}</td>
-                        <td>${escapeHtml(u.email || "-")}</td>
-                        <td>${escapeHtml(roleLabel(u.role))}</td>
-                        <td>${escapeHtml(u.status || "-")}</td>
-                    </tr>`).join("")}</tbody>
-                </table>
-            ` : '<div class="sa-empty">Belum ada pengguna.</div>'}
-        `;
+        `).join("");
     }
 
-    function closeBumdesDetail() {
-        $("saBumdesModal").classList.add("hidden");
-    }
+    async function createCustomerInvoice() {
+        const ctx = customerSubscriptionContext;
+        if (!ctx?.profile?.bumdes_id) return;
 
-    document.addEventListener("click", event => {
-        const btn = event.target.closest(".sa-bumdes-link, .sa-sub-detail-btn");
-        if (btn) openBumdesDetail(btn.dataset.bumdesId);
-    });
+        const amount = Number(ctx.subscription?.amount || 100000);
+        const months = Number(ctx.subscription?.billing_period_months || 1);
+        const invoiceNumber = "INV-" + new Date().toISOString().slice(0,10).replaceAll("-","") + "-" + Math.random().toString(36).slice(2,7).toUpperCase();
+        const due = new Date();
+        due.setDate(due.getDate() + 1);
 
-    $("saModalClose").addEventListener("click", closeBumdesDetail);
-    $("saBumdesModal").addEventListener("click", event => {
-        if (event.target === $("saBumdesModal")) closeBumdesDetail();
-    });
-    document.addEventListener("keydown", event => {
-        if (event.key === "Escape") closeBumdesDetail();
-    });
-
-    function applySuperAdminFilters() {
-        const d = window.__saData || {};
-        const filter = (id, rows, fields, rendererId, renderer) => {
-            const q = ($(id)?.value || "").trim().toLowerCase();
-            const filtered = (rows || []).filter(x =>
-                fields.some(f => String(f(x) ?? "").toLowerCase().includes(q))
-            );
-            $(rendererId).innerHTML = renderer(filtered);
-        };
-
-        const bumdesRows = d.bumdesRows || [];
-        const renderBumdes = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x => `<tr><td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.id)}">${escapeHtml(x.nama)}</button></td><td>${escapeHtml(x.kode)}</td><td>${escapeHtml(x.wilayah)}</td><td><span class="sa-status ${x.status}">${escapeHtml(x.status === "active" ? "Aktif" : x.status)}</span></td><td>${x.expires}</td></tr>`).join("")}</tbody></table>`;
-        };
-        filter("saBumdesSearch", bumdesRows, [x=>x.nama,x=>x.kode,x=>x.wilayah], "saBumdesFullTable", renderBumdes);
-
-        const bm = d.bumdesMap || new Map();
-        const subscriptionRows = (d.subscriptions || []).map(x => {
-            const expiresAt = x.expires_at ? new Date(x.expires_at) : null;
-            const days = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000) : null;
-            return {...x, _days: days};
-        });
-
-        const subFilter = $("saSubscriptionFilter")?.value || "all";
-        const subSearch = ($("saSubscriptionSearch")?.value || "").trim().toLowerCase();
-
-        const filteredSubs = subscriptionRows.filter(x => {
-            const name = String(bm.get(x.bumdes_id)?.nama || "").toLowerCase();
-            const matchesSearch = !subSearch || name.includes(subSearch);
-            const matchesFilter =
-                subFilter === "all" ||
-                (subFilter === "active" && x.status === "active" && x._days !== null && x._days >= 0) ||
-                (subFilter === "expiring" && x.status === "active" && x._days !== null && x._days >= 0 && x._days <= 30) ||
-                (subFilter === "expired" && (x.status === "expired" || (x.status === "active" && x._days !== null && x._days < 0))) ||
-                (subFilter === "pending" && x.status === "pending");
-            return matchesSearch && matchesFilter;
-        });
-
-        const renderSubs = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th><th>Sisa</th><th></th></tr></thead><tbody>${rows.map(x => {
-                const daysClass = x._days === null ? "" : (x._days <= 7 ? "danger" : x._days <= 30 ? "warning" : "safe");
-                const daysText = x._days === null ? "-" : (x._days < 0 ? `Expired ${Math.abs(x._days)} hari` : `${x._days} hari`);
-                return `<tr><td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.bumdes_id)}">${escapeHtml(bm.get(x.bumdes_id)?.nama || "-")}</button></td><td>${escapeHtml(x.plan_name||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${x.started_at?new Date(x.started_at).toLocaleDateString("id-ID"):"-"}</td><td>${x.expires_at?new Date(x.expires_at).toLocaleDateString("id-ID"):"-"}</td><td><span class="sa-days ${daysClass}">${daysText}</span></td><td><button type="button" class="sa-sub-detail-btn" data-bumdes-id="${escapeHtml(x.bumdes_id)}">Detail</button></td></tr>`;
-            }).join("")}</tbody></table>`;
-        };
-        $("saSubscriptionTable").innerHTML = renderSubs(filteredSubs);
-
-        const renderPay = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr><th>Invoice</th><th>BUMDes</th><th>Nominal</th><th>Status</th><th>Metode</th><th>Dibayar</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.invoice_number||"-")}</td><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${escapeHtml(x.payment_method||x.payment_provider||"-")}</td><td>${x.paid_at?new Date(x.paid_at).toLocaleDateString("id-ID"):"-"}</td></tr>`).join("")}</tbody></table>`;
-        };
-        filter("saPaymentSearch", d.payments||[], [x=>x.invoice_number,x=>bm.get(x.bumdes_id)?.nama,x=>x.status], "saPaymentFullTable", renderPay);
-
-        const renderUsers = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>BUMDes</th><th>Status</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.nama||"-")}</td><td>${escapeHtml(x.email||"-")}</td><td>${escapeHtml(x.role||"-")}</td><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||(x.role==="super_admin"?"Platform e-BUMDesa":"-"))}</td><td>${escapeHtml(x.status||"-")}</td></tr>`).join("")}</tbody></table>`;
-        };
-        filter("saUserSearch", d.users||[], [x=>x.nama,x=>x.email,x=>x.role,x=>bm.get(x.bumdes_id)?.nama], "saUsersTable", renderUsers);
-    }
-
-    document.querySelectorAll("#saNav button").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("#saNav button").forEach(x => x.classList.remove("active"));
-            document.querySelectorAll(".sa-view").forEach(x => x.classList.add("hidden"));
-            btn.classList.add("active");
-            $(btn.dataset.saView).classList.remove("hidden");
-        });
-    });
-
-    ["saBumdesSearch","saSubscriptionSearch","saPaymentSearch","saUserSearch"].forEach(id => {
-        $(id).addEventListener("input", applySuperAdminFilters);
-    });
-
-    $("saSubscriptionFilter").addEventListener("change", applySuperAdminFilters);
-
-    $("saBumdesRefresh").addEventListener("click", refreshSuperAdmin);
-
-    $("saRefreshBtn").addEventListener("click", async () => {
-        const btn = $("saRefreshBtn");
+        const btn = $("createInvoiceBtn");
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Memuat...';
+        btn.textContent = "Membuat...";
 
-        try {
-            await refreshSuperAdmin();
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh';
+        const { error } = await supabaseClient.from("payments").insert({
+            bumdes_id: ctx.profile.bumdes_id,
+            subscription_id: ctx.subscription?.id || null,
+            invoice_number: invoiceNumber,
+            amount,
+            status: "pending",
+            payment_provider: "midtrans",
+            expired_at: due.toISOString(),
+            metadata: { billing_period_months: months, source:"customer_invoice" }
+        });
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice';
+
+        if (error) {
+            alert("Gagal membuat invoice: " + error.message);
+            return;
+        }
+        await loadCustomerInvoices(ctx.profile.bumdes_id);
+    }
+
+    async function openCustomerInvoice(invoiceId) {
+        const ctx = customerSubscriptionContext;
+        if (!ctx?.profile?.bumdes_id) return;
+
+        const { data:p, error } = await supabaseClient
+            .from("payments")
+            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
+            .eq("id",invoiceId).eq("bumdes_id",ctx.profile.bumdes_id).maybeSingle();
+
+        if (error || !p) { alert("Invoice tidak ditemukan."); return; }
+
+        const b = ctx.bumdes || {};
+        $("invoicePrintNumber").textContent = p.invoice_number || "-";
+        $("invoicePrintBumdes").textContent = b.nama || "-";
+        $("invoicePrintAddress").textContent = [b.alamat,b.desa,b.kecamatan,b.kabupaten,b.provinsi].filter(Boolean).join(", ") || "-";
+        $("invoicePrintDate").textContent = new Date(p.created_at).toLocaleDateString("id-ID");
+        $("invoicePrintDue").textContent = p.expired_at ? new Date(p.expired_at).toLocaleDateString("id-ID") : "-";
+        $("invoicePrintPlan").textContent = ctx.subscription?.plan_name || "Langganan e-BUMDesa";
+        $("invoicePrintPeriod").textContent = `${p.metadata?.billing_period_months || ctx.subscription?.billing_period_months || 1} Bulan`;
+        $("invoicePrintAmount").textContent = rupiah(p.amount);
+        $("invoicePrintTotal").textContent = rupiah(p.amount);
+        $("invoicePrintStatus").textContent = "Status: " + (p.status || "pending");
+        currentInvoice = p;
+        showOnly("invoicePrintPage");
+    }
+
+    $("customerSubscriptionMenu").addEventListener("click", async (e) => {
+        e.preventDefault();
+        await openCustomerSubscription();
+    });
+    $("createInvoiceBtn").addEventListener("click", createCustomerInvoice);
+    $("customerInvoiceList").addEventListener("click", async (e) => {
+        const view = e.target.closest("[data-view-invoice]");
+        const pay = e.target.closest("[data-pay-invoice]");
+        if (view) await openCustomerInvoice(view.dataset.viewInvoice);
+        if (pay) await openCustomerInvoice(pay.dataset.payInvoice);
+    });
+    $("customerSubBackBtn").addEventListener("click", async () => {
+        if (customerSubscriptionContext?.profile) {
+            await loadDashboard(customerSubscriptionContext.profile);
+        } else {
+            showOnly("appPage");
         }
     });
-
-    $("saLogoutBtn").addEventListener("click", async () => {
-        await supabaseClient.auth.signOut();
-        showOnly("loginPage");
+    $("invoiceBackBtn").addEventListener("click", async () => {
+        showOnly("customerSubscriptionPage");
+        if (customerSubscriptionContext?.profile?.bumdes_id) await loadCustomerInvoices(customerSubscriptionContext.profile.bumdes_id);
+    });
+    $("invoicePrintBtn").addEventListener("click", () => window.print());
+    $("invoicePayBtn").addEventListener("click", () => {
+        if (currentInvoice?.payment_url) {
+            window.location.href = currentInvoice.payment_url;
+        } else {
+            alert("Pembayaran Midtrans belum diaktifkan. Invoice sudah tersimpan dan dapat dicetak.");
+        }
     });
 
     // =========================================================
