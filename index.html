@@ -2755,7 +2755,11 @@
         if (unitError) throw unitError;
         if (openingError) throw openingError;
 
-        const openPeriods = (periods || []).filter(p => p.status === "open");
+        // Saldo awal yang diinput pada modul ini adalah Saldo Awal Tahun.
+        // Karena itu hanya periode tahunan yang dapat dipilih.
+        const openPeriods = (periods || []).filter(
+            p => p.status === "open" && p.period_type === "tahunan"
+        );
         const periodOptions = openPeriods.length
             ? openPeriods.map(p =>
                 `<option value="${p.id}">${escapeHtml(p.period_type.toUpperCase())} — ${fmtDate(p.start_date)} s/d ${fmtDate(p.end_date)}</option>`
@@ -2798,8 +2802,10 @@
                     </div>
                 </div>
 
-                <div id="obMessage" class="alert alert-info py-2 small">
-                    Pilih periode dan lokasi untuk menampilkan saldo awal.
+                <div id="obMessage" class="alert ${openPeriods.length ? "alert-info" : "alert-warning"} py-2 small">
+                    ${openPeriods.length
+                        ? "Pilih periode tahun dan lokasi untuk menampilkan saldo awal."
+                        : "Belum ada periode tahunan yang terbuka. Buat periode tahun buku terlebih dahulu."}
                 </div>
 
                 <div class="table-responsive" style="max-height: 58vh; overflow:auto;">
@@ -2998,12 +3004,19 @@
 
             try {
                 // Replace the selected period/location set. Existing values are loaded into the form first.
-                const { error: deleteError } = await supabaseClient
+                let deleteQuery = supabaseClient
                     .from("opening_balances")
                     .delete()
                     .eq("bumdes_id", bumdesId)
-                    .eq("period_id", periodId)
-                    .is("unit_id", unitId);
+                    .eq("period_id", periodId);
+
+                if (unitId) {
+                    deleteQuery = deleteQuery.eq("unit_id", unitId);
+                } else {
+                    deleteQuery = deleteQuery.is("unit_id", null);
+                }
+
+                const { error: deleteError } = await deleteQuery;
 
                 if (deleteError) throw deleteError;
 
@@ -3098,10 +3111,6 @@
         if (accountError) throw accountError;
         if (unitError) throw unitError;
 
-        const periodOptions = (periods || []).map(p =>
-            `<option value="${escapeHtml(p.id)}">${escapeHtml(p.period_type)} · ${escapeHtml(fmtDate(p.start_date))} s/d ${escapeHtml(fmtDate(p.end_date))}</option>`
-        ).join("");
-
         const accountOptions = (accounts || []).map(a =>
             `<option value="${escapeHtml(a.id)}">${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`
         ).join("");
@@ -3121,7 +3130,6 @@
 
         const formDisabled = (!periods?.length || !accounts?.length || !unitOptions);
         const accountDisabled = !accounts?.length;
-        const periodDisabled = !periods?.length;
         const unitDisabled = !unitOptions;
         const today = new Date().toISOString().slice(0,10);
 
@@ -3167,14 +3175,9 @@
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">Tanggal</label>
                             <input id="txDate" class="form-control" type="date" value="${today}" required>
+                            <div id="txPeriodInfo" class="form-text">Periode akan ditentukan otomatis dari tanggal.</div>
                         </div>
-                        <div class="col-md-5">
-                            <label class="form-label small fw-semibold">Periode</label>
-                            <select id="txPeriod" class="form-select" required ${periodDisabled ? "disabled" : ""}>
-                                <option value="">Pilih periode terbuka</option>${periodOptions}
-                            </select>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-semibold">Unit / Lokasi</label>
                             <select id="txUnit" class="form-select" ${unitDisabled ? "disabled" : ""}>${unitOptions}</select>
                         </div>
@@ -3238,7 +3241,7 @@
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="text-secondary small">
-                            Nomor bukti dibuat dengan pola <strong>No. Urut/No. Bulan/Kode Unit/Tahun</strong>.
+                            Periode akuntansi ditentukan otomatis dari tanggal transaksi. Nomor bukti mengikuti pola <strong>No. Urut/No. Bulan/Kode Unit/Tahun</strong>.
                         </div>
                         <button id="txSaveBtn" class="btn btn-primary px-4" type="submit" ${formDisabled ? "disabled" : ""}>
                             <i class="bi bi-check2-circle me-1"></i>Simpan Transaksi
@@ -3344,15 +3347,37 @@
 
             const btn = $("txSaveBtn");
             const date = $("txDate").value;
-            const periodId = $("txPeriod").value;
             const unitId = $("txUnit").value || null;
             const type = $("txType").value;
             const description = $("txDescription").value.trim();
             const totals = updateTotals();
 
-            if (!date || !periodId || !description) {
-                alert("Lengkapi tanggal, periode, dan uraian transaksi.");
+            if (!date || !description) {
+                alert("Lengkapi tanggal dan uraian transaksi.");
                 return;
+            }
+
+            // Periode ditentukan otomatis berdasarkan tanggal transaksi.
+            const matchingPeriods = (periods || []).filter(p =>
+                p.status === "open" &&
+                date >= p.start_date &&
+                date <= p.end_date
+            );
+
+            if (matchingPeriods.length !== 1) {
+                alert(
+                    matchingPeriods.length === 0
+                        ? "Tidak ada periode akuntansi terbuka untuk tanggal transaksi tersebut."
+                        : "Terdapat lebih dari satu periode terbuka yang mencakup tanggal tersebut. Periksa pengaturan periode akuntansi."
+                );
+                return;
+            }
+
+            const periodId = matchingPeriods[0].id;
+
+            const periodInfo = $("txPeriodInfo");
+            if (periodInfo) {
+                periodInfo.textContent = `Periode otomatis: ${fmtDate(matchingPeriods[0].start_date)} s/d ${fmtDate(matchingPeriods[0].end_date)}`;
             }
 
             if (totals.debit <= 0 || totals.credit <= 0 || Math.abs(totals.debit - totals.credit) > 0.001) {
@@ -3360,11 +3385,7 @@
                 return;
             }
 
-            const period = (periods || []).find(p => p.id === periodId);
-            if (!period || period.status !== "open" || date < period.start_date || date > period.end_date) {
-                alert("Tanggal transaksi harus berada di dalam periode yang terbuka.");
-                return;
-            }
+            const period = matchingPeriods[0];
 
             const lineRows = [...(journalRowsEl?.querySelectorAll(".journal-input-row") || [])].map(row => ({
                 accountId: row.querySelector(".tx-account")?.value || "",
