@@ -38,6 +38,20 @@
 
         .hidden { display: none !important; }
 
+        /* MODERN NOTIFICATION */
+        #appToastContainer{position:fixed;top:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:12px;width:min(390px,calc(100vw - 32px));pointer-events:none}
+        .app-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:13px;padding:15px 17px;border:1px solid rgba(255,255,255,.65);border-radius:16px;background:rgba(255,255,255,.96);box-shadow:0 14px 38px rgba(25,45,75,.20);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transform:translateX(120%);opacity:0;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .25s ease;overflow:hidden}
+        .app-toast.show{transform:translateX(0);opacity:1}
+        .app-toast-icon{flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;font-size:20px}
+        .app-toast.success .app-toast-icon{background:#e8f7ee;color:#198754}.app-toast.error .app-toast-icon{background:#fdebec;color:#dc3545}.app-toast.info .app-toast-icon{background:#e9f3ff;color:#2f67b7}
+        .app-toast-body{min-width:0;flex:1}.app-toast-title{font-weight:750;font-size:14px;line-height:1.25;margin-bottom:3px;color:#25313c}.app-toast-message{font-size:13px;line-height:1.45;color:#71808f;word-break:break-word}
+        .app-toast-close{border:0;background:transparent;color:#8a97a5;font-size:20px;line-height:1;padding:0 0 0 4px;cursor:pointer}.app-toast-close:hover{color:#25313c}
+        .app-toast-progress{position:absolute;left:0;bottom:0;height:3px;width:100%;transform-origin:left;animation:toastProgress 3.8s linear forwards}
+        .app-toast.success .app-toast-progress{background:#198754}.app-toast.error .app-toast-progress{background:#dc3545}.app-toast.info .app-toast-progress{background:#2f67b7}
+        @keyframes toastProgress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+        @media(max-width:576px){#appToastContainer{top:14px;right:16px;width:calc(100vw - 32px)}}
+
+
         /* LOGIN */
         #loginPage {
             min-height: 100vh;
@@ -1553,6 +1567,7 @@
 </head>
 
 <body>
+    <div id="appToastContainer" aria-live="polite" aria-atomic="true"></div>
 
 <!-- LOADING -->
 <div id="loadingPage" class="d-flex min-vh-100 align-items-center justify-content-center">
@@ -2160,6 +2175,21 @@
     const $ = (id) => document.getElementById(id);
 
     // Format tanggal aplikasi: DD-MM-YYYY
+
+    function showAppToast(type, title, message, duration = 3800) {
+        const container = document.getElementById("appToastContainer");
+        if (!container) return;
+        const icons = { success: "bi-check-circle-fill", error: "bi-x-circle-fill", info: "bi-info-circle-fill" };
+        const toast = document.createElement("div");
+        toast.className = `app-toast ${type || "info"}`;
+        toast.innerHTML = `<div class="app-toast-icon"><i class="bi ${icons[type] || icons.info}"></i></div><div class="app-toast-body"><div class="app-toast-title">${escapeHtml(title || "Informasi")}</div><div class="app-toast-message">${escapeHtml(message || "")}</div></div><button type="button" class="app-toast-close" aria-label="Tutup">&times;</button><div class="app-toast-progress"></div>`;
+        container.appendChild(toast);
+        const close = () => { toast.classList.remove("show"); setTimeout(() => toast.remove(), 280); };
+        toast.querySelector(".app-toast-close").addEventListener("click", close);
+        requestAnimationFrame(() => toast.classList.add("show"));
+        setTimeout(close, duration);
+    }
+
     function fmtDate(value) {
         if (!value) return "-";
         const raw = String(value);
@@ -3040,6 +3070,7 @@
 
                 msgEl.className = "alert alert-success py-2 small";
                 msgEl.innerHTML = `<i class="bi bi-check-circle me-1"></i>Saldo awal berhasil disimpan.`;
+                showAppToast("success", "Saldo awal berhasil disimpan", `Saldo awal ${unitId ? "Unit Usaha" : "Kantor Pusat"} telah tersimpan dan seimbang.`);
                 statusEl.textContent = "✓ Tersimpan & Seimbang";
                 statusEl.className = "fw-semibold text-success";
             } catch (err) {
@@ -3498,7 +3529,7 @@
 
                 if (journalError) throw journalError;
 
-                alert(`Transaksi ${transactionNumber} berhasil disimpan. Jurnal ${lineRows.length} baris telah dibuat.`);
+                showAppToast("success", "Transaksi berhasil disimpan", `No. Bukti ${transactionNumber} • ${lineRows.length} baris jurnal telah dibuat.`);
                 await renderTransactionsModule();
             } catch (err) {
                 console.error(err);
