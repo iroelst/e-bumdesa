@@ -3150,10 +3150,6 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         filter("saBumdesSearch", bumdesRows, [x=>x.nama,x=>x.kode,x=>x.wilayah], "saBumdesFullTable", renderBumdes);
 
         const bm = d.bumdesMap || new Map();
-        const renderSubs = rows => {
-            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||"-")}</td><td>${escapeHtml(x.plan_name||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${x.started_at?new Date(x.started_at).toLocaleDateString("id-ID"):"-"}</td><td>${x.expires_at?new Date(x.expires_at).toLocaleDateString("id-ID"):"-"}</td></tr>`).join("")}</tbody></table>`;
-        };
         const subscriptionRows = (d.subscriptions || []).map(x => {
             const expiresAt = x.expires_at ? new Date(x.expires_at) : null;
             const days = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000) : null;
