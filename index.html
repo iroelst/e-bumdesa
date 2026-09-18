@@ -2205,7 +2205,35 @@
         const messageEl = document.querySelector("#subscriptionPage .subscription-bumdes-name");
         if (messageEl) messageEl.textContent = message;
         payBtn.innerHTML = `<i class="bi bi-credit-card-2-front me-2"></i>${buttonLabel}`;
-        payBtn.disabled = status === "suspended";
+
+        // Invoice dibuat otomatis oleh sistem. Ambil invoice pending terbaru
+        // milik BUMDes ini agar tombol langsung menuju pembayaran Midtrans.
+        let pendingInvoice = null;
+        if (profile?.bumdes_id && status !== "suspended") {
+            const { data: invoice, error: invoiceError } = await supabaseClient
+                .from("payments")
+                .select("id, invoice_number, amount, status, payment_url, expired_at, created_at")
+                .eq("bumdes_id", profile.bumdes_id)
+                .eq("status", "pending")
+                .eq("payment_provider", "midtrans")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (invoiceError) {
+                console.error("Gagal membaca invoice:", invoiceError);
+            } else {
+                pendingInvoice = invoice;
+            }
+        }
+
+        payBtn.disabled = status === "suspended" || !pendingInvoice;
+        if (!pendingInvoice && status !== "suspended") {
+            payBtn.innerHTML = `<i class="bi bi-hourglass-split me-2"></i>Invoice Sedang Diproses`;
+        }
+
+        // Simpan invoice yang akan digunakan oleh tombol pembayaran.
+        window.pendingSubscriptionInvoice = pendingInvoice;
 
         showOnly("subscriptionPage");
     }
@@ -2627,8 +2655,45 @@
         showOnly("loginPage");
     });
 
-    $("subscriptionPayBtn").addEventListener("click", () => {
-        alert("Pembayaran Midtrans akan dihubungkan pada tahap integrasi payment gateway.");
+    $("subscriptionPayBtn").addEventListener("click", async () => {
+        const btn = $("subscriptionPayBtn");
+        const invoice = window.pendingSubscriptionInvoice;
+
+        if (!invoice) {
+            alert("Invoice pembayaran belum tersedia. Silakan coba lagi beberapa saat lagi.");
+            return;
+        }
+
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyiapkan pembayaran...`;
+
+        try {
+            let paymentUrl = invoice.payment_url;
+
+            // Jika invoice belum mempunyai payment_url, minta Edge Function
+            // membuat transaksi Snap Midtrans untuk invoice tersebut.
+            if (!paymentUrl) {
+                const { data, error } = await supabaseClient.functions.invoke(
+                    "create-midtrans-payment",
+                    { body: { payment_id: invoice.id } }
+                );
+
+                if (error) throw error;
+                paymentUrl = data?.payment_url;
+            }
+
+            if (!paymentUrl) {
+                throw new Error("Tautan pembayaran Midtrans belum tersedia.");
+            }
+
+            window.location.href = paymentUrl;
+        } catch (error) {
+            console.error("Gagal menyiapkan pembayaran:", error);
+            alert("Gagal menyiapkan pembayaran: " + (error.message || "Terjadi kesalahan."));
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
     });
 
     // =========================================================
