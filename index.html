@@ -41,76 +41,190 @@
         #loginPage {
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            background: linear-gradient(135deg, #eef3fa 0%, #f8fafc 100%);
+            background: #eef4fb;
         }
 
-        .login-card {
+        .login-shell {
             width: 100%;
-            max-width: 430px;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            box-shadow: 0 18px 50px rgba(30, 50, 80, .12);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 52.5% 47.5%;
+        }
+
+        .login-brand-panel {
+            position: relative;
             overflow: hidden;
+            min-height: 100vh;
+            background:
+                linear-gradient(135deg, rgba(7,57,125,.10), rgba(0,126,118,.04)),
+                url("e-bumdesa-login-branding.jpg") center center / cover no-repeat;
         }
 
-        .login-brand {
-            background: var(--primary);
-            color: #fff;
-            padding: 28px 24px;
-            text-align: center;
-        }
-
-        .login-logo {
-            width: 115px;
-            height: 115px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto 10px;
-            background: #fff;
-            border-radius: 14px;
-            padding: 7px;
-        }
-
-        .login-brand h1 {
-            margin: 0;
-            font-weight: 700;
-            letter-spacing: .2px;
-        }
-
-        .login-brand p {
-            margin: 6px 0 0;
-            opacity: .9;
-        }
-
-        .login-body { padding: 30px; }
-
-        .google-btn {
-            width: 100%;
-            height: 48px;
-            border: 1px solid #dadce0;
-            background: #fff;
-            color: #3c4043;
-            border-radius: 8px;
+        .login-form-panel {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            font-weight: 600;
-            transition: .15s ease;
+            padding: 55px;
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 16% 17%, rgba(76,172,225,.15), transparent 28%),
+                radial-gradient(circle at 92% 88%, rgba(95,204,165,.12), transparent 25%),
+                #f5f9fd;
+        }
+
+        .login-form-panel::before {
+            content: "";
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            border: 1px solid rgba(47,103,183,.10);
+            border-radius: 50%;
+            left: -285px;
+            top: -155px;
+        }
+
+        .login-form-panel::after {
+            content: "";
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            right: -120px;
+            bottom: -100px;
+            background: rgba(71,194,151,.08);
+        }
+
+        .login-card {
+            width: min(100%, 645px);
+            position: relative;
+            z-index: 2;
+            background: rgba(255,255,255,.97);
+            border: 1px solid rgba(220,227,236,.95);
+            border-radius: 23px;
+            padding: 78px 52px 56px;
+            box-shadow: 0 22px 60px rgba(33,58,92,.14);
+        }
+
+        .login-card .mini-logo {
+            width: 74px;
+            height: 74px;
+            object-fit: contain;
+            display: none;
+            margin: 0 auto 15px;
+        }
+
+        .login-card h2 {
+            margin: 0;
+            color: #142b4b;
+            font-size: 36px;
+            line-height: 1.2;
+            font-weight: 750;
+            text-align: center;
+        }
+
+        .login-card .login-intro {
+            color: #73839a;
+            text-align: center;
+            margin: 13px 0 37px;
+            font-size: 18px;
+            line-height: 1.55;
+        }
+
+        .google-btn {
+            width: 100%;
+            height: 70px;
+            border: 0;
+            background: linear-gradient(180deg, #2e6fd0 0%, #2866c1 100%);
+            color: #fff;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-weight: 650;
+            font-size: 18px;
+            transition: .18s ease;
+            box-shadow: 0 12px 22px rgba(43,104,195,.18);
         }
 
         .google-btn:hover {
-            background: #f8f9fa;
-            box-shadow: 0 1px 3px rgba(60,64,67,.18);
+            background: linear-gradient(180deg, #3678d8 0%, #2b6bc8 100%);
+            box-shadow: 0 15px 27px rgba(43,104,195,.25);
+            transform: translateY(-1px);
         }
 
         .google-logo {
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border-radius: 50%;
+            padding: 4px;
+        }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 28px 4px;
+            color: #8795a8;
+            font-size: 14px;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: "";
+            height: 1px;
+            flex: 1;
+            background: #d5dce6;
+        }
+
+        .login-security {
+            display: flex;
+            gap: 17px;
+            align-items: center;
+            padding: 22px 25px;
+            border-radius: 14px;
+            background: #f2f6fc;
+            color: #5d718a;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .login-security i {
+            color: #2f6fc9;
+            font-size: 28px;
+        }
+
+        .login-security strong {
+            color: #1c304c;
+            font-size: 15px;
+        }
+
+        .login-motto {
+            text-align: center;
+            color: #8b9aae;
+            font-size: 11px;
+            letter-spacing: 4px;
+            line-height: 1.7;
+            margin-top: 42px;
+            text-transform: uppercase;
+        }
+
+        .login-accent {
+            width: 64px;
+            height: 4px;
+            border-radius: 99px;
+            margin: 0 auto 19px;
+            background: linear-gradient(90deg, #6bdc46, #16afd0);
+        }
+
+        .login-footer {
+            text-align: center;
+            color: #a0acba;
+            font-size: 11px;
+            margin-top: 22px;
         }
 
         /* APP */
@@ -145,9 +259,8 @@
             width: 58px;
             height: 58px;
             object-fit: contain;
-            background: #fff;
-            border-radius: 10px;
-            padding: 4px;
+            background: transparent;
+            padding: 0;
         }
 
         .side-section {
@@ -312,6 +425,47 @@
         }
 
         @media (max-width: 991px) {
+            .login-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .login-brand-panel {
+                min-height: 330px;
+                height: 330px;
+            }
+
+            .login-form-panel {
+                min-height: auto;
+                padding: 28px 18px 45px;
+            }
+
+            .login-card {
+                width: min(100%, 560px);
+                padding: 38px 25px 35px;
+            }
+
+            .login-card .mini-logo {
+                display: block;
+            }
+
+            .login-card h2 {
+                font-size: 29px;
+            }
+
+            .login-card .login-intro {
+                font-size: 15px;
+                margin-bottom: 27px;
+            }
+
+            .google-btn {
+                height: 58px;
+                font-size: 16px;
+            }
+
+            .login-motto {
+                margin-top: 30px;
+            }
+
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main { margin-left: 0; }
@@ -319,6 +473,20 @@
         }
 
         @media (max-width: 576px) {
+            .login-brand-panel {
+                min-height: 270px;
+                height: 270px;
+            }
+
+            .login-form-panel {
+                padding: 20px 12px 35px;
+            }
+
+            .login-card {
+                border-radius: 18px;
+                padding: 32px 18px 28px;
+            }
+
             .content { padding: 14px; }
             .topbar { padding: 0 14px; }
             .register-card { padding: 20px; }
@@ -338,33 +506,57 @@
 
 <!-- LOGIN -->
 <section id="loginPage" class="hidden">
-    <div class="login-card">
-        <div class="login-brand">
-            <img src="e-bumdesa-logo.png"
-                 alt="Logo e-BUMDesa"
-                 class="login-logo">
-            <h1>e-BUMDesa</h1>
-            <p>Sistem Keuangan BUM Desa</p>
+    <div class="login-shell">
+
+        <div class="login-brand-panel" aria-label="Branding e-BUMDesa"></div>
+
+        <div class="login-form-panel">
+            <div class="login-card">
+
+                <img src="e-bumdesa-logo.png"
+                     alt="Logo e-BUMDesa"
+                     class="mini-logo">
+
+                <h2>Selamat Datang</h2>
+
+                <p class="login-intro">
+                    Masuk untuk mengakses sistem e-BUMDesa
+                </p>
+
+                <button id="googleLoginBtn" class="google-btn">
+                    <svg class="google-logo" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M21.35 12.23c0-.68-.06-1.34-.18-1.97H12v3.73h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.15z"/>
+                        <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.93-3.31.93-2.54 0-4.69-1.72-5.46-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.6z"/>
+                        <path fill="#FBBC05" d="M6.54 13.69A5.86 5.86 0 0 1 6.23 12c0-.59.11-1.17.31-1.69V7.78H3.29A9.74 9.74 0 0 0 2.25 12c0 1.57.38 3.05 1.04 4.22l3.25-2.53z"/>
+                        <path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.84 3.3 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.71 5.38l3.25 2.53C7.31 8 9.46 6.28 12 6.28z"/>
+                    </svg>
+                    <span>Masuk dengan Google</span>
+                </button>
+
+                <div class="login-divider"><span>atau</span></div>
+
+                <div class="login-security">
+                    <i class="bi bi-shield-fill-check"></i>
+                    <div>
+                        <strong>Akses Aman</strong><br>
+                        Menggunakan akun Google Anda yang terlindungi.
+                    </div>
+                </div>
+
+                <div class="login-motto">
+                    <div class="login-accent"></div>
+                    BERSAMA MEMBANGUN DESA<br>
+                    YANG LEBIH MAJU
+                </div>
+
+                <div id="loginMessage" class="alert alert-danger mt-3 hidden"></div>
+
+                <div class="login-footer">
+                    © <span id="loginYear"></span> e-BUMDesa
+                </div>
+            </div>
         </div>
 
-        <div class="login-body">
-            <h5 class="text-center mb-2">Selamat Datang</h5>
-            <p class="text-center text-secondary small mb-4">
-                Masuk menggunakan akun Google Anda.
-            </p>
-
-            <button id="googleLoginBtn" class="google-btn">
-                <svg class="google-logo" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#4285F4" d="M21.35 12.23c0-.68-.06-1.34-.18-1.97H12v3.73h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.15z"/>
-                    <path fill="#34A853" d="M12 21.6c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.93-3.31.93-2.54 0-4.69-1.72-5.46-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.6z"/>
-                    <path fill="#FBBC05" d="M6.54 13.69A5.86 5.86 0 0 1 6.23 12c0-.59.11-1.17.31-1.69V7.78H3.29A9.74 9.74 0 0 0 2.25 12c0 1.57.38 3.05 1.04 4.22l3.25-2.53z"/>
-                    <path fill="#EA4335" d="M12 6.28c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.84 3.3 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.71 5.38l3.25 2.53C7.31 8 9.46 6.28 12 6.28z"/>
-                </svg>
-                <span>Masuk dengan Google</span>
-            </button>
-
-            <div id="loginMessage" class="alert alert-danger mt-3 hidden"></div>
-        </div>
     </div>
 </section>
 
@@ -900,6 +1092,8 @@
             showOnly("loginPage");
         }
     });
+
+    $("loginYear").textContent = new Date().getFullYear();
 
     // =========================================================
     // START
