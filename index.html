@@ -1690,6 +1690,103 @@
             .sa-search { width: 100%; }
         }
 
+
+        .sa-bumdes-link {
+            border: 0;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            color: #245da8;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: left;
+        }
+        .sa-bumdes-link:hover {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .sa-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(22,35,52,.42);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .sa-modal.hidden { display: none !important; }
+        .sa-modal-card {
+            width: min(760px, 100%);
+            max-height: min(720px, 90vh);
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 24px 70px rgba(20,35,55,.25);
+        }
+        .sa-modal-head {
+            padding: 18px 20px;
+            border-bottom: 1px solid #edf0f4;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .sa-modal-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin: 0;
+        }
+        .sa-modal-sub {
+            color: #8190a2;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+        .sa-modal-close {
+            border: 1px solid #dfe5ed;
+            background: #fff;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            color: #64748b;
+        }
+        .sa-modal-body { padding: 18px 20px 20px; }
+        .sa-modal-section-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #52657b;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            margin: 0 0 9px;
+        }
+        .sa-detail-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 9px;
+            margin-bottom: 18px;
+        }
+        .sa-detail-item {
+            background: #f8fafc;
+            border: 1px solid #edf0f4;
+            border-radius: 9px;
+            padding: 10px 12px;
+        }
+        .sa-detail-item span {
+            display: block;
+            color: #8a97a7;
+            font-size: 9px;
+        }
+        .sa-detail-item strong {
+            display: block;
+            margin-top: 3px;
+            font-size: 11px;
+        }
+        @media (max-width: 600px) {
+            .sa-detail-list { grid-template-columns: 1fr; }
+            .sa-modal { padding: 10px; }
+        }
+
 </style>
 
 
@@ -2131,6 +2228,25 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         </main>
     </div>
 </section>
+
+
+<!-- SUPER ADMIN BUMDES DETAIL MODAL -->
+<div id="saBumdesModal" class="sa-modal hidden" role="dialog" aria-modal="true">
+    <div class="sa-modal-card">
+        <div class="sa-modal-head">
+            <div>
+                <h2 id="saModalTitle" class="sa-modal-title">Detail BUMDes</h2>
+                <div id="saModalSubtitle" class="sa-modal-sub"></div>
+            </div>
+            <button id="saModalClose" class="sa-modal-close" type="button" aria-label="Tutup">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div id="saModalBody" class="sa-modal-body">
+            <div class="sa-loading">Memuat detail...</div>
+        </div>
+    </div>
+</div>
 
 <!-- APP -->
 <section id="appPage" class="hidden">
@@ -2644,7 +2760,7 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             return `<table class="sa-table"><thead><tr>
                 <th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th>
             </tr></thead><tbody>${rows.map(x => `<tr>
-                <td>${escapeHtml(x.nama)}</td>
+                <td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.id)}">${escapeHtml(x.nama)}</button></td>
                 <td>${escapeHtml(x.kode)}</td>
                 <td>${escapeHtml(x.wilayah)}</td>
                 <td><span class="sa-status ${x.status}">${escapeHtml(statusLabel(x.status))}</span></td>
@@ -2799,6 +2915,119 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             .replaceAll("'", "&#039;");
     }
 
+    async function openBumdesDetail(bumdesId) {
+        const modal = $("saBumdesModal");
+        const body = $("saModalBody");
+        const bumdes = (window.__saData?.bumdesRows || []).find(x => x.id === bumdesId);
+        if (!bumdes) return;
+
+        $("saModalTitle").textContent = bumdes.nama;
+        $("saModalSubtitle").textContent = `Kode ${bumdes.kode}`;
+        body.innerHTML = '<div class="sa-loading">Memuat detail BUMDes...</div>';
+        modal.classList.remove("hidden");
+
+        const [b, units, users, sub] = await Promise.all([
+            supabaseClient.from("bumdes")
+                .select("id,nama,kode,desa,kecamatan,kabupaten,provinsi,alamat,status,tahun_buku,created_at")
+                .eq("id", bumdesId)
+                .maybeSingle(),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status,alamat,created_at")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", {ascending:true}),
+            supabaseClient.from("profiles")
+                .select("id,nama,email,role,unit_id,status,created_at")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", {ascending:true}),
+            supabaseClient.from("subscriptions")
+                .select("plan_name,amount,billing_period_months,status,started_at,expires_at,payment_provider")
+                .eq("bumdes_id", bumdesId)
+                .maybeSingle()
+        ]);
+
+        if (b.error) {
+            body.innerHTML = `<div class="sa-empty">Gagal memuat detail: ${escapeHtml(b.error.message)}</div>`;
+            return;
+        }
+
+        const data = b.data;
+        const unitRows = units.data || [];
+        const userRows = users.data || [];
+        const subscription = sub.data;
+
+        const roleLabel = role => ({
+            admin_pusat: "Admin Pusat",
+            admin_unit: "Admin Unit",
+            operator_unit: "Operator Unit",
+            super_admin: "Super Admin"
+        }[role] || role || "-");
+
+        body.innerHTML = `
+            <div class="sa-modal-section-title">Profil BUMDes</div>
+            <div class="sa-detail-list">
+                <div class="sa-detail-item"><span>Nama BUMDes</span><strong>${escapeHtml(data.nama || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Kode BUMDes</span><strong>${escapeHtml(data.kode || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Desa</span><strong>${escapeHtml(data.desa || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Kecamatan</span><strong>${escapeHtml(data.kecamatan || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Kabupaten</span><strong>${escapeHtml(data.kabupaten || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Provinsi</span><strong>${escapeHtml(data.provinsi || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Tahun Buku</span><strong>${escapeHtml(data.tahun_buku || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Status BUMDes</span><strong>${escapeHtml(data.status || "-")}</strong></div>
+                <div class="sa-detail-item" style="grid-column:1/-1"><span>Alamat</span><strong>${escapeHtml(data.alamat || "-")}</strong></div>
+            </div>
+
+            <div class="sa-modal-section-title">Langganan</div>
+            <div class="sa-detail-list">
+                <div class="sa-detail-item"><span>Paket</span><strong>${escapeHtml(subscription?.plan_name || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Nominal</span><strong>${subscription ? rupiah(subscription.amount) : "-"}</strong></div>
+                <div class="sa-detail-item"><span>Status</span><strong>${escapeHtml(subscription?.status || "-")}</strong></div>
+                <div class="sa-detail-item"><span>Berakhir</span><strong>${subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString("id-ID") : "-"}</strong></div>
+            </div>
+
+            <div class="sa-modal-section-title">Unit Usaha (${unitRows.length})</div>
+            ${unitRows.length ? `
+                <table class="sa-table" style="margin-bottom:18px">
+                    <thead><tr><th>Unit</th><th>Kode</th><th>Status</th></tr></thead>
+                    <tbody>${unitRows.map(u => `<tr>
+                        <td>${escapeHtml(u.nama_unit || "-")}</td>
+                        <td>${escapeHtml(u.kode_unit || "-")}</td>
+                        <td>${escapeHtml(u.status || "-")}</td>
+                    </tr>`).join("")}</tbody>
+                </table>
+            ` : '<div class="sa-empty">Belum ada unit usaha.</div>'}
+
+            <div class="sa-modal-section-title">Pengguna (${userRows.length})</div>
+            ${userRows.length ? `
+                <table class="sa-table">
+                    <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+                    <tbody>${userRows.map(u => `<tr>
+                        <td>${escapeHtml(u.nama || "-")}</td>
+                        <td>${escapeHtml(u.email || "-")}</td>
+                        <td>${escapeHtml(roleLabel(u.role))}</td>
+                        <td>${escapeHtml(u.status || "-")}</td>
+                    </tr>`).join("")}</tbody>
+                </table>
+            ` : '<div class="sa-empty">Belum ada pengguna.</div>'}
+        `;
+    }
+
+    function closeBumdesDetail() {
+        $("saBumdesModal").classList.add("hidden");
+    }
+
+    document.addEventListener("click", event => {
+        const btn = event.target.closest(".sa-bumdes-link");
+        if (btn) openBumdesDetail(btn.dataset.bumdesId);
+    });
+
+    $("saModalClose").addEventListener("click", closeBumdesDetail);
+    $("saBumdesModal").addEventListener("click", event => {
+        if (event.target === $("saBumdesModal")) closeBumdesDetail();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") closeBumdesDetail();
+    });
+
     function applySuperAdminFilters() {
         const d = window.__saData || {};
         const filter = (id, rows, fields, rendererId, renderer) => {
@@ -2812,7 +3041,7 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         const bumdesRows = d.bumdesRows || [];
         const renderBumdes = rows => {
             if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
-            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x => `<tr><td>${escapeHtml(x.nama)}</td><td>${escapeHtml(x.kode)}</td><td>${escapeHtml(x.wilayah)}</td><td><span class="sa-status ${x.status}">${escapeHtml(x.status === "active" ? "Aktif" : x.status)}</span></td><td>${x.expires}</td></tr>`).join("")}</tbody></table>`;
+            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x => `<tr><td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.id)}">${escapeHtml(x.nama)}</button></td><td>${escapeHtml(x.kode)}</td><td>${escapeHtml(x.wilayah)}</td><td><span class="sa-status ${x.status}">${escapeHtml(x.status === "active" ? "Aktif" : x.status)}</span></td><td>${x.expires}</td></tr>`).join("")}</tbody></table>`;
         };
         filter("saBumdesSearch", bumdesRows, [x=>x.nama,x=>x.kode,x=>x.wilayah], "saBumdesFullTable", renderBumdes);
 
