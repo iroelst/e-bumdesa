@@ -1661,6 +1661,15 @@
     // =========================================================
     // USER / PROFILE
     // =========================================================
+    // Preview halaman langganan tanpa mengubah status langganan/database.
+    if (new URLSearchParams(window.location.search).get("preview") === "langganan") {
+        document.addEventListener("DOMContentLoaded", () => {
+            showOnly("subscriptionPage");
+            $("subscriptionYear").textContent = new Date().getFullYear();
+            $("subscriptionBumdesName").textContent = "Contoh BUM Desa";
+        });
+    }
+
     async function handleUser(user) {
         const { data: profile, error } = await supabaseClient
             .from("profiles")
