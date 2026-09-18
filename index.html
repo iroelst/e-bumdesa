@@ -2696,13 +2696,13 @@
                     </select>
                 </td>
                 <td>
-                    <input class="form-control form-control-sm tx-debit text-end" type="number" min="0" step="1" value="0" ${formDisabled ? "disabled" : ""}>
+                    <input class="form-control form-control-sm tx-debit text-end" type="number" min="0" step="1" value="0">
                 </td>
                 <td>
-                    <input class="form-control form-control-sm tx-credit text-end" type="number" min="0" step="1" value="0" ${formDisabled ? "disabled" : ""}>
+                    <input class="form-control form-control-sm tx-credit text-end" type="number" min="0" step="1" value="0">
                 </td>
                 <td>
-                    <input class="form-control form-control-sm tx-note" maxlength="250" placeholder="Keterangan" ${formDisabled ? "disabled" : ""}>
+                    <input class="form-control form-control-sm tx-note" maxlength="250" placeholder="Keterangan">
                 </td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger tx-remove-row" title="Hapus baris" ${accountDisabled ? "disabled" : ""}>
@@ -2728,7 +2728,7 @@
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">Tanggal</label>
-                            <input id="txDate" class="form-control" type="date" value="${today}" required ${formDisabled ? "disabled" : ""}>
+                            <input id="txDate" class="form-control" type="date" value="${today}" required>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-semibold">Periode</label>
