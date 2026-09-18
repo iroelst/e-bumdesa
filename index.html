@@ -840,6 +840,12 @@
         }
 
 
+        #appPage .ob-debit.is-invalid,
+        #appPage .ob-credit.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 .12rem rgba(220,53,69,.10);
+        }
+
         /* ===== MODULE HEADER SIMPLIFIED ===== */
         .module-toolbar {
             min-height: 34px;
@@ -2730,6 +2736,7 @@
                 .select("id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_active")
                 .eq("is_active", true)
                 .eq("level", 4)
+                .in("account_type", ["aset", "kewajiban", "ekuitas"])
                 .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .order("kode", { ascending: true }),
             supabaseClient.from("units")
@@ -2825,7 +2832,7 @@
                 <div class="d-flex justify-content-between align-items-center mt-3 gap-2 flex-wrap">
                     <div class="small text-secondary">
                         <i class="bi bi-info-circle me-1"></i>
-                        Isi hanya akun yang memiliki saldo awal. Total Debit dan Kredit harus sama.
+                        Saldo awal menggunakan akun neraca (Aset, Kewajiban, dan Ekuitas). Isi hanya akun yang memiliki saldo awal; setiap akun hanya boleh memiliki Debit atau Kredit.
                     </div>
                     <button id="obSaveBtn" class="btn btn-primary" disabled>
                         <i class="bi bi-save me-1"></i>Simpan Saldo Awal
@@ -2888,9 +2895,23 @@
 
         function updateTotals() {
             let debit = 0, credit = 0;
+            let invalidRow = false;
+
             rowsEl.querySelectorAll("tr[data-account-id]").forEach(row => {
-                const d = Number(row.querySelector(".ob-debit")?.value || 0);
-                const c = Number(row.querySelector(".ob-credit")?.value || 0);
+                const debitInput = row.querySelector(".ob-debit");
+                const creditInput = row.querySelector(".ob-credit");
+                const d = Number(debitInput?.value || 0);
+                const c = Number(creditInput?.value || 0);
+
+                if (d > 0 && c > 0) {
+                    invalidRow = true;
+                    debitInput?.classList.add("is-invalid");
+                    creditInput?.classList.add("is-invalid");
+                } else {
+                    debitInput?.classList.remove("is-invalid");
+                    creditInput?.classList.remove("is-invalid");
+                }
+
                 debit += Number.isFinite(d) ? d : 0;
                 credit += Number.isFinite(c) ? c : 0;
             });
@@ -2907,7 +2928,11 @@
                 return;
             }
 
-            if (Math.abs(diff) < 0.005) {
+            if (invalidRow) {
+                statusEl.textContent = "Periksa akun — Debit dan Kredit tidak boleh diisi bersamaan";
+                statusEl.className = "fw-semibold text-danger";
+                saveBtn.disabled = true;
+            } else if (Math.abs(diff) < 0.005) {
                 statusEl.textContent = "✓ Saldo Awal Seimbang";
                 statusEl.className = "fw-semibold text-success";
                 saveBtn.disabled = false;
@@ -2948,6 +2973,19 @@
                     });
                 }
             });
+
+            const invalidRows = rowsEl.querySelectorAll("tr[data-account-id]");
+            let hasInvalidRow = false;
+            invalidRows.forEach(row => {
+                const d = Number(row.querySelector(".ob-debit")?.value || 0);
+                const c = Number(row.querySelector(".ob-credit")?.value || 0);
+                if (d > 0 && c > 0) hasInvalidRow = true;
+            });
+
+            if (hasInvalidRow) {
+                alert("Satu akun tidak boleh memiliki Debit dan Kredit sekaligus. Gunakan salah satu sisi.");
+                return;
+            }
 
             if (Math.abs(debitTotal - creditTotal) >= 0.005) {
                 alert("Saldo awal belum seimbang. Total Debit harus sama dengan Total Kredit.");
