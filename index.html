@@ -1787,6 +1787,53 @@
             .sa-modal { padding: 10px; }
         }
 
+
+        .sa-sub-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .sa-sub-summary .sa-stat { padding: 14px 15px; }
+        .sa-sub-summary .sa-stat-value { font-size: 21px; }
+        .sa-sub-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sa-filter {
+            height: 36px;
+            border: 1px solid #dfe5ed;
+            border-radius: 9px;
+            background: #fff;
+            color: #53657a;
+            padding: 0 10px;
+            font-size: 11px;
+        }
+        .sa-days {
+            font-weight: 800;
+        }
+        .sa-days.safe { color: #2d7a48; }
+        .sa-days.warning { color: #a36a00; }
+        .sa-days.danger { color: #a33c48; }
+        .sa-sub-detail-btn {
+            border: 1px solid #dce4ee;
+            background: #fff;
+            color: #315f98;
+            border-radius: 7px;
+            padding: 5px 8px;
+            font-size: 9px;
+            font-weight: 750;
+        }
+        @media (max-width: 800px) {
+            .sa-sub-summary { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 520px) {
+            .sa-sub-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .sa-sub-actions { flex-direction: column; align-items: stretch; }
+            .sa-filter { width: 100%; }
+        }
+
 </style>
 
 
@@ -2190,11 +2237,43 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
                     <h1>Langganan</h1>
                     <p>Monitoring masa aktif layanan setiap BUMDes.</p>
                 </div>
+
+                <div class="sa-sub-summary">
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Aktif</div>
+                        <div id="saSubActiveCount" class="sa-stat-value">0</div>
+                    </div>
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Segera Berakhir</div>
+                        <div id="saSubExpiringCount" class="sa-stat-value">0</div>
+                    </div>
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Expired</div>
+                        <div id="saSubExpiredCount" class="sa-stat-value">0</div>
+                    </div>
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Menunggu</div>
+                        <div id="saSubPendingCount" class="sa-stat-value">0</div>
+                    </div>
+                </div>
+
                 <div class="sa-toolbar">
                     <input id="saSubscriptionSearch" class="sa-search" type="search" placeholder="Cari BUMDes...">
+                    <div class="sa-sub-actions">
+                        <select id="saSubscriptionFilter" class="sa-filter">
+                            <option value="all">Semua status</option>
+                            <option value="active">Aktif</option>
+                            <option value="expiring">Segera berakhir ≤ 30 hari</option>
+                            <option value="expired">Expired</option>
+                            <option value="pending">Menunggu pembayaran</option>
+                        </select>
+                    </div>
                 </div>
+
                 <section class="sa-card sa-full-card">
-                    <div id="saSubscriptionTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
+                    <div id="saSubscriptionTable" class="sa-table-wrap">
+                        <div class="sa-loading">Memuat data...</div>
+                    </div>
                 </section>
             </section>
 
@@ -2771,20 +2850,45 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
         $("saBumdesTable").innerHTML = renderBumdes(bumdesRows);
         $("saBumdesFullTable").innerHTML = renderBumdes(bumdesRows);
 
+        const subscriptionRows = subscriptions.map(x => {
+            const expiresAt = x.expires_at ? new Date(x.expires_at) : null;
+            const days = expiresAt
+                ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000)
+                : null;
+            return {...x, _days: days};
+        });
+
         const renderSubscriptions = rows => {
-            if (!rows.length) return '<div class="sa-empty">Belum ada data langganan.</div>';
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
             return `<table class="sa-table"><thead><tr>
-                <th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th>
-            </tr></thead><tbody>${rows.map(x => `<tr>
-                <td>${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || "-")}</td>
-                <td>${escapeHtml(x.plan_name || "-")}</td>
-                <td>${rupiah(x.amount)}</td>
-                <td><span class="sa-status ${statusClass(x.status)}">${escapeHtml(statusLabel(x.status))}</span></td>
-                <td>${x.started_at ? new Date(x.started_at).toLocaleDateString("id-ID") : "-"}</td>
-                <td>${x.expires_at ? new Date(x.expires_at).toLocaleDateString("id-ID") : "-"}</td>
-            </tr>`).join("")}</tbody></table>`;
+                <th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th><th>Sisa</th><th></th>
+            </tr></thead><tbody>${rows.map(x => {
+                const daysClass = x._days === null ? "" : (x._days <= 7 ? "danger" : x._days <= 30 ? "warning" : "safe");
+                const daysText = x._days === null ? "-" : (x._days < 0 ? `Expired ${Math.abs(x._days)} hari` : `${x._days} hari`);
+                return `<tr>
+                    <td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.bumdes_id)}">${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || "-")}</button></td>
+                    <td>${escapeHtml(x.plan_name || "-")}</td>
+                    <td>${rupiah(x.amount)}</td>
+                    <td><span class="sa-status ${statusClass(x.status)}">${escapeHtml(statusLabel(x.status))}</span></td>
+                    <td>${x.started_at ? new Date(x.started_at).toLocaleDateString("id-ID") : "-"}</td>
+                    <td>${x.expires_at ? new Date(x.expires_at).toLocaleDateString("id-ID") : "-"}</td>
+                    <td><span class="sa-days ${daysClass}">${daysText}</span></td>
+                    <td><button type="button" class="sa-sub-detail-btn" data-bumdes-id="${escapeHtml(x.bumdes_id)}">Detail</button></td>
+                </tr>`;
+            }).join("")}</tbody></table>`;
         };
-        $("saSubscriptionTable").innerHTML = renderSubscriptions(subscriptions);
+        $("saSubscriptionTable").innerHTML = renderSubscriptions(subscriptionRows);
+
+        const activeSubCount = subscriptionRows.filter(x => x.status === "active" && x._days !== null && x._days >= 0).length;
+        const expiringSubCount = subscriptionRows.filter(x => x.status === "active" && x._days !== null && x._days >= 0 && x._days <= 30).length;
+        const expiredSubCount = subscriptionRows.filter(x => x.status === "expired" || (x.status === "active" && x._days !== null && x._days < 0)).length;
+        const pendingSubCount = subscriptionRows.filter(x => x.status === "pending").length;
+
+        $("saSubActiveCount").textContent = activeSubCount;
+        $("saSubExpiringCount").textContent = expiringSubCount;
+        $("saSubExpiredCount").textContent = expiredSubCount;
+        $("saSubPendingCount").textContent = pendingSubCount;
+
 
         const renderPayments = rows => {
             if (!rows.length) return '<div class="sa-empty">Belum ada pembayaran.</div>';
@@ -3016,7 +3120,7 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
     }
 
     document.addEventListener("click", event => {
-        const btn = event.target.closest(".sa-bumdes-link");
+        const btn = event.target.closest(".sa-bumdes-link, .sa-sub-detail-btn");
         if (btn) openBumdesDetail(btn.dataset.bumdesId);
     });
 
@@ -3050,7 +3154,36 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
             return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||"-")}</td><td>${escapeHtml(x.plan_name||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${x.started_at?new Date(x.started_at).toLocaleDateString("id-ID"):"-"}</td><td>${x.expires_at?new Date(x.expires_at).toLocaleDateString("id-ID"):"-"}</td></tr>`).join("")}</tbody></table>`;
         };
-        filter("saSubscriptionSearch", d.subscriptions||[], [x=>bm.get(x.bumdes_id)?.nama,x=>x.status], "saSubscriptionTable", renderSubs);
+        const subscriptionRows = (d.subscriptions || []).map(x => {
+            const expiresAt = x.expires_at ? new Date(x.expires_at) : null;
+            const days = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000) : null;
+            return {...x, _days: days};
+        });
+
+        const subFilter = $("saSubscriptionFilter")?.value || "all";
+        const subSearch = ($("saSubscriptionSearch")?.value || "").trim().toLowerCase();
+
+        const filteredSubs = subscriptionRows.filter(x => {
+            const name = String(bm.get(x.bumdes_id)?.nama || "").toLowerCase();
+            const matchesSearch = !subSearch || name.includes(subSearch);
+            const matchesFilter =
+                subFilter === "all" ||
+                (subFilter === "active" && x.status === "active" && x._days !== null && x._days >= 0) ||
+                (subFilter === "expiring" && x.status === "active" && x._days !== null && x._days >= 0 && x._days <= 30) ||
+                (subFilter === "expired" && (x.status === "expired" || (x.status === "active" && x._days !== null && x._days < 0))) ||
+                (subFilter === "pending" && x.status === "pending");
+            return matchesSearch && matchesFilter;
+        });
+
+        const renderSubs = rows => {
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
+            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th><th>Sisa</th><th></th></tr></thead><tbody>${rows.map(x => {
+                const daysClass = x._days === null ? "" : (x._days <= 7 ? "danger" : x._days <= 30 ? "warning" : "safe");
+                const daysText = x._days === null ? "-" : (x._days < 0 ? `Expired ${Math.abs(x._days)} hari` : `${x._days} hari`);
+                return `<tr><td><button type="button" class="sa-bumdes-link" data-bumdes-id="${escapeHtml(x.bumdes_id)}">${escapeHtml(bm.get(x.bumdes_id)?.nama || "-")}</button></td><td>${escapeHtml(x.plan_name||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${x.started_at?new Date(x.started_at).toLocaleDateString("id-ID"):"-"}</td><td>${x.expires_at?new Date(x.expires_at).toLocaleDateString("id-ID"):"-"}</td><td><span class="sa-days ${daysClass}">${daysText}</span></td><td><button type="button" class="sa-sub-detail-btn" data-bumdes-id="${escapeHtml(x.bumdes_id)}">Detail</button></td></tr>`;
+            }).join("")}</tbody></table>`;
+        };
+        $("saSubscriptionTable").innerHTML = renderSubs(filteredSubs);
 
         const renderPay = rows => {
             if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
@@ -3077,6 +3210,8 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
     ["saBumdesSearch","saSubscriptionSearch","saPaymentSearch","saUserSearch"].forEach(id => {
         $(id).addEventListener("input", applySuperAdminFilters);
     });
+
+    $("saSubscriptionFilter").addEventListener("change", applySuperAdminFilters);
 
     $("saBumdesRefresh").addEventListener("click", refreshSuperAdmin);
 
