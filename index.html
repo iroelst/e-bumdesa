@@ -349,6 +349,37 @@
             margin-top: 20px;
         }
 
+
+        /* LOGIN VIEWPORT FIX */
+        html, body {
+            min-height: 100%;
+        }
+
+        body.login-active {
+            overflow: hidden;
+        }
+
+        #loginPage {
+            height: 100vh;
+            height: 100dvh;
+            min-height: 0 !important;
+            overflow: hidden;
+        }
+
+        .login-shell {
+            height: 100vh;
+            height: 100dvh;
+            min-height: 0 !important;
+        }
+
+        .login-brand-panel,
+        .login-form-panel {
+            height: 100vh;
+            height: 100dvh;
+            min-height: 0 !important;
+            box-sizing: border-box;
+        }
+
         /* APP */
         #appPage {
             min-height: 100vh;
@@ -547,6 +578,27 @@
         }
 
         @media (max-width: 991px) {
+            body.login-active {
+                overflow: auto;
+            }
+
+            #loginPage {
+                height: auto;
+                min-height: 100dvh !important;
+                overflow: visible;
+            }
+
+            .login-shell {
+                height: auto;
+                min-height: 100dvh !important;
+            }
+
+            .login-brand-panel,
+            .login-form-panel {
+                height: auto;
+                min-height: 0 !important;
+            }
+
             .login-shell {
                 grid-template-columns: 1fr;
             }
