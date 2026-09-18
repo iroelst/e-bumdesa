@@ -1678,7 +1678,7 @@
 
         <div class="customer-sub-card">
             <h1 class="customer-sub-title">Langganan BUMDes</h1>
-            <div class="customer-sub-muted">Kelola status langganan dan invoice pembayaran BUMDes.</div>
+            <div class="customer-sub-muted">Invoice dibuat otomatis oleh sistem e-BUMDesa. Anda dapat melihat, mencetak, dan melakukan pembayaran.</div>
             <div class="customer-sub-grid">
                 <div class="customer-sub-stat"><span>BUMDes</span><strong id="customerSubBumdesName">-</strong></div>
                 <div class="customer-sub-stat"><span>Status Langganan</span><strong id="customerSubStatus">-</strong></div>
@@ -1691,12 +1691,16 @@
             <div class="invoice-create">
                 <div>
                     <strong>Invoice Pembayaran</strong>
-                    <div class="customer-sub-muted">Invoice hanya untuk pelanggan BUMDes ini.</div>
+                    <div class="customer-sub-muted">Invoice dibuat otomatis oleh sistem dan ditampilkan khusus untuk BUMDes ini.</div>
                 </div>
-                <button id="createInvoiceBtn" class="invoice-create-btn" type="button">
-                    <i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice
-                </button>
             </div>
+            
+            <div class="customer-sub-muted" style="margin-top:12px;padding:10px 12px;background:#f7f9fc;border-radius:9px;">
+                <i class="bi bi-info-circle me-1"></i>
+                Invoice diterbitkan otomatis oleh sistem e-BUMDesa. Admin Pusat tidak membuat invoice secara manual.
+            </div>
+
+            <div style="margin-top:14px;font-weight:800;font-size:13px;">Riwayat Pembayaran</div>
             <div id="customerInvoiceList" class="invoice-list">
                 <div class="invoice-empty">Memuat invoice...</div>
             </div>
@@ -2310,6 +2314,18 @@
         await loadCustomerInvoices(profile.bumdes_id);
     }
 
+
+    function invoiceStatusLabel(status) {
+        const map = {
+            paid: "Lunas",
+            pending: "Menunggu Pembayaran",
+            failed: "Gagal",
+            expired: "Kedaluwarsa",
+            cancelled: "Dibatalkan"
+        };
+        return map[status] || status || "-";
+    }
+
     async function loadCustomerInvoices(bumdesId) {
         const box = $("customerInvoiceList");
         box.innerHTML = '<div class="invoice-empty">Memuat invoice...</div>';
@@ -2325,7 +2341,7 @@
             return;
         }
         if (!data?.length) {
-            box.innerHTML = '<div class="invoice-empty">Belum ada invoice. Klik "Buat Invoice" untuk membuat invoice.</div>';
+            box.innerHTML = '<div class="invoice-empty">Belum ada invoice yang diterbitkan oleh sistem.</div>';
             return;
         }
 
@@ -2333,7 +2349,7 @@
             <div class="invoice-row">
                 <div><div class="invoice-number">${escapeHtml(p.invoice_number || "-")}</div><div class="invoice-meta">${new Date(p.created_at).toLocaleDateString("id-ID")}</div></div>
                 <div>${rupiah(p.amount)}</div>
-                <div><span class="invoice-status ${escapeHtml(p.status || "pending")}">${escapeHtml(p.status || "pending")}</span></div>
+                <div><span class="invoice-status ${escapeHtml(p.status || "pending")}">${escapeHtml(invoiceStatusLabel(p.status))}</span></div>
                 <div class="invoice-meta">${p.paid_at ? "Dibayar " + new Date(p.paid_at).toLocaleDateString("id-ID") : (p.expired_at ? "Jatuh tempo " + new Date(p.expired_at).toLocaleDateString("id-ID") : "")}</div>
                 <div>
                     <button class="invoice-btn" type="button" data-view-invoice="${escapeHtml(p.id)}">Lihat</button>
@@ -2342,42 +2358,6 @@
             </div>
         `).join("");
     }
-
-    async function createCustomerInvoice() {
-        const ctx = customerSubscriptionContext;
-        if (!ctx?.profile?.bumdes_id) return;
-
-        const amount = Number(ctx.subscription?.amount || 100000);
-        const months = Number(ctx.subscription?.billing_period_months || 1);
-        const invoiceNumber = "INV-" + new Date().toISOString().slice(0,10).replaceAll("-","") + "-" + Math.random().toString(36).slice(2,7).toUpperCase();
-        const due = new Date();
-        due.setDate(due.getDate() + 1);
-
-        const btn = $("createInvoiceBtn");
-        btn.disabled = true;
-        btn.textContent = "Membuat...";
-
-        const { error } = await supabaseClient.from("payments").insert({
-            bumdes_id: ctx.profile.bumdes_id,
-            subscription_id: ctx.subscription?.id || null,
-            invoice_number: invoiceNumber,
-            amount,
-            status: "pending",
-            payment_provider: "midtrans",
-            expired_at: due.toISOString(),
-            metadata: { billing_period_months: months, source:"customer_invoice" }
-        });
-
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-plus me-1"></i> Buat Invoice';
-
-        if (error) {
-            alert("Gagal membuat invoice: " + error.message);
-            return;
-        }
-        await loadCustomerInvoices(ctx.profile.bumdes_id);
-    }
-
     async function openCustomerInvoice(invoiceId) {
         const ctx = customerSubscriptionContext;
         if (!ctx?.profile?.bumdes_id) return;
@@ -2408,7 +2388,6 @@
         e.preventDefault();
         await openCustomerSubscription();
     });
-    $("createInvoiceBtn").addEventListener("click", createCustomerInvoice);
     $("customerInvoiceList").addEventListener("click", async (e) => {
         const view = e.target.closest("[data-view-invoice]");
         const pay = e.target.closest("[data-pay-invoice]");
@@ -2431,7 +2410,7 @@
         if (currentInvoice?.payment_url) {
             window.location.href = currentInvoice.payment_url;
         } else {
-            alert("Pembayaran Midtrans belum diaktifkan. Invoice sudah tersimpan dan dapat dicetak.");
+            alert("Invoice ini belum memiliki tautan pembayaran. Integrasi Midtrans akan mengisinya secara otomatis.");
         }
     });
 
