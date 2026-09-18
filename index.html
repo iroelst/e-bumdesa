@@ -1442,106 +1442,29 @@
         }
 
 
-        /* ===== BAGAN AKUN / COA ===== */
-        .coa-toolbar {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:12px;
-            flex-wrap:wrap;
-        }
-        .coa-search {
-            width:min(360px,100%);
-        }
-        .coa-table-wrap {
-            overflow:auto;
-            border:1px solid var(--border);
-            border-radius:10px;
-        }
-        .coa-table {
-            width:100%;
-            min-width:780px;
-            border-collapse:collapse;
-            background:#fff;
-        }
-        .coa-table th {
-            background:#f7f9fb;
-            color:#68798d;
-            font-size:10px;
-            text-transform:uppercase;
-            letter-spacing:.45px;
-            padding:11px 12px;
-            border-bottom:1px solid var(--border);
-            white-space:nowrap;
-        }
-        .coa-table td {
-            padding:9px 12px;
-            border-bottom:1px solid #edf0f4;
-            font-size:12px;
-            color:#3e5064;
-            vertical-align:middle;
-        }
+        /* ===== BAGAN AKUN (COA) ===== */
+        .coa-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+        .coa-search { width:min(360px,100%); }
+        .coa-table-wrap { overflow:auto; border:1px solid var(--border); border-radius:10px; }
+        .coa-table { width:100%; min-width:820px; border-collapse:collapse; background:#fff; }
+        .coa-table th { background:#f7f9fb; color:#68798d; font-size:10px; text-transform:uppercase; letter-spacing:.45px; padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+        .coa-table td { padding:9px 12px; border-bottom:1px solid #edf0f4; font-size:12px; color:#3e5064; vertical-align:middle; }
         .coa-table tbody tr:last-child td { border-bottom:0; }
-        .coa-row.level-1 td {
-            background:#eef4fb;
-            font-weight:800;
-            color:#17365f;
-        }
-        .coa-row.level-2 td {
-            background:#f7fafc;
-            font-weight:700;
-            color:#315477;
-        }
-        .coa-row.level-3 td {
-            font-weight:650;
-            color:#405b75;
-        }
-        .coa-code {
-            font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
-            white-space:nowrap;
-            font-weight:700;
-        }
-        .coa-name-cell {
-            min-width:360px;
-        }
-        .coa-indent {
-            display:inline-flex;
-            align-items:center;
-            gap:7px;
-        }
+        .coa-row.level-1 td { background:#eef4fb; font-weight:800; color:#17365f; }
+        .coa-row.level-2 td { background:#f7fafc; font-weight:700; color:#315477; }
+        .coa-row.level-3 td { font-weight:650; color:#405b75; }
+        .coa-code { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; white-space:nowrap; font-weight:700; }
+        .coa-name-cell { min-width:360px; }
+        .coa-indent { display:inline-flex; align-items:center; gap:7px; }
         .coa-indent.level-1 { padding-left:0; }
         .coa-indent.level-2 { padding-left:18px; }
         .coa-indent.level-3 { padding-left:38px; }
         .coa-indent.level-4 { padding-left:60px; }
-        .coa-level-badge {
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            min-width:25px;
-            padding:3px 6px;
-            border-radius:999px;
-            background:#eef2f7;
-            color:#61738a;
-            font-size:9px;
-            font-weight:800;
-        }
-        .coa-system-badge {
-            display:inline-flex;
-            align-items:center;
-            gap:4px;
-            padding:3px 7px;
-            border-radius:999px;
-            background:#edf4ff;
-            color:#3569a9;
-            font-size:9px;
-            font-weight:800;
-        }
+        .coa-level-badge { display:inline-flex; align-items:center; justify-content:center; min-width:25px; padding:3px 6px; border-radius:999px; background:#eef2f7; color:#61738a; font-size:9px; font-weight:800; }
+        .coa-system-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 7px; border-radius:999px; background:#edf4ff; color:#3569a9; font-size:9px; font-weight:800; }
         .coa-normal.debit { color:#2d6f43; font-weight:700; }
         .coa-normal.credit { color:#8b5f18; font-weight:700; }
-        .coa-count {
-            color:#7b8998;
-            font-size:11px;
-        }
+        .coa-count { color:#7b8998; font-size:11px; }
 
 </style>
 
@@ -2723,6 +2646,7 @@
                 .select("id,kode,nama,level,account_type,is_active,bumdes_id")
                 .eq("is_active", true)
                 .eq("level", 4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${activeAppProfile.bumdes_id}`)
                 .order("kode", { ascending:true }),
             supabaseClient.from("units")
                 .select("id,nama_unit,kode_unit,status")
@@ -3152,9 +3076,10 @@
                 .order("created_at", { ascending:true })
                 .limit(2000),
             supabaseClient.from("chart_of_accounts")
-                .select("id,kode,nama,level,account_type,report_group,is_active")
+                .select("id,kode,nama,level,account_type,report_group,is_active,normal_balance,bumdes_id")
                 .eq("is_active", true)
                 .eq("level", 4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${activeAppProfile.bumdes_id}`)
                 .order("kode", { ascending:true }),
             supabaseClient.from("units")
                 .select("id,nama_unit,kode_unit,status")
@@ -3366,16 +3291,15 @@
         const { data: accounts, error } = await supabaseClient
             .from("chart_of_accounts")
             .select("id,bumdes_id,parent_id,kode,nama,level,account_type,report_group,is_system,is_active,normal_balance")
-            .or(`bumdes_id.is.null,bumdes_id.eq.${activeAppProfile.bumdes_id}`)
             .eq("is_active", true)
-            .order("kode", { ascending: true });
+            .or(`bumdes_id.is.null,bumdes_id.eq.${activeAppProfile.bumdes_id}`)
+            .order("kode", { ascending:true });
 
         if (error) throw error;
 
-        const rows = Array.isArray(accounts) ? accounts : [];
-
-        // Susun tree berdasarkan parent_id. Akun tanpa parent menjadi root.
+        const rows = accounts || [];
         const byParent = new Map();
+
         rows.forEach(a => {
             const key = a.parent_id || "__ROOT__";
             if (!byParent.has(key)) byParent.set(key, []);
@@ -3386,78 +3310,67 @@
             String(a.kode || "").localeCompare(String(b.kode || ""), "id", { numeric:true })
         ));
 
-        const flattenTree = (parentKey, depth = 0, result = []) => {
-            const children = byParent.get(parentKey) || [];
-            children.forEach(a => {
-                result.push({ ...a, treeDepth: depth });
-                flattenTree(a.id, depth + 1, result);
+        const result = [];
+        const visited = new Set();
+
+        function walk(parentId, depth) {
+            (byParent.get(parentId) || []).forEach(a => {
+                if (visited.has(a.id)) return;
+                visited.add(a.id);
+                result.push({...a, treeDepth: depth});
+                walk(a.id, depth + 1);
             });
-            return result;
-        };
+        }
 
-        const treeRows = flattenTree("__ROOT__");
+        walk("__ROOT__", 0);
 
-        // Jaga agar akun yang secara data tidak terhubung ke root tetap terlihat.
-        const seen = new Set(treeRows.map(a => a.id));
+        // Semua akun tetap terlihat, termasuk akun khusus yang secara struktur sumber
+        // tidak mempunyai parent level standar (mis. RK Pusat).
         rows.forEach(a => {
-            if (!seen.has(a.id)) treeRows.push({ ...a, treeDepth: Math.max(0, Number(a.level || 1) - 1) });
+            if (!visited.has(a.id)) {
+                visited.add(a.id);
+                result.push({...a, treeDepth: Math.max(0, Number(a.level || 1) - 1)});
+            }
         });
 
         const typeLabel = {
-            aset: "Aset",
-            kewajiban: "Kewajiban",
-            ekuitas: "Ekuitas",
-            pendapatan: "Pendapatan Usaha",
-            hpp: "HPP",
-            beban: "Beban Usaha",
-            lain_lain: "Pendapatan/Beban Lain-lain"
+            aset:"Aset",
+            kewajiban:"Kewajiban",
+            ekuitas:"Ekuitas",
+            pendapatan:"Pendapatan Usaha",
+            hpp:"HPP",
+            beban:"Beban Usaha",
+            lain_lain:"Pendapatan/Beban Lain-lain"
         };
 
-        const normalLabel = a =>
-            String(a.normal_balance || "").toUpperCase() === "K"
-                ? "Kredit"
-                : "Debit";
-
-        const renderRows = (items) => items.map(a => {
+        const htmlRows = result.map(a => {
             const level = Number(a.level || 1);
-            const normal = normalLabel(a);
-            const custom = !a.is_system && a.bumdes_id;
+            const normal = String(a.normal_balance || "").toUpperCase() === "K" ? "Kredit" : "Debit";
+            const searchText = `${a.kode || ""} ${a.nama || ""} ${typeLabel[a.account_type] || a.account_type || ""}`.toLowerCase();
+
             return `
-                <tr class="coa-row level-${Math.min(4, Math.max(1, level))}" data-coa-search="${escapeHtml(
-                    `${a.kode} ${a.nama} ${typeLabel[a.account_type] || a.account_type || ""}`
-                ).toLowerCase()}">
-                    <td>
-                        <div class="coa-indent level-${Math.min(4, Math.max(1, level))}">
-                            <span class="coa-code">${escapeHtml(a.kode)}</span>
-                        </div>
-                    </td>
+                <tr class="coa-row level-${level}" data-coa-search="${escapeHtml(searchText)}">
+                    <td><span class="coa-code">${escapeHtml(a.kode)}</span></td>
                     <td class="coa-name-cell">
-                        <div class="coa-indent level-${Math.min(4, Math.max(1, level))}">
-                            ${level < 4
-                                ? '<i class="bi bi-folder2-open text-secondary"></i>'
-                                : '<i class="bi bi-dot text-secondary"></i>'}
+                        <span class="coa-indent level-${level}">
+                            <i class="bi ${level < 4 ? "bi-folder2-open" : "bi-dot"} text-secondary"></i>
                             <span>${escapeHtml(a.nama)}</span>
-                        </div>
+                        </span>
                     </td>
                     <td><span class="coa-level-badge">L${level}</span></td>
                     <td>${escapeHtml(typeLabel[a.account_type] || a.account_type || "-")}</td>
                     <td class="${normal === "Debit" ? "coa-normal debit" : "coa-normal credit"}">${normal}</td>
-                    <td>
-                        ${a.is_system
-                            ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>'
-                            : (custom ? '<span class="badge text-bg-light border">Custom BUMDes</span>' : '<span class="text-secondary">-</span>')}
-                    </td>
-                </tr>
-            `;
+                    <td>${a.is_system ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>' : '<span class="badge text-bg-light border">Custom</span>'}</td>
+                </tr>`;
         }).join("");
 
-        const shell = `
+        showModuleShell("coa", `
             <div class="panel mb-3">
                 <div class="coa-toolbar">
                     <div>
                         <h5 class="mb-1">Bagan Akun (COA)</h5>
                         <div class="text-secondary small">
-                            Struktur akun berdasarkan kode, parent, level, dan saldo normal.
+                            Struktur 305 akun berdasarkan kode dan hubungan parent.
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -3469,7 +3382,7 @@
             </div>
 
             <div class="panel">
-                <div class="table-responsive coa-table-wrap">
+                <div class="coa-table-wrap">
                     <table class="coa-table">
                         <thead>
                             <tr>
@@ -3481,26 +3394,16 @@
                                 <th style="width:120px;">Sumber</th>
                             </tr>
                         </thead>
-                        <tbody id="coaTableBody">
-                            ${renderRows(treeRows)}
-                        </tbody>
+                        <tbody id="coaTableBody">${htmlRows}</tbody>
                     </table>
                 </div>
-                ${!rows.length ? `
-                    <div class="text-center text-secondary py-5">
-                        <i class="bi bi-inbox fs-2"></i>
-                        <div class="mt-2 fw-semibold">Belum ada COA aktif.</div>
-                    </div>` : ""}
             </div>
-        `;
+        `);
 
-        showModuleShell("coa", shell);
-
-        const search = $("coaSearch");
-        search?.addEventListener("input", () => {
-            const q = String(search.value || "").trim().toLowerCase();
+        $("coaSearch")?.addEventListener("input", function() {
+            const q = String(this.value || "").trim().toLowerCase();
             document.querySelectorAll("#coaTableBody tr[data-coa-search]").forEach(row => {
-                row.classList.toggle("d-none", q && !row.dataset.coaSearch.includes(q));
+                row.classList.toggle("d-none", !!q && !row.dataset.coaSearch.includes(q));
             });
         });
     }
