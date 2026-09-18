@@ -840,6 +840,26 @@
         }
 
 
+        /* ===== MODULE HEADER SIMPLIFIED ===== */
+        .module-toolbar {
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 2px;
+        }
+
+        .module-toolbar .btn {
+            flex: 0 0 auto;
+        }
+
+        @media (max-width: 576px) {
+            .module-toolbar {
+                align-items: flex-start;
+            }
+        }
+
         /* ===== GLOBAL PAGE CARD WIDTH / HEIGHT ===== */
         .main > .content,
         #appPage .content {
@@ -2635,7 +2655,14 @@
     }
 
     function moduleHeader(title, subtitle) {
-        return `<div class="panel mb-3"><div class="d-flex justify-content-between align-items-start gap-3"><div><h4 class="mb-1">${escapeHtml(title)}</h4><div class="text-secondary small">${escapeHtml(subtitle)}</div></div><button class="btn btn-sm btn-outline-secondary" data-back-dashboard><i class="bi bi-arrow-left me-1"></i>Dashboard</button></div></div>`;
+        // Judul modul sudah ditampilkan di topbar. Di area konten cukup tampilkan
+        // deskripsi singkat + tombol kembali agar tidak terjadi judul berulang.
+        return `<div class="module-toolbar mb-3">
+                    <div class="text-secondary small">${escapeHtml(subtitle)}</div>
+                    <button class="btn btn-sm btn-outline-secondary" data-back-dashboard>
+                        <i class="bi bi-arrow-left me-1"></i>Dashboard
+                    </button>
+                </div>`;
     }
 
     function showModuleShell(module, bodyHtml) {
