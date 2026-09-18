@@ -1619,6 +1619,77 @@
             }
         }
 
+
+        .sa-nav {
+            background: #fff;
+            border-bottom: 1px solid #e7ebf1;
+            padding: 0 28px;
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+        }
+        .sa-nav button {
+            border: 0;
+            background: transparent;
+            color: #718095;
+            padding: 12px 14px;
+            font-size: 11px;
+            font-weight: 750;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+        }
+        .sa-nav button.active {
+            color: #2f67b7;
+            border-bottom-color: #2f67b7;
+        }
+        .sa-view.hidden { display: none !important; }
+        .sa-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .sa-search {
+            width: min(340px, 100%);
+            height: 36px;
+            border: 1px solid #dfe5ed;
+            border-radius: 9px;
+            padding: 0 12px;
+            font-size: 11px;
+            outline: none;
+        }
+        .sa-search:focus { border-color: #9ebbe0; }
+        .sa-full-card { margin-bottom: 16px; }
+        .sa-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .sa-mini {
+            background: #f8fafc;
+            border: 1px solid #edf0f4;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .sa-mini-label {
+            color: #8996a6;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .35px;
+        }
+        .sa-mini-value {
+            margin-top: 5px;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        @media (max-width: 600px) {
+            .sa-nav { padding: 0 12px; }
+            .sa-detail-grid { grid-template-columns: 1fr; }
+            .sa-toolbar { align-items: stretch; flex-direction: column; }
+            .sa-search { width: 100%; }
+        }
+
 </style>
 
 
@@ -1924,7 +1995,6 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
                 <span>e-BUMDesa</span>
                 <span class="sa-badge">Super Admin</span>
             </div>
-
             <div class="sa-user">
                 <div class="sa-user-info">
                     <div id="saUserName" class="sa-user-name">Super Admin</div>
@@ -1936,65 +2006,128 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             </div>
         </header>
 
+        <nav class="sa-nav" id="saNav">
+            <button class="active" data-sa-view="saDashboardView"><i class="bi bi-grid-1x2 me-1"></i>Dashboard</button>
+            <button data-sa-view="saBumdesView"><i class="bi bi-buildings me-1"></i>BUMDes</button>
+            <button data-sa-view="saSubscriptionView"><i class="bi bi-credit-card me-1"></i>Langganan</button>
+            <button data-sa-view="saPaymentView"><i class="bi bi-receipt me-1"></i>Pembayaran</button>
+            <button data-sa-view="saUsersView"><i class="bi bi-people me-1"></i>Pengguna</button>
+        </nav>
+
         <main class="sa-content">
-            <div class="sa-heading">
-                <h1>Dashboard Super Admin</h1>
-                <p>Administrasi platform e-BUMDesa, pelanggan BUMDes, langganan, dan pembayaran.</p>
-            </div>
+            <!-- DASHBOARD -->
+            <section id="saDashboardView" class="sa-view">
+                <div class="sa-heading">
+                    <h1>Dashboard Super Admin</h1>
+                    <p>Administrasi platform e-BUMDesa, pelanggan BUMDes, langganan, dan pembayaran.</p>
+                </div>
 
-            <div class="sa-stat-grid">
-                <div class="sa-stat">
-                    <div class="sa-stat-label">Total BUMDes</div>
-                    <div id="saTotalBumdes" class="sa-stat-value">0</div>
+                <div class="sa-stat-grid">
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Total BUMDes</div>
+                        <div id="saTotalBumdes" class="sa-stat-value">0</div>
+                    </div>
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Langganan Aktif</div>
+                        <div id="saActiveSubscriptions" class="sa-stat-value">0</div>
+                    </div>
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Menunggu Pembayaran</div>
+                        <div id="saPendingSubscriptions" class="sa-stat-value">0</div>
+                    </div>
+                    <div class="sa-stat">
+                        <div class="sa-stat-label">Total Pembayaran</div>
+                        <div id="saTotalPayments" class="sa-stat-value">Rp 0</div>
+                    </div>
                 </div>
-                <div class="sa-stat">
-                    <div class="sa-stat-label">Langganan Aktif</div>
-                    <div id="saActiveSubscriptions" class="sa-stat-value">0</div>
-                </div>
-                <div class="sa-stat">
-                    <div class="sa-stat-label">Menunggu Pembayaran</div>
-                    <div id="saPendingSubscriptions" class="sa-stat-value">0</div>
-                </div>
-                <div class="sa-stat">
-                    <div class="sa-stat-label">Total Pembayaran</div>
-                    <div id="saTotalPayments" class="sa-stat-value">Rp 0</div>
-                </div>
-            </div>
 
-            <div class="sa-grid">
-                <section class="sa-card">
-                    <div class="sa-card-head">
-                        <div>
-                            <div class="sa-card-title">Daftar BUMDes</div>
-                            <div class="sa-card-subtitle">Seluruh BUMDes yang terdaftar di platform.</div>
+                <div class="sa-grid">
+                    <section class="sa-card">
+                        <div class="sa-card-head">
+                            <div>
+                                <div class="sa-card-title">Daftar BUMDes</div>
+                                <div class="sa-card-subtitle">Seluruh BUMDes yang terdaftar di platform.</div>
+                            </div>
+                            <button id="saRefreshBtn" class="sa-refresh" type="button">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                            </button>
                         </div>
-                        <button id="saRefreshBtn" class="sa-refresh" type="button">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                        </button>
-                    </div>
-
-                    <div id="saBumdesTable" class="sa-table-wrap">
-                        <div class="sa-loading">Memuat data...</div>
-                    </div>
-                </section>
-
-                <section class="sa-card">
-                    <div class="sa-card-head">
-                        <div>
-                            <div class="sa-card-title">Pembayaran Terbaru</div>
-                            <div class="sa-card-subtitle">Riwayat pembayaran dari pelanggan.</div>
+                        <div id="saBumdesTable" class="sa-table-wrap">
+                            <div class="sa-loading">Memuat data...</div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div id="saPaymentTable" class="sa-table-wrap">
-                        <div class="sa-loading">Memuat data...</div>
-                    </div>
+                    <section class="sa-card">
+                        <div class="sa-card-head">
+                            <div>
+                                <div class="sa-card-title">Pembayaran Terbaru</div>
+                                <div class="sa-card-subtitle">Riwayat pembayaran dari pelanggan.</div>
+                            </div>
+                        </div>
+                        <div id="saPaymentTable" class="sa-table-wrap">
+                            <div class="sa-loading">Memuat pembayaran...</div>
+                        </div>
+                        <div class="sa-note">Status langganan diaktifkan berdasarkan proses pembayaran/payment gateway.</div>
+                    </section>
+                </div>
+            </section>
 
-                    <div class="sa-note">
-                        Status langganan diaktifkan berdasarkan proses pembayaran/payment gateway.
-                    </div>
+            <!-- BUMDES -->
+            <section id="saBumdesView" class="sa-view hidden">
+                <div class="sa-heading">
+                    <h1>Manajemen BUMDes</h1>
+                    <p>Daftar dan status seluruh pelanggan BUMDes e-BUMDesa.</p>
+                </div>
+                <div class="sa-toolbar">
+                    <input id="saBumdesSearch" class="sa-search" type="search" placeholder="Cari nama atau kode BUMDes...">
+                    <button id="saBumdesRefresh" class="sa-refresh" type="button"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
+                </div>
+                <section class="sa-card sa-full-card">
+                    <div id="saBumdesFullTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
                 </section>
-            </div>
+            </section>
+
+            <!-- LANGGANAN -->
+            <section id="saSubscriptionView" class="sa-view hidden">
+                <div class="sa-heading">
+                    <h1>Langganan</h1>
+                    <p>Monitoring masa aktif layanan setiap BUMDes.</p>
+                </div>
+                <div class="sa-toolbar">
+                    <input id="saSubscriptionSearch" class="sa-search" type="search" placeholder="Cari BUMDes...">
+                </div>
+                <section class="sa-card sa-full-card">
+                    <div id="saSubscriptionTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
+                </section>
+            </section>
+
+            <!-- PEMBAYARAN -->
+            <section id="saPaymentView" class="sa-view hidden">
+                <div class="sa-heading">
+                    <h1>Pembayaran</h1>
+                    <p>Riwayat invoice dan pembayaran pelanggan.</p>
+                </div>
+                <div class="sa-toolbar">
+                    <input id="saPaymentSearch" class="sa-search" type="search" placeholder="Cari invoice atau BUMDes...">
+                </div>
+                <section class="sa-card sa-full-card">
+                    <div id="saPaymentFullTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
+                </section>
+            </section>
+
+            <!-- PENGGUNA -->
+            <section id="saUsersView" class="sa-view hidden">
+                <div class="sa-heading">
+                    <h1>Pengguna</h1>
+                    <p>Daftar akun pengguna yang terdaftar pada platform.</p>
+                </div>
+                <div class="sa-toolbar">
+                    <input id="saUserSearch" class="sa-search" type="search" placeholder="Cari nama, email, atau BUMDes...">
+                </div>
+                <section class="sa-card sa-full-card">
+                    <div id="saUsersTable" class="sa-table-wrap"><div class="sa-loading">Memuat data...</div></div>
+                </section>
+            </section>
         </main>
     </div>
 </section>
@@ -2437,137 +2570,138 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
     async function refreshSuperAdmin() {
         $("saBumdesTable").innerHTML = '<div class="sa-loading">Memuat data BUMDes...</div>';
         $("saPaymentTable").innerHTML = '<div class="sa-loading">Memuat pembayaran...</div>';
+        $("saBumdesFullTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
+        $("saSubscriptionTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
+        $("saPaymentFullTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
+        $("saUsersTable").innerHTML = '<div class="sa-loading">Memuat data...</div>';
 
-        const [
-            bumdesResult,
-            subscriptionsResult,
-            paymentsResult
-        ] = await Promise.all([
-            supabaseClient
-                .from("bumdes")
-                .select("id, nama, kode, desa, kecamatan, kabupaten, status, created_at")
-                .order("created_at", { ascending: false }),
-
-            supabaseClient
-                .from("subscriptions")
-                .select("id, bumdes_id, status, amount, expires_at"),
-
-            supabaseClient
-                .from("payments")
-                .select("id, bumdes_id, invoice_number, amount, status, payment_method, paid_at, created_at")
-                .order("created_at", { ascending: false })
-                .limit(10)
+        const [b, s, p, u] = await Promise.all([
+            supabaseClient.from("bumdes")
+                .select("id,nama,kode,desa,kecamatan,kabupaten,provinsi,status,created_at")
+                .order("created_at", {ascending:false}),
+            supabaseClient.from("subscriptions")
+                .select("id,bumdes_id,plan_name,amount,billing_period_months,status,started_at,expires_at"),
+            supabaseClient.from("payments")
+                .select("id,bumdes_id,invoice_number,amount,status,payment_provider,payment_method,paid_at,expired_at,created_at")
+                .order("created_at", {ascending:false}),
+            supabaseClient.from("profiles")
+                .select("id,nama,email,role,bumdes_id,unit_id,status,created_at")
+                .order("created_at", {ascending:false})
         ]);
 
-        if (bumdesResult.error) {
-            console.error(bumdesResult.error);
-            $("saBumdesTable").innerHTML =
-                `<div class="sa-empty">Gagal memuat BUMDes: ${escapeHtml(bumdesResult.error.message)}</div>`;
+        if (b.error) {
+            console.error(b.error);
+            $("saBumdesTable").innerHTML = `<div class="sa-empty">Gagal memuat BUMDes: ${escapeHtml(b.error.message)}</div>`;
             return;
         }
 
-        if (subscriptionsResult.error) {
-            console.error(subscriptionsResult.error);
-        }
+        const bumdes = b.data || [];
+        const subscriptions = s.data || [];
+        const payments = p.data || [];
+        const users = u.data || [];
 
-        if (paymentsResult.error) {
-            console.error(paymentsResult.error);
-            $("saPaymentTable").innerHTML =
-                `<div class="sa-empty">Gagal memuat pembayaran: ${escapeHtml(paymentsResult.error.message)}</div>`;
-        }
+        if (s.error) console.error(s.error);
+        if (p.error) console.error(p.error);
+        if (u.error) console.error(u.error);
 
-        const bumdes = bumdesResult.data || [];
-        const subscriptions = subscriptionsResult.data || [];
-        const payments = paymentsResult.data || [];
+        const bumdesMap = new Map(bumdes.map(x => [x.id, x]));
+        const subMap = new Map(subscriptions.map(x => [x.bumdes_id, x]));
 
-        const subByBumdes = new Map(
-            subscriptions.map(s => [s.bumdes_id, s])
-        );
-
-        const activeSubs = subscriptions.filter(s =>
-            s.status === "active" &&
-            s.expires_at &&
-            new Date(s.expires_at) > new Date()
+        const active = subscriptions.filter(x =>
+            x.status === "active" && x.expires_at && new Date(x.expires_at) > new Date()
         ).length;
-
-        const pendingSubs = subscriptions.filter(s => s.status === "pending").length;
-
-        const totalPayments = payments
-            .filter(p => p.status === "paid")
-            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+        const pending = subscriptions.filter(x => x.status === "pending").length;
+        const revenue = payments.filter(x => x.status === "paid")
+            .reduce((sum, x) => sum + Number(x.amount || 0), 0);
 
         $("saTotalBumdes").textContent = bumdes.length;
-        $("saActiveSubscriptions").textContent = activeSubs;
-        $("saPendingSubscriptions").textContent = pendingSubs;
-        $("saTotalPayments").textContent = rupiah(totalPayments);
+        $("saActiveSubscriptions").textContent = active;
+        $("saPendingSubscriptions").textContent = pending;
+        $("saTotalPayments").textContent = rupiah(revenue);
 
-        if (!bumdes.length) {
-            $("saBumdesTable").innerHTML =
-                '<div class="sa-empty">Belum ada BUMDes terdaftar.</div>';
-        } else {
-            $("saBumdesTable").innerHTML = `
-                <table class="sa-table">
-                    <thead>
-                        <tr>
-                            <th>BUMDes</th>
-                            <th>Kode</th>
-                            <th>Wilayah</th>
-                            <th>Langganan</th>
-                            <th>Berakhir</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${bumdes.map(b => {
-                            const s = subByBumdes.get(b.id);
-                            const status = s?.status || "pending";
-                            const expires = s?.expires_at
-                                ? new Date(s.expires_at).toLocaleDateString("id-ID")
-                                : "-";
+        const statusLabel = s => s === "active" ? "Aktif" :
+            s === "pending" ? "Menunggu" :
+            s === "expired" ? "Expired" :
+            s === "cancelled" ? "Dibatalkan" :
+            s === "suspended" ? "Ditangguhkan" : (s || "-");
 
-                            return `
-                                <tr>
-                                    <td>${escapeHtml(b.nama)}</td>
-                                    <td>${escapeHtml(b.kode)}</td>
-                                    <td>${escapeHtml([b.desa, b.kecamatan, b.kabupaten].filter(Boolean).join(", ") || "-")}</td>
-                                    <td><span class="sa-status ${escapeHtml(status)}">${escapeHtml(status)}</span></td>
-                                    <td>${expires}</td>
-                                </tr>
-                            `;
-                        }).join("")}
-                    </tbody>
-                </table>
-            `;
-        }
+        const statusClass = s => ["active","pending","expired","cancelled","suspended"].includes(s) ? s : "pending";
 
-        if (!payments.length) {
-            $("saPaymentTable").innerHTML =
-                '<div class="sa-empty">Belum ada pembayaran.</div>';
-        } else {
-            const bumdesMap = new Map(bumdes.map(b => [b.id, b.nama]));
+        const bumdesRows = bumdes.map(x => {
+            const sub = subMap.get(x.id);
+            return {
+                id:x.id,
+                nama:x.nama || "-",
+                kode:x.kode || "-",
+                wilayah:[x.desa,x.kecamatan,x.kabupaten].filter(Boolean).join(", ") || "-",
+                status:sub?.status || "pending",
+                expires:sub?.expires_at ? new Date(sub.expires_at).toLocaleDateString("id-ID") : "-"
+            };
+        });
 
-            $("saPaymentTable").innerHTML = `
-                <table class="sa-table">
-                    <thead>
-                        <tr>
-                            <th>Invoice</th>
-                            <th>BUMDes</th>
-                            <th>Nominal</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${payments.map(p => `
-                            <tr>
-                                <td>${escapeHtml(p.invoice_number || "-")}</td>
-                                <td>${escapeHtml(bumdesMap.get(p.bumdes_id) || "-")}</td>
-                                <td>${rupiah(p.amount)}</td>
-                                <td><span class="sa-status ${escapeHtml(p.status || "pending")}">${escapeHtml(p.status || "pending")}</span></td>
-                            </tr>
-                        `).join("")}
-                    </tbody>
-                </table>
-            `;
-        }
+        const renderBumdes = rows => {
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
+            return `<table class="sa-table"><thead><tr>
+                <th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th>
+            </tr></thead><tbody>${rows.map(x => `<tr>
+                <td>${escapeHtml(x.nama)}</td>
+                <td>${escapeHtml(x.kode)}</td>
+                <td>${escapeHtml(x.wilayah)}</td>
+                <td><span class="sa-status ${x.status}">${escapeHtml(statusLabel(x.status))}</span></td>
+                <td>${x.expires}</td>
+            </tr>`).join("")}</tbody></table>`;
+        };
+
+        $("saBumdesTable").innerHTML = renderBumdes(bumdesRows);
+        $("saBumdesFullTable").innerHTML = renderBumdes(bumdesRows);
+
+        const renderSubscriptions = rows => {
+            if (!rows.length) return '<div class="sa-empty">Belum ada data langganan.</div>';
+            return `<table class="sa-table"><thead><tr>
+                <th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th>
+            </tr></thead><tbody>${rows.map(x => `<tr>
+                <td>${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || "-")}</td>
+                <td>${escapeHtml(x.plan_name || "-")}</td>
+                <td>${rupiah(x.amount)}</td>
+                <td><span class="sa-status ${statusClass(x.status)}">${escapeHtml(statusLabel(x.status))}</span></td>
+                <td>${x.started_at ? new Date(x.started_at).toLocaleDateString("id-ID") : "-"}</td>
+                <td>${x.expires_at ? new Date(x.expires_at).toLocaleDateString("id-ID") : "-"}</td>
+            </tr>`).join("")}</tbody></table>`;
+        };
+        $("saSubscriptionTable").innerHTML = renderSubscriptions(subscriptions);
+
+        const renderPayments = rows => {
+            if (!rows.length) return '<div class="sa-empty">Belum ada pembayaran.</div>';
+            return `<table class="sa-table"><thead><tr>
+                <th>Invoice</th><th>BUMDes</th><th>Nominal</th><th>Status</th><th>Metode</th><th>Dibayar</th>
+            </tr></thead><tbody>${rows.map(x => `<tr>
+                <td>${escapeHtml(x.invoice_number || "-")}</td>
+                <td>${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || "-")}</td>
+                <td>${rupiah(x.amount)}</td>
+                <td><span class="sa-status ${statusClass(x.status)}">${escapeHtml(statusLabel(x.status))}</span></td>
+                <td>${escapeHtml(x.payment_method || x.payment_provider || "-")}</td>
+                <td>${x.paid_at ? new Date(x.paid_at).toLocaleDateString("id-ID") : "-"}</td>
+            </tr>`).join("")}</tbody></table>`;
+        };
+        $("saPaymentTable").innerHTML = renderPayments(payments.slice(0,10));
+        $("saPaymentFullTable").innerHTML = renderPayments(payments);
+
+        const renderUsers = rows => {
+            if (!rows.length) return '<div class="sa-empty">Belum ada pengguna.</div>';
+            return `<table class="sa-table"><thead><tr>
+                <th>Nama</th><th>Email</th><th>Role</th><th>BUMDes</th><th>Status</th>
+            </tr></thead><tbody>${rows.map(x => `<tr>
+                <td>${escapeHtml(x.nama || "-")}</td>
+                <td>${escapeHtml(x.email || "-")}</td>
+                <td>${escapeHtml(x.role || "-")}</td>
+                <td>${escapeHtml(bumdesMap.get(x.bumdes_id)?.nama || (x.role === "super_admin" ? "Platform e-BUMDesa" : "-"))}</td>
+                <td><span class="sa-status ${x.status === "aktif" ? "active" : "pending"}">${escapeHtml(x.status || "-")}</span></td>
+            </tr>`).join("")}</tbody></table>`;
+        };
+        $("saUsersTable").innerHTML = renderUsers(users);
+
+        window.__saData = {bumdesRows, subscriptions, payments, users, bumdesMap};
+        applySuperAdminFilters();
     }
 
     // =========================================================
@@ -2664,6 +2798,58 @@ Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
     }
+
+    function applySuperAdminFilters() {
+        const d = window.__saData || {};
+        const filter = (id, rows, fields, rendererId, renderer) => {
+            const q = ($(id)?.value || "").trim().toLowerCase();
+            const filtered = (rows || []).filter(x =>
+                fields.some(f => String(f(x) ?? "").toLowerCase().includes(q))
+            );
+            $(rendererId).innerHTML = renderer(filtered);
+        };
+
+        const bumdesRows = d.bumdesRows || [];
+        const renderBumdes = rows => {
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
+            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Kode</th><th>Wilayah</th><th>Status</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x => `<tr><td>${escapeHtml(x.nama)}</td><td>${escapeHtml(x.kode)}</td><td>${escapeHtml(x.wilayah)}</td><td><span class="sa-status ${x.status}">${escapeHtml(x.status === "active" ? "Aktif" : x.status)}</span></td><td>${x.expires}</td></tr>`).join("")}</tbody></table>`;
+        };
+        filter("saBumdesSearch", bumdesRows, [x=>x.nama,x=>x.kode,x=>x.wilayah], "saBumdesFullTable", renderBumdes);
+
+        const bm = d.bumdesMap || new Map();
+        const renderSubs = rows => {
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
+            return `<table class="sa-table"><thead><tr><th>BUMDes</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Mulai</th><th>Berakhir</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||"-")}</td><td>${escapeHtml(x.plan_name||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${x.started_at?new Date(x.started_at).toLocaleDateString("id-ID"):"-"}</td><td>${x.expires_at?new Date(x.expires_at).toLocaleDateString("id-ID"):"-"}</td></tr>`).join("")}</tbody></table>`;
+        };
+        filter("saSubscriptionSearch", d.subscriptions||[], [x=>bm.get(x.bumdes_id)?.nama,x=>x.status], "saSubscriptionTable", renderSubs);
+
+        const renderPay = rows => {
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
+            return `<table class="sa-table"><thead><tr><th>Invoice</th><th>BUMDes</th><th>Nominal</th><th>Status</th><th>Metode</th><th>Dibayar</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.invoice_number||"-")}</td><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||"-")}</td><td>${rupiah(x.amount)}</td><td>${escapeHtml(x.status||"-")}</td><td>${escapeHtml(x.payment_method||x.payment_provider||"-")}</td><td>${x.paid_at?new Date(x.paid_at).toLocaleDateString("id-ID"):"-"}</td></tr>`).join("")}</tbody></table>`;
+        };
+        filter("saPaymentSearch", d.payments||[], [x=>x.invoice_number,x=>bm.get(x.bumdes_id)?.nama,x=>x.status], "saPaymentFullTable", renderPay);
+
+        const renderUsers = rows => {
+            if (!rows.length) return '<div class="sa-empty">Data tidak ditemukan.</div>';
+            return `<table class="sa-table"><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>BUMDes</th><th>Status</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${escapeHtml(x.nama||"-")}</td><td>${escapeHtml(x.email||"-")}</td><td>${escapeHtml(x.role||"-")}</td><td>${escapeHtml(bm.get(x.bumdes_id)?.nama||(x.role==="super_admin"?"Platform e-BUMDesa":"-"))}</td><td>${escapeHtml(x.status||"-")}</td></tr>`).join("")}</tbody></table>`;
+        };
+        filter("saUserSearch", d.users||[], [x=>x.nama,x=>x.email,x=>x.role,x=>bm.get(x.bumdes_id)?.nama], "saUsersTable", renderUsers);
+    }
+
+    document.querySelectorAll("#saNav button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#saNav button").forEach(x => x.classList.remove("active"));
+            document.querySelectorAll(".sa-view").forEach(x => x.classList.add("hidden"));
+            btn.classList.add("active");
+            $(btn.dataset.saView).classList.remove("hidden");
+        });
+    });
+
+    ["saBumdesSearch","saSubscriptionSearch","saPaymentSearch","saUserSearch"].forEach(id => {
+        $(id).addEventListener("input", applySuperAdminFilters);
+    });
+
+    $("saBumdesRefresh").addEventListener("click", refreshSuperAdmin);
 
     $("saRefreshBtn").addEventListener("click", async () => {
         const btn = $("saRefreshBtn");
