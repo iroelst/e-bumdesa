@@ -508,7 +508,41 @@
         }
 
         .content {
-            padding: 22px;
+            width: 100%;
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 22px 26px 34px;
+        }
+
+        /* Lebar halaman dibuat konsisten agar kartu tidak terlalu melebar. */
+        .content > .panel,
+        .content > .row,
+        .content > .summary-card,
+        .content > .unit-card {
+            max-width: 100%;
+        }
+
+        .panel {
+            width: 100%;
+        }
+
+        @media (min-width: 992px) {
+            .content {
+                max-width: 1080px;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .content {
+                max-width: 100%;
+                padding: 18px 16px 28px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .content {
+                padding: 14px 12px 24px;
+            }
         }
 
         .summary-card, .unit-card, .panel {
@@ -805,6 +839,27 @@
             }
         }
 
+
+        /* ===== GLOBAL PAGE CARD WIDTH / HEIGHT ===== */
+        .main > .content,
+        #appPage .content {
+            max-width: 1080px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #appPage .content .panel {
+            min-height: 0;
+        }
+
+        #appPage .content .panel + .panel {
+            margin-top: 16px;
+        }
+
+        /* Kartu judul modul tidak lagi mengambil tinggi minimum 300px. */
+        #appPage .content .panel .panel-title {
+            margin-bottom: 10px;
+        }
 
         /* ===== SUBSCRIPTION / LANGGANAN ===== */
         #subscriptionPage {
