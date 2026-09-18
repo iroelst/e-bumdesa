@@ -1322,7 +1322,304 @@
             }
         }
 
-    </style>
+    
+        /* =====================================================
+           SUPER ADMIN
+           ===================================================== */
+        #superAdminPage {
+            min-height: 100vh;
+            background: #f5f7fb;
+            color: #26364a;
+            overflow-y: auto;
+        }
+
+        .sa-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sa-topbar {
+            height: 66px;
+            background: #fff;
+            border-bottom: 1px solid #e7ebf1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .sa-brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-weight: 800;
+            font-size: 19px;
+        }
+
+        .sa-brand img {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+        }
+
+        .sa-badge {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .5px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: #2f67b7;
+            text-transform: uppercase;
+        }
+
+        .sa-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sa-user-info {
+            text-align: right;
+            line-height: 1.15;
+        }
+
+        .sa-user-name {
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .sa-user-email {
+            font-size: 10px;
+            color: #8794a5;
+            margin-top: 3px;
+        }
+
+        .sa-logout {
+            border: 1px solid #dfe5ed;
+            background: #fff;
+            color: #5d6d80;
+            border-radius: 9px;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .sa-content {
+            width: min(1180px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 25px 0 35px;
+        }
+
+        .sa-heading {
+            margin-bottom: 20px;
+        }
+
+        .sa-heading h1 {
+            margin: 0;
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: -.4px;
+        }
+
+        .sa-heading p {
+            margin: 5px 0 0;
+            color: #7b899a;
+            font-size: 12px;
+        }
+
+        .sa-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .sa-stat {
+            background: #fff;
+            border: 1px solid #e8edf3;
+            border-radius: 13px;
+            padding: 16px 17px;
+            box-shadow: 0 5px 18px rgba(35,55,80,.045);
+        }
+
+        .sa-stat-label {
+            color: #8190a2;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .45px;
+        }
+
+        .sa-stat-value {
+            margin-top: 7px;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -.5px;
+        }
+
+        .sa-grid {
+            display: grid;
+            grid-template-columns: 1.45fr .95fr;
+            gap: 16px;
+        }
+
+        .sa-card {
+            background: #fff;
+            border: 1px solid #e8edf3;
+            border-radius: 13px;
+            box-shadow: 0 5px 18px rgba(35,55,80,.045);
+            overflow: hidden;
+        }
+
+        .sa-card-head {
+            min-height: 52px;
+            padding: 13px 17px;
+            border-bottom: 1px solid #edf0f4;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .sa-card-title {
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .sa-card-subtitle {
+            font-size: 10px;
+            color: #8b98a8;
+            margin-top: 2px;
+        }
+
+        .sa-table-wrap {
+            overflow-x: auto;
+        }
+
+        .sa-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .sa-table th,
+        .sa-table td {
+            padding: 10px 13px;
+            border-bottom: 1px solid #f0f2f5;
+            white-space: nowrap;
+            text-align: left;
+        }
+
+        .sa-table th {
+            color: #7e8b9c;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            background: #fafbfd;
+        }
+
+        .sa-table td:first-child {
+            font-weight: 700;
+        }
+
+        .sa-status {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 9px;
+            font-weight: 800;
+        }
+
+        .sa-status.active {
+            background: #eaf7ee;
+            color: #2d7a48;
+        }
+
+        .sa-status.pending {
+            background: #fff6df;
+            color: #9a6a00;
+        }
+
+        .sa-status.expired,
+        .sa-status.cancelled,
+        .sa-status.suspended {
+            background: #fcebed;
+            color: #a33c48;
+        }
+
+        .sa-empty,
+        .sa-loading {
+            padding: 25px 17px;
+            color: #8a97a7;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .sa-refresh {
+            border: 1px solid #dce4ee;
+            background: #fff;
+            color: #49627d;
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .sa-note {
+            padding: 13px 17px;
+            background: #f8fafc;
+            border-top: 1px solid #edf0f4;
+            color: #7c8999;
+            font-size: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .sa-stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .sa-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .sa-topbar {
+                height: auto;
+                min-height: 66px;
+                padding: 11px 14px;
+                gap: 10px;
+            }
+
+            .sa-user-info {
+                display: none;
+            }
+
+            .sa-content {
+                width: calc(100% - 24px);
+                padding-top: 18px;
+            }
+
+            .sa-stat-grid {
+                gap: 9px;
+            }
+
+            .sa-stat {
+                padding: 13px;
+            }
+
+            .sa-stat-value {
+                font-size: 20px;
+            }
+        }
+
+</style>
 
 
 </head>
@@ -1604,6 +1901,104 @@
     </div>
 </section>
 
+
+
+<!--
+SUPER ADMIN
+Email pemilik/operator platform:
+iroel.setyawan@gmail.com
+
+Akun ini harus memiliki:
+role = super_admin
+bumdes_id = NULL
+unit_id = NULL
+
+Jangan menjadikan akun ini pelanggan BUMDes atau membuat subscription.
+-->
+<!-- SUPER ADMIN -->
+<section id="superAdminPage" class="hidden">
+    <div class="sa-shell">
+        <header class="sa-topbar">
+            <div class="sa-brand">
+                <img src="e-bumdesa-logo.png" alt="Logo e-BUMDesa">
+                <span>e-BUMDesa</span>
+                <span class="sa-badge">Super Admin</span>
+            </div>
+
+            <div class="sa-user">
+                <div class="sa-user-info">
+                    <div id="saUserName" class="sa-user-name">Super Admin</div>
+                    <div id="saUserEmail" class="sa-user-email">iroel.setyawan@gmail.com</div>
+                </div>
+                <button id="saLogoutBtn" class="sa-logout" type="button">
+                    <i class="bi bi-box-arrow-right me-1"></i> Keluar
+                </button>
+            </div>
+        </header>
+
+        <main class="sa-content">
+            <div class="sa-heading">
+                <h1>Dashboard Super Admin</h1>
+                <p>Administrasi platform e-BUMDesa, pelanggan BUMDes, langganan, dan pembayaran.</p>
+            </div>
+
+            <div class="sa-stat-grid">
+                <div class="sa-stat">
+                    <div class="sa-stat-label">Total BUMDes</div>
+                    <div id="saTotalBumdes" class="sa-stat-value">0</div>
+                </div>
+                <div class="sa-stat">
+                    <div class="sa-stat-label">Langganan Aktif</div>
+                    <div id="saActiveSubscriptions" class="sa-stat-value">0</div>
+                </div>
+                <div class="sa-stat">
+                    <div class="sa-stat-label">Menunggu Pembayaran</div>
+                    <div id="saPendingSubscriptions" class="sa-stat-value">0</div>
+                </div>
+                <div class="sa-stat">
+                    <div class="sa-stat-label">Total Pembayaran</div>
+                    <div id="saTotalPayments" class="sa-stat-value">Rp 0</div>
+                </div>
+            </div>
+
+            <div class="sa-grid">
+                <section class="sa-card">
+                    <div class="sa-card-head">
+                        <div>
+                            <div class="sa-card-title">Daftar BUMDes</div>
+                            <div class="sa-card-subtitle">Seluruh BUMDes yang terdaftar di platform.</div>
+                        </div>
+                        <button id="saRefreshBtn" class="sa-refresh" type="button">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div id="saBumdesTable" class="sa-table-wrap">
+                        <div class="sa-loading">Memuat data...</div>
+                    </div>
+                </section>
+
+                <section class="sa-card">
+                    <div class="sa-card-head">
+                        <div>
+                            <div class="sa-card-title">Pembayaran Terbaru</div>
+                            <div class="sa-card-subtitle">Riwayat pembayaran dari pelanggan.</div>
+                        </div>
+                    </div>
+
+                    <div id="saPaymentTable" class="sa-table-wrap">
+                        <div class="sa-loading">Memuat data...</div>
+                    </div>
+
+                    <div class="sa-note">
+                        Status langganan diaktifkan berdasarkan proses pembayaran/payment gateway.
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</section>
+
 <!-- APP -->
 <section id="appPage" class="hidden">
     <aside id="sidebar" class="sidebar">
@@ -1767,13 +2162,16 @@
         SUPABASE_ANON_KEY
     );
 
+    // Akun pemilik/operator platform e-BUMDesa.
+    const SUPER_ADMIN_EMAIL = "iroel.setyawan@gmail.com";
+
     // =========================================================
     // HELPERS
     // =========================================================
     const $ = (id) => document.getElementById(id);
 
     function showOnly(id) {
-        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "appPage"].forEach(x => {
+        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "superAdminPage", "appPage"].forEach(x => {
             $(x).classList.add("hidden");
         });
         $(id).classList.remove("hidden");
@@ -1848,7 +2246,90 @@
             return;
         }
 
-        await loadDashboard(profile);
+        // Super Admin adalah pemilik/operator platform e-BUMDesa.
+        // Tidak terikat BUMDes pelanggan dan tidak melalui pemeriksaan langganan.
+        if (
+            profile.role === "super_admin" &&
+            String(profile.email || user.email || "").toLowerCase() === SUPER_ADMIN_EMAIL
+        ) {
+            await loadSuperAdmin(profile);
+            return;
+        }
+
+        // Semua pengguna BUMDes harus memiliki langganan aktif.
+        const { data: subscription, error: subscriptionError } = await supabaseClient
+            .from("subscriptions")
+            .select("id, plan_name, amount, billing_period_months, status, started_at, expires_at")
+            .eq("bumdes_id", profile.bumdes_id)
+            .maybeSingle();
+
+        if (subscriptionError) {
+            console.error(subscriptionError);
+            showError("loginMessage", "Gagal memeriksa status langganan: " + subscriptionError.message);
+            showOnly("loginPage");
+            return;
+        }
+
+        const expiresAt = subscription?.expires_at ? new Date(subscription.expires_at) : null;
+        const isActive = subscription?.status === "active" && expiresAt && expiresAt > new Date();
+
+        if (isActive) {
+            await loadDashboard(profile);
+            return;
+        }
+
+        await loadSubscriptionPage(profile, subscription);
+    }
+
+    async function loadSubscriptionPage(profile, subscription) {
+        const { data: bumdes, error } = await supabaseClient
+            .from("bumdes")
+            .select("nama, kode")
+            .eq("id", profile.bumdes_id)
+            .maybeSingle();
+
+        if (error) {
+            console.error(error);
+        }
+
+        $("subscriptionBumdesName").textContent = bumdes?.nama || "BUM Desa";
+        $("subscriptionYear").textContent = new Date().getFullYear();
+
+        const statusEl = $("subscriptionStatus");
+        const payBtn = $("subscriptionPayBtn");
+        const status = subscription?.status || "pending";
+        const expiresAt = subscription?.expires_at ? new Date(subscription.expires_at) : null;
+        const expired = expiresAt && expiresAt <= new Date();
+
+        let icon = "bi-hourglass-split";
+        let label = "Menunggu Aktivasi";
+        let message = "Langganan BUMDes ini belum aktif. Setelah pembayaran berhasil, akses sistem akan diaktifkan.";
+        let buttonLabel = "Lanjutkan Pembayaran";
+
+        if (status === "expired" || expired) {
+            icon = "bi-clock-history";
+            label = "Langganan Berakhir";
+            message = "Masa langganan telah berakhir. Silakan lakukan pembayaran untuk mengaktifkan kembali akses sistem.";
+            buttonLabel = "Perpanjang Langganan";
+        } else if (status === "cancelled") {
+            icon = "bi-x-circle";
+            label = "Langganan Dibatalkan";
+            message = "Langganan ini dibatalkan. Silakan lakukan pembayaran untuk mengaktifkan kembali layanan.";
+            buttonLabel = "Aktifkan Langganan";
+        } else if (status === "suspended") {
+            icon = "bi-pause-circle";
+            label = "Akses Ditangguhkan";
+            message = "Akses layanan sedang ditangguhkan. Silakan hubungi pengelola e-BUMDesa.";
+            buttonLabel = "Hubungi Pengelola";
+        }
+
+        statusEl.innerHTML = `<i class="bi ${icon}"></i><span>${label}</span>`;
+        const messageEl = document.querySelector("#subscriptionPage .subscription-bumdes-name");
+        if (messageEl) messageEl.textContent = message;
+        payBtn.innerHTML = `<i class="bi bi-credit-card-2-front me-2"></i>${buttonLabel}`;
+        payBtn.disabled = status === "suspended";
+
+        showOnly("subscriptionPage");
     }
 
     // =========================================================
@@ -1941,6 +2422,153 @@
             `;
         }
     });
+
+    // =========================================================
+    // SUPER ADMIN
+    // =========================================================
+    async function loadSuperAdmin(profile) {
+        $("saUserName").textContent = profile.nama || "Super Admin";
+        $("saUserEmail").textContent = profile.email || SUPER_ADMIN_EMAIL;
+
+        showOnly("superAdminPage");
+        await refreshSuperAdmin();
+    }
+
+    async function refreshSuperAdmin() {
+        $("saBumdesTable").innerHTML = '<div class="sa-loading">Memuat data BUMDes...</div>';
+        $("saPaymentTable").innerHTML = '<div class="sa-loading">Memuat pembayaran...</div>';
+
+        const [
+            bumdesResult,
+            subscriptionsResult,
+            paymentsResult
+        ] = await Promise.all([
+            supabaseClient
+                .from("bumdes")
+                .select("id, nama, kode, desa, kecamatan, kabupaten, status, created_at")
+                .order("created_at", { ascending: false }),
+
+            supabaseClient
+                .from("subscriptions")
+                .select("id, bumdes_id, status, amount, expires_at"),
+
+            supabaseClient
+                .from("payments")
+                .select("id, bumdes_id, invoice_number, amount, status, payment_method, paid_at, created_at")
+                .order("created_at", { ascending: false })
+                .limit(10)
+        ]);
+
+        if (bumdesResult.error) {
+            console.error(bumdesResult.error);
+            $("saBumdesTable").innerHTML =
+                `<div class="sa-empty">Gagal memuat BUMDes: ${escapeHtml(bumdesResult.error.message)}</div>`;
+            return;
+        }
+
+        if (subscriptionsResult.error) {
+            console.error(subscriptionsResult.error);
+        }
+
+        if (paymentsResult.error) {
+            console.error(paymentsResult.error);
+            $("saPaymentTable").innerHTML =
+                `<div class="sa-empty">Gagal memuat pembayaran: ${escapeHtml(paymentsResult.error.message)}</div>`;
+        }
+
+        const bumdes = bumdesResult.data || [];
+        const subscriptions = subscriptionsResult.data || [];
+        const payments = paymentsResult.data || [];
+
+        const subByBumdes = new Map(
+            subscriptions.map(s => [s.bumdes_id, s])
+        );
+
+        const activeSubs = subscriptions.filter(s =>
+            s.status === "active" &&
+            s.expires_at &&
+            new Date(s.expires_at) > new Date()
+        ).length;
+
+        const pendingSubs = subscriptions.filter(s => s.status === "pending").length;
+
+        const totalPayments = payments
+            .filter(p => p.status === "paid")
+            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+        $("saTotalBumdes").textContent = bumdes.length;
+        $("saActiveSubscriptions").textContent = activeSubs;
+        $("saPendingSubscriptions").textContent = pendingSubs;
+        $("saTotalPayments").textContent = rupiah(totalPayments);
+
+        if (!bumdes.length) {
+            $("saBumdesTable").innerHTML =
+                '<div class="sa-empty">Belum ada BUMDes terdaftar.</div>';
+        } else {
+            $("saBumdesTable").innerHTML = `
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>BUMDes</th>
+                            <th>Kode</th>
+                            <th>Wilayah</th>
+                            <th>Langganan</th>
+                            <th>Berakhir</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${bumdes.map(b => {
+                            const s = subByBumdes.get(b.id);
+                            const status = s?.status || "pending";
+                            const expires = s?.expires_at
+                                ? new Date(s.expires_at).toLocaleDateString("id-ID")
+                                : "-";
+
+                            return `
+                                <tr>
+                                    <td>${escapeHtml(b.nama)}</td>
+                                    <td>${escapeHtml(b.kode)}</td>
+                                    <td>${escapeHtml([b.desa, b.kecamatan, b.kabupaten].filter(Boolean).join(", ") || "-")}</td>
+                                    <td><span class="sa-status ${escapeHtml(status)}">${escapeHtml(status)}</span></td>
+                                    <td>${expires}</td>
+                                </tr>
+                            `;
+                        }).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        if (!payments.length) {
+            $("saPaymentTable").innerHTML =
+                '<div class="sa-empty">Belum ada pembayaran.</div>';
+        } else {
+            const bumdesMap = new Map(bumdes.map(b => [b.id, b.nama]));
+
+            $("saPaymentTable").innerHTML = `
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>BUMDes</th>
+                            <th>Nominal</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${payments.map(p => `
+                            <tr>
+                                <td>${escapeHtml(p.invoice_number || "-")}</td>
+                                <td>${escapeHtml(bumdesMap.get(p.bumdes_id) || "-")}</td>
+                                <td>${rupiah(p.amount)}</td>
+                                <td><span class="sa-status ${escapeHtml(p.status || "pending")}">${escapeHtml(p.status || "pending")}</span></td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
 
     // =========================================================
     // DASHBOARD
@@ -2036,6 +2664,24 @@
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
     }
+
+    $("saRefreshBtn").addEventListener("click", async () => {
+        const btn = $("saRefreshBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Memuat...';
+
+        try {
+            await refreshSuperAdmin();
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh';
+        }
+    });
+
+    $("saLogoutBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        showOnly("loginPage");
+    });
 
     // =========================================================
     // LOGOUT
