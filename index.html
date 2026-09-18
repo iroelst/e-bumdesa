@@ -2597,14 +2597,191 @@
     }
 
     async function renderTransactionsModule() {
-        const { data, error } = await supabaseClient.from("transactions").select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,created_by,created_at").eq("bumdes_id", activeAppProfile.bumdes_id).order("transaction_date", { ascending:false }).order("created_at", { ascending:false }).limit(200);
-        if (error) throw error;
-        if (!data?.length) return showModuleShell("transaksi", moduleEmpty("Belum ada transaksi."));
-        const unitIds=[...new Set(data.map(x=>x.unit_id).filter(Boolean))]; let units=[];
-        if(unitIds.length){const r=await supabaseClient.from("units").select("id,nama_unit").in("id",unitIds);units=r.data||[];}
-        const um=new Map(units.map(u=>[u.id,u.nama_unit]));
-        const rows=data.map((t,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(t.transaction_date||"-")}</td><td><strong>${escapeHtml(t.transaction_number||"-")}</strong></td><td>${escapeHtml(t.description||"-")}</td><td>${escapeHtml(t.unit_id?um.get(t.unit_id)||"-":"Pusat")}</td><td class="text-end">${rupiah(t.amount)}</td></tr>`).join("");
-        showModuleShell("transaksi", `<div class="panel"><div class="d-flex justify-content-between mb-3"><span class="text-secondary small">Menampilkan maksimal 200 transaksi terbaru.</span><span class="badge text-bg-light border">BUMDes: ${escapeHtml(activeAppBumdes?.nama||"-")}</span></div><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Unit</th><th class="text-end">Nominal</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+        const [{ data: transactions, error: txError }, { data: periods, error: periodError }, { data: accounts, error: accountError }, { data: units, error: unitError }] = await Promise.all([
+            supabaseClient.from("transactions")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,created_by,created_at")
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .order("transaction_date", { ascending:false })
+                .order("created_at", { ascending:false })
+                .limit(200),
+            supabaseClient.from("account_periods")
+                .select("id,period_type,start_date,end_date,status")
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .eq("status", "open")
+                .order("start_date", { ascending:false }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,is_active,bumdes_id")
+                .eq("is_active", true)
+                .eq("level", 4)
+                .order("kode", { ascending:true }),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .eq("status", "aktif")
+                .order("created_at", { ascending:true })
+        ]);
+
+        if (txError) throw txError;
+        if (periodError) throw periodError;
+        if (accountError) throw accountError;
+        if (unitError) throw unitError;
+
+        const periodOptions = (periods || []).map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.period_type)} · ${escapeHtml(p.start_date)} s/d ${escapeHtml(p.end_date)}</option>`).join("");
+        const accountOptions = (accounts || []).map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`).join("");
+
+        let unitOptions = "";
+        if (activeAppProfile.role === "admin_pusat") {
+            unitOptions += `<option value="">Pusat / Kantor Pusat</option>`;
+            unitOptions += (units || []).map(u => `<option value="${escapeHtml(u.id)}">${escapeHtml(u.kode_unit)} — ${escapeHtml(u.nama_unit)}</option>`).join("");
+        } else {
+            const ownUnit = (units || []).find(u => u.id === activeAppProfile.unit_id);
+            if (ownUnit) unitOptions = `<option value="${escapeHtml(ownUnit.id)}">${escapeHtml(ownUnit.kode_unit)} — ${escapeHtml(ownUnit.nama_unit)}</option>`;
+        }
+
+        const formDisabled = (!periods?.length || !accounts?.length || !unitOptions);
+        const today = new Date().toISOString().slice(0,10);
+        const form = `
+            <div class="panel mb-3">
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div>
+                        <h5 class="mb-1">Tambah Transaksi</h5>
+                        <div class="text-secondary small">Input transaksi dengan 1 akun Debit dan 1 akun Kredit. Jurnal dibuat otomatis oleh sistem.</div>
+                    </div>
+                    <span class="badge text-bg-light border">${escapeHtml(activeAppProfile.role || "-")}</span>
+                </div>
+                <form id="transactionForm" class="row g-3 mt-1">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Tanggal</label>
+                        <input id="txDate" class="form-control" type="date" value="${today}" required ${formDisabled ? "disabled" : ""}>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Periode</label>
+                        <select id="txPeriod" class="form-select" required ${formDisabled ? "disabled" : ""}>
+                            <option value="">Pilih periode terbuka</option>${periodOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Unit / Lokasi</label>
+                        <select id="txUnit" class="form-select" ${formDisabled ? "disabled" : ""}>${unitOptions}</select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Jenis Transaksi</label>
+                        <select id="txType" class="form-select" ${formDisabled ? "disabled" : ""}>
+                            <option value="umum">Umum</option>
+                            <option value="penerimaan">Penerimaan</option>
+                            <option value="pengeluaran">Pengeluaran</option>
+                            <option value="penjualan">Penjualan</option>
+                            <option value="pembelian">Pembelian</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label small fw-semibold">Uraian</label>
+                        <input id="txDescription" class="form-control" maxlength="500" placeholder="Contoh: Penerimaan penjualan tunai" required ${formDisabled ? "disabled" : ""}>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Akun Debit</label>
+                        <select id="txDebitAccount" class="form-select" required ${formDisabled ? "disabled" : ""}>
+                            <option value="">Pilih akun Debit</option>${accountOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Akun Kredit</label>
+                        <select id="txCreditAccount" class="form-select" required ${formDisabled ? "disabled" : ""}>
+                            <option value="">Pilih akun Kredit</option>${accountOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Nominal</label>
+                        <input id="txAmount" class="form-control" type="number" min="1" step="1" placeholder="0" required ${formDisabled ? "disabled" : ""}>
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end">
+                        <button id="txSaveBtn" class="btn btn-primary px-4" type="submit" ${formDisabled ? "disabled" : ""}>
+                            <i class="bi bi-check2-circle me-1"></i>Simpan Transaksi
+                        </button>
+                    </div>
+                    ${!periods?.length ? `<div class="col-12"><div class="alert alert-warning mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada periode akuntansi <strong>terbuka</strong>. Buat periode terlebih dahulu sebelum mencatat transaksi.</div></div>` : ""}
+                    ${!accounts?.length ? `<div class="col-12"><div class="alert alert-warning mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada akun detail level 4 yang aktif. COA diperlukan sebelum transaksi dapat dicatat.</div></div>` : ""}
+                </form>
+            </div>`;
+
+        const rows = (transactions || []).map((t,i) => `<tr><td>${i+1}</td><td>${escapeHtml(t.transaction_date || "-")}</td><td><strong>${escapeHtml(t.transaction_number || "-")}</strong></td><td>${escapeHtml(t.description || "-")}</td><td>${escapeHtml(t.unit_id ? ((units || []).find(u=>u.id===t.unit_id)?.nama_unit || "-") : "Pusat")}</td><td>${escapeHtml(t.transaction_type || "-")}</td><td class="text-end">${rupiah(t.amount)}</td></tr>`).join("");
+        const table = transactions?.length ? `<div class="panel"><div class="d-flex justify-content-between align-items-center mb-3"><strong>Riwayat Transaksi</strong><span class="text-secondary small">Maksimal 200 transaksi terbaru</span></div><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Unit</th><th>Jenis</th><th class="text-end">Nominal</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : `<div class="panel"><div class="text-center text-secondary py-4">Belum ada transaksi. Gunakan formulir di atas untuk mencatat transaksi pertama.</div></div>`;
+
+        showModuleShell("transaksi", form + table);
+
+        const txForm = $("transactionForm");
+        if (txForm) txForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = $("txSaveBtn");
+            const date = $("txDate").value;
+            const periodId = $("txPeriod").value;
+            const unitId = $("txUnit").value || null;
+            const type = $("txType").value;
+            const description = $("txDescription").value.trim();
+            const debitAccount = $("txDebitAccount").value;
+            const creditAccount = $("txCreditAccount").value;
+            const amount = Number($("txAmount").value);
+
+            if (!date || !periodId || !description || !debitAccount || !creditAccount || !Number.isFinite(amount) || amount <= 0) {
+                alert("Lengkapi tanggal, periode, uraian, akun Debit, akun Kredit, dan nominal.");
+                return;
+            }
+            if (debitAccount === creditAccount) {
+                alert("Akun Debit dan Kredit tidak boleh sama.");
+                return;
+            }
+            const period = (periods || []).find(p => p.id === periodId);
+            if (!period || period.status !== "open" || date < period.start_date || date > period.end_date) {
+                alert("Tanggal transaksi harus berada di dalam periode yang terbuka.");
+                return;
+            }
+
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            const userId = sessionData?.session?.user?.id;
+            if (!userId) { alert("Sesi login tidak ditemukan. Silakan login kembali."); return; }
+
+            const transactionNumber = `TRX-${date.replaceAll("-", "")}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+            let transactionId = null;
+            try {
+                const { data: tx, error: txInsertError } = await supabaseClient.from("transactions").insert({
+                    bumdes_id: activeAppProfile.bumdes_id,
+                    unit_id: unitId,
+                    period_id: periodId,
+                    transaction_date: date,
+                    transaction_number: transactionNumber,
+                    description,
+                    transaction_type: type,
+                    amount,
+                    created_by: userId
+                }).select("id").single();
+                if (txInsertError) throw txInsertError;
+                transactionId = tx.id;
+
+                const journalRows = [
+                    { transaction_id: transactionId, bumdes_id: activeAppProfile.bumdes_id, unit_id: unitId, period_id: periodId, journal_date: date, journal_number: transactionNumber, account_id: debitAccount, description, debit: amount, credit: 0 },
+                    { transaction_id: transactionId, bumdes_id: activeAppProfile.bumdes_id, unit_id: unitId, period_id: periodId, journal_date: date, journal_number: transactionNumber, account_id: creditAccount, description, debit: 0, credit: amount }
+                ];
+                const { error: journalError } = await supabaseClient.from("journals").insert(journalRows);
+                if (journalError) throw journalError;
+
+                alert(`Transaksi ${transactionNumber} berhasil disimpan dan jurnal otomatis telah dibuat.`);
+                await renderTransactionsModule();
+            } catch (err) {
+                console.error(err);
+                if (transactionId) {
+                    await supabaseClient.from("journals").delete().eq("transaction_id", transactionId);
+                    await supabaseClient.from("transactions").delete().eq("id", transactionId);
+                }
+                alert("Gagal menyimpan transaksi: " + (err.message || String(err)));
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        });
     }
 
     async function renderJournalsModule() {
