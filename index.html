@@ -1441,6 +1441,108 @@
             .sa-title h1 { font-size:23px; }
         }
 
+
+        /* ===== BAGAN AKUN / COA ===== */
+        .coa-toolbar {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+        }
+        .coa-search {
+            width:min(360px,100%);
+        }
+        .coa-table-wrap {
+            overflow:auto;
+            border:1px solid var(--border);
+            border-radius:10px;
+        }
+        .coa-table {
+            width:100%;
+            min-width:780px;
+            border-collapse:collapse;
+            background:#fff;
+        }
+        .coa-table th {
+            background:#f7f9fb;
+            color:#68798d;
+            font-size:10px;
+            text-transform:uppercase;
+            letter-spacing:.45px;
+            padding:11px 12px;
+            border-bottom:1px solid var(--border);
+            white-space:nowrap;
+        }
+        .coa-table td {
+            padding:9px 12px;
+            border-bottom:1px solid #edf0f4;
+            font-size:12px;
+            color:#3e5064;
+            vertical-align:middle;
+        }
+        .coa-table tbody tr:last-child td { border-bottom:0; }
+        .coa-row.level-1 td {
+            background:#eef4fb;
+            font-weight:800;
+            color:#17365f;
+        }
+        .coa-row.level-2 td {
+            background:#f7fafc;
+            font-weight:700;
+            color:#315477;
+        }
+        .coa-row.level-3 td {
+            font-weight:650;
+            color:#405b75;
+        }
+        .coa-code {
+            font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+            white-space:nowrap;
+            font-weight:700;
+        }
+        .coa-name-cell {
+            min-width:360px;
+        }
+        .coa-indent {
+            display:inline-flex;
+            align-items:center;
+            gap:7px;
+        }
+        .coa-indent.level-1 { padding-left:0; }
+        .coa-indent.level-2 { padding-left:18px; }
+        .coa-indent.level-3 { padding-left:38px; }
+        .coa-indent.level-4 { padding-left:60px; }
+        .coa-level-badge {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width:25px;
+            padding:3px 6px;
+            border-radius:999px;
+            background:#eef2f7;
+            color:#61738a;
+            font-size:9px;
+            font-weight:800;
+        }
+        .coa-system-badge {
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+            padding:3px 7px;
+            border-radius:999px;
+            background:#edf4ff;
+            color:#3569a9;
+            font-size:9px;
+            font-weight:800;
+        }
+        .coa-normal.debit { color:#2d6f43; font-weight:700; }
+        .coa-normal.credit { color:#8b5f18; font-weight:700; }
+        .coa-count {
+            color:#7b8998;
+            font-size:11px;
+        }
+
 </style>
 
 
@@ -1899,6 +2001,7 @@
         <a class="side-link" href="#" data-module="transaksi"><i class="bi bi-receipt"></i> Transaksi</a>
         <a class="side-link" href="#" data-module="jurnal"><i class="bi bi-journal-text"></i> Jurnal</a>
         <a class="side-link" href="#" data-module="bukubesar"><i class="bi bi-book"></i> Buku Besar</a>
+        <a class="side-link" href="#" data-module="coa"><i class="bi bi-diagram-3"></i> Bagan Akun (COA)</a>
         <a class="side-link" href="#" data-module="saldoawal"><i class="bi bi-arrow-down-left-square"></i> Saldo Awal</a>
         <a class="side-link" href="#" data-module="penyesuaian"><i class="bi bi-sliders"></i> Penyesuaian</a>
         <a class="side-link" href="#" data-module="aset"><i class="bi bi-box-seam"></i> Aset</a>
@@ -2500,6 +2603,7 @@
         transaksi: ["Transaksi", "Pencatatan transaksi keuangan BUMDes."],
         jurnal: ["Jurnal", "Jurnal umum yang terbentuk dari transaksi."],
         bukubesar: ["Buku Besar", "Mutasi dan saldo akun berdasarkan jurnal."],
+        coa: ["Bagan Akun (COA)", "Bagan akun dan struktur kode rekening BUM Desa."],
         saldoawal: ["Saldo Awal", "Pengaturan saldo awal periode akuntansi."],
         penyesuaian: ["Penyesuaian", "Jurnal penyesuaian akhir periode."],
         aset: ["Aset", "Daftar aset tetap dan penyusutan."],
@@ -2564,6 +2668,7 @@
             if (module === "transaksi") return await renderTransactionsModule();
             if (module === "jurnal") return await renderJournalsModule();
             if (module === "bukubesar") return await renderLedgerModule();
+            if (module === "coa") return await renderCOAModule();
             if (module === "kasbank") return await renderCashBankModule();
             if (["saldoawal","penyesuaian","aset","labarugi","neraca","aruskas","ekuitas","calk","tambahunit","pengaturan"].includes(module)) {
                 const [title] = appModuleTitles[module];
@@ -3254,6 +3359,150 @@
 
         $("ledgerApplyFilter")?.addEventListener("click", render);
         render();
+    }
+
+
+    async function renderCOAModule() {
+        const { data: accounts, error } = await supabaseClient
+            .from("chart_of_accounts")
+            .select("id,bumdes_id,parent_id,kode,nama,level,account_type,report_group,is_system,is_active,normal_balance")
+            .or(`bumdes_id.is.null,bumdes_id.eq.${activeAppProfile.bumdes_id}`)
+            .eq("is_active", true)
+            .order("kode", { ascending: true });
+
+        if (error) throw error;
+
+        const rows = Array.isArray(accounts) ? accounts : [];
+
+        // Susun tree berdasarkan parent_id. Akun tanpa parent menjadi root.
+        const byParent = new Map();
+        rows.forEach(a => {
+            const key = a.parent_id || "__ROOT__";
+            if (!byParent.has(key)) byParent.set(key, []);
+            byParent.get(key).push(a);
+        });
+
+        byParent.forEach(list => list.sort((a,b) =>
+            String(a.kode || "").localeCompare(String(b.kode || ""), "id", { numeric:true })
+        ));
+
+        const flattenTree = (parentKey, depth = 0, result = []) => {
+            const children = byParent.get(parentKey) || [];
+            children.forEach(a => {
+                result.push({ ...a, treeDepth: depth });
+                flattenTree(a.id, depth + 1, result);
+            });
+            return result;
+        };
+
+        const treeRows = flattenTree("__ROOT__");
+
+        // Jaga agar akun yang secara data tidak terhubung ke root tetap terlihat.
+        const seen = new Set(treeRows.map(a => a.id));
+        rows.forEach(a => {
+            if (!seen.has(a.id)) treeRows.push({ ...a, treeDepth: Math.max(0, Number(a.level || 1) - 1) });
+        });
+
+        const typeLabel = {
+            aset: "Aset",
+            kewajiban: "Kewajiban",
+            ekuitas: "Ekuitas",
+            pendapatan: "Pendapatan Usaha",
+            hpp: "HPP",
+            beban: "Beban Usaha",
+            lain_lain: "Pendapatan/Beban Lain-lain"
+        };
+
+        const normalLabel = a =>
+            String(a.normal_balance || "").toUpperCase() === "K"
+                ? "Kredit"
+                : "Debit";
+
+        const renderRows = (items) => items.map(a => {
+            const level = Number(a.level || 1);
+            const normal = normalLabel(a);
+            const custom = !a.is_system && a.bumdes_id;
+            return `
+                <tr class="coa-row level-${Math.min(4, Math.max(1, level))}" data-coa-search="${escapeHtml(
+                    `${a.kode} ${a.nama} ${typeLabel[a.account_type] || a.account_type || ""}`
+                ).toLowerCase()}">
+                    <td>
+                        <div class="coa-indent level-${Math.min(4, Math.max(1, level))}">
+                            <span class="coa-code">${escapeHtml(a.kode)}</span>
+                        </div>
+                    </td>
+                    <td class="coa-name-cell">
+                        <div class="coa-indent level-${Math.min(4, Math.max(1, level))}">
+                            ${level < 4
+                                ? '<i class="bi bi-folder2-open text-secondary"></i>'
+                                : '<i class="bi bi-dot text-secondary"></i>'}
+                            <span>${escapeHtml(a.nama)}</span>
+                        </div>
+                    </td>
+                    <td><span class="coa-level-badge">L${level}</span></td>
+                    <td>${escapeHtml(typeLabel[a.account_type] || a.account_type || "-")}</td>
+                    <td class="${normal === "Debit" ? "coa-normal debit" : "coa-normal credit"}">${normal}</td>
+                    <td>
+                        ${a.is_system
+                            ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>'
+                            : (custom ? '<span class="badge text-bg-light border">Custom BUMDes</span>' : '<span class="text-secondary">-</span>')}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        const shell = `
+            <div class="panel mb-3">
+                <div class="coa-toolbar">
+                    <div>
+                        <h5 class="mb-1">Bagan Akun (COA)</h5>
+                        <div class="text-secondary small">
+                            Struktur akun berdasarkan kode, parent, level, dan saldo normal.
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="coa-count">${rows.length} akun aktif</span>
+                        <input id="coaSearch" class="form-control form-control-sm coa-search"
+                               type="search" placeholder="Cari kode atau nama akun...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="table-responsive coa-table-wrap">
+                    <table class="coa-table">
+                        <thead>
+                            <tr>
+                                <th style="width:170px;">Kode</th>
+                                <th>Nama Akun</th>
+                                <th style="width:70px;">Level</th>
+                                <th style="width:180px;">Kelompok</th>
+                                <th style="width:100px;">Saldo Normal</th>
+                                <th style="width:120px;">Sumber</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coaTableBody">
+                            ${renderRows(treeRows)}
+                        </tbody>
+                    </table>
+                </div>
+                ${!rows.length ? `
+                    <div class="text-center text-secondary py-5">
+                        <i class="bi bi-inbox fs-2"></i>
+                        <div class="mt-2 fw-semibold">Belum ada COA aktif.</div>
+                    </div>` : ""}
+            </div>
+        `;
+
+        showModuleShell("coa", shell);
+
+        const search = $("coaSearch");
+        search?.addEventListener("input", () => {
+            const q = String(search.value || "").trim().toLowerCase();
+            document.querySelectorAll("#coaTableBody tr[data-coa-search]").forEach(row => {
+                row.classList.toggle("d-none", q && !row.dataset.coaSearch.includes(q));
+            });
+        });
     }
 
     async function renderCashBankModule() {
