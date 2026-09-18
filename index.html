@@ -2682,13 +2682,16 @@
         }
 
         const formDisabled = (!periods?.length || !accounts?.length || !unitOptions);
+        const accountDisabled = !accounts?.length;
+        const periodDisabled = !periods?.length;
+        const unitDisabled = !unitOptions;
         const today = new Date().toISOString().slice(0,10);
 
         const journalRow = (index = 0) => `
             <tr class="journal-input-row">
                 <td class="text-center row-no">${index + 1}</td>
                 <td>
-                    <select class="form-select form-select-sm tx-account" required ${formDisabled ? "disabled" : ""}>
+                    <select class="form-select form-select-sm tx-account" required ${accountDisabled ? "disabled" : ""}>
                         <option value="">Pilih akun detail</option>${accountOptions}
                     </select>
                 </td>
@@ -2702,7 +2705,7 @@
                     <input class="form-control form-control-sm tx-note" maxlength="250" placeholder="Keterangan" ${formDisabled ? "disabled" : ""}>
                 </td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger tx-remove-row" title="Hapus baris" ${formDisabled ? "disabled" : ""}>
+                    <button type="button" class="btn btn-sm btn-outline-danger tx-remove-row" title="Hapus baris" ${accountDisabled ? "disabled" : ""}>
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -2729,17 +2732,17 @@
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-semibold">Periode</label>
-                            <select id="txPeriod" class="form-select" required ${formDisabled ? "disabled" : ""}>
+                            <select id="txPeriod" class="form-select" required ${periodDisabled ? "disabled" : ""}>
                                 <option value="">Pilih periode terbuka</option>${periodOptions}
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold">Unit / Lokasi</label>
-                            <select id="txUnit" class="form-select" ${formDisabled ? "disabled" : ""}>${unitOptions}</select>
+                            <select id="txUnit" class="form-select" ${unitDisabled ? "disabled" : ""}>${unitOptions}</select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">Jenis Transaksi</label>
-                            <select id="txType" class="form-select" ${formDisabled ? "disabled" : ""}>
+                            <select id="txType" class="form-select">
                                 <option value="umum">Umum</option>
                                 <option value="penerimaan">Penerimaan</option>
                                 <option value="pengeluaran">Pengeluaran</option>
@@ -2752,7 +2755,7 @@
                             <label class="form-label small fw-semibold">Uraian Transaksi</label>
                             <input id="txDescription" class="form-control" maxlength="500"
                                 placeholder="Contoh: Menerima pendapatan tiket masuk secara tunai"
-                                required ${formDisabled ? "disabled" : ""}>
+                                required>
                         </div>
                     </div>
 
@@ -2764,7 +2767,7 @@
                                     Sesuai format jurnal pedoman: tanggal, nomor bukti, uraian, post reff, debit, kredit, keterangan.
                                 </div>
                             </div>
-                            <button type="button" id="txAddRow" class="btn btn-sm btn-outline-primary" ${formDisabled ? "disabled" : ""}>
+                            <button type="button" id="txAddRow" class="btn btn-sm btn-outline-primary" ${accountDisabled ? "disabled" : ""}>
                                 <i class="bi bi-plus-lg me-1"></i>Tambah Baris
                             </button>
                         </div>
@@ -2805,7 +2808,7 @@
                     </div>
 
                     ${!periods?.length ? `<div class="alert alert-warning mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada periode akuntansi <strong>terbuka</strong>. Buat periode terlebih dahulu sebelum mencatat transaksi.</div>` : ""}
-                    ${!accounts?.length ? `<div class="alert alert-warning mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada akun detail level 4 yang aktif. COA diperlukan sebelum transaksi dapat dicatat.</div>` : ""}
+                    ${!accounts?.length ? `<div class="alert alert-warning mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada akun detail level 4 yang aktif. COA diperlukan sebelum transaksi dapat dicatat.</div>` : `<div class="alert alert-light border mt-3 mb-0 small"><i class="bi bi-info-circle me-1"></i>Akun Detail mengambil akun level 4 dari COA sistem BUMDesa.</div>`}
                 </form>
             </div>`;
 
