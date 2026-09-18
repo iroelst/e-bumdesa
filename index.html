@@ -1892,36 +1892,34 @@
         </div>
 
         <div class="side-section">UTAMA</div>
-        <a class="side-link active" href="#">
-            <i class="bi bi-speedometer2"></i> Dashboard
-        </a>
+        <a class="side-link active" href="#" data-module="dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
 
         <div class="side-section">KEUANGAN PUSAT</div>
-        <a class="side-link" href="#"><i class="bi bi-wallet2"></i> Kas & Bank</a>
-        <a class="side-link" href="#"><i class="bi bi-receipt"></i> Transaksi</a>
-        <a class="side-link" href="#"><i class="bi bi-journal-text"></i> Jurnal</a>
-        <a class="side-link" href="#"><i class="bi bi-book"></i> Buku Besar</a>
-        <a class="side-link" href="#"><i class="bi bi-arrow-down-left-square"></i> Saldo Awal</a>
-        <a class="side-link" href="#"><i class="bi bi-sliders"></i> Penyesuaian</a>
-        <a class="side-link" href="#"><i class="bi bi-box-seam"></i> Aset</a>
+        <a class="side-link" href="#" data-module="kasbank"><i class="bi bi-wallet2"></i> Kas & Bank</a>
+        <a class="side-link" href="#" data-module="transaksi"><i class="bi bi-receipt"></i> Transaksi</a>
+        <a class="side-link" href="#" data-module="jurnal"><i class="bi bi-journal-text"></i> Jurnal</a>
+        <a class="side-link" href="#" data-module="bukubesar"><i class="bi bi-book"></i> Buku Besar</a>
+        <a class="side-link" href="#" data-module="saldoawal"><i class="bi bi-arrow-down-left-square"></i> Saldo Awal</a>
+        <a class="side-link" href="#" data-module="penyesuaian"><i class="bi bi-sliders"></i> Penyesuaian</a>
+        <a class="side-link" href="#" data-module="aset"><i class="bi bi-box-seam"></i> Aset</a>
 
         <div class="side-section">UNIT USAHA</div>
-        <a class="side-link" href="#"><i class="bi bi-buildings"></i> Daftar Unit</a>
-        <a class="side-link" href="#"><i class="bi bi-plus-circle"></i> Tambah Unit</a>
+        <a class="side-link" href="#" data-module="unit"><i class="bi bi-buildings"></i> Daftar Unit</a>
+        <a class="side-link" href="#" data-module="tambahunit"><i class="bi bi-plus-circle"></i> Tambah Unit</a>
 
         <div class="side-section">LAPORAN</div>
-        <a class="side-link" href="#"><i class="bi bi-graph-up"></i> Laba Rugi</a>
-        <a class="side-link" href="#"><i class="bi bi-bar-chart"></i> Neraca</a>
-        <a class="side-link" href="#"><i class="bi bi-cash-stack"></i> Arus Kas</a>
-        <a class="side-link" href="#"><i class="bi bi-pie-chart"></i> Perubahan Ekuitas</a>
-        <a class="side-link" href="#"><i class="bi bi-file-text"></i> CALK</a>
+        <a class="side-link" href="#" data-module="labarugi"><i class="bi bi-graph-up"></i> Laba Rugi</a>
+        <a class="side-link" href="#" data-module="neraca"><i class="bi bi-bar-chart"></i> Neraca</a>
+        <a class="side-link" href="#" data-module="aruskas"><i class="bi bi-cash-stack"></i> Arus Kas</a>
+        <a class="side-link" href="#" data-module="ekuitas"><i class="bi bi-pie-chart"></i> Perubahan Ekuitas</a>
+        <a class="side-link" href="#" data-module="calk"><i class="bi bi-file-text"></i> CALK</a>
 
         <div class="side-section">SISTEM</div>
         <a class="side-link" href="#" id="customerSubscriptionMenu">
             <i class="bi bi-credit-card"></i> Langganan
         </a>
-        <a class="side-link" href="#"><i class="bi bi-people"></i> Pengguna</a>
-        <a class="side-link" href="#"><i class="bi bi-gear"></i> Pengaturan</a>
+        <a class="side-link" href="#" data-module="pengguna"><i class="bi bi-people"></i> Pengguna</a>
+        <a class="side-link" href="#" data-module="pengaturan"><i class="bi bi-gear"></i> Pengaturan</a>
     </aside>
 
     <main class="main">
@@ -1945,7 +1943,7 @@
             </div>
         </header>
 
-        <div class="content">
+        <div id="dashboardContent" class="content">
             <div class="row g-3">
                 <div class="col-6 col-xl-3">
                     <div class="summary-card">
@@ -2029,6 +2027,8 @@
                 </div>
             </div>
         </div>
+
+        <div id="appModulePage" class="content hidden"></div>
     </main>
 </section>
 
@@ -2397,6 +2397,7 @@
     // DASHBOARD
     // =========================================================
     async function loadDashboard(profile) {
+        activeAppProfile = profile;
         let bumdes = null;
 
         const bumdesResult = await supabaseClient
@@ -2410,6 +2411,7 @@
         }
 
         bumdes = bumdesResult.data;
+        activeAppBumdes = bumdes;
 
         $("topUserName").textContent = profile.nama || profile.email || "Admin";
         $("topBumdesName").textContent = bumdes?.nama || "";
@@ -2418,6 +2420,7 @@
         $("infoTahunBuku").textContent = bumdes?.tahun_buku || "-";
 
         await loadUnits(profile.bumdes_id);
+        showDashboardModule();
 
         showOnly("appPage");
     }
@@ -2488,6 +2491,164 @@
             .replaceAll("'", "&#039;");
     }
 
+
+    // =========================================================
+    // NAVIGASI & MODUL APLIKASI
+    // =========================================================
+    const appModuleTitles = {
+        kasbank: ["Kas & Bank", "Pengelolaan kas, bank, dan saldo rekening."],
+        transaksi: ["Transaksi", "Pencatatan transaksi keuangan BUMDes."],
+        jurnal: ["Jurnal", "Jurnal umum yang terbentuk dari transaksi."],
+        bukubesar: ["Buku Besar", "Mutasi dan saldo akun berdasarkan jurnal."],
+        saldoawal: ["Saldo Awal", "Pengaturan saldo awal periode akuntansi."],
+        penyesuaian: ["Penyesuaian", "Jurnal penyesuaian akhir periode."],
+        aset: ["Aset", "Daftar aset tetap dan penyusutan."],
+        unit: ["Daftar Unit", "Daftar Unit Usaha dalam BUMDes."],
+        tambahunit: ["Tambah Unit", "Menambahkan Unit Usaha baru."],
+        labarugi: ["Laporan Laba Rugi", "Laporan pendapatan, HPP, dan beban."],
+        neraca: ["Laporan Posisi Keuangan (Neraca)", "Posisi aset, kewajiban, dan ekuitas."],
+        aruskas: ["Laporan Arus Kas", "Arus kas aktivitas operasi, investasi, dan pendanaan."],
+        ekuitas: ["Laporan Perubahan Ekuitas", "Perubahan saldo ekuitas selama periode."],
+        calk: ["Catatan atas Laporan Keuangan (CALK)", "Catatan dan informasi penjelas laporan keuangan."],
+        pengguna: ["Pengguna", "Pengguna dan hak akses BUMDes."],
+        pengaturan: ["Pengaturan", "Pengaturan BUMDes dan sistem."],
+    };
+
+    let activeAppProfile = null;
+    let activeAppBumdes = null;
+
+    function setActiveMenu(module) {
+        document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
+            link.classList.toggle("active", link.dataset.module === module);
+        });
+    }
+
+    function showDashboardModule() {
+        $("dashboardContent").classList.remove("hidden");
+        $("appModulePage").classList.add("hidden");
+        setActiveMenu("dashboard");
+        document.querySelector(".topbar .fw-semibold").textContent = "Dashboard";
+    }
+
+    function moduleHeader(title, subtitle) {
+        return `<div class="panel mb-3"><div class="d-flex justify-content-between align-items-start gap-3"><div><h4 class="mb-1">${escapeHtml(title)}</h4><div class="text-secondary small">${escapeHtml(subtitle)}</div></div><button class="btn btn-sm btn-outline-secondary" data-back-dashboard><i class="bi bi-arrow-left me-1"></i>Dashboard</button></div></div>`;
+    }
+
+    function showModuleShell(module, bodyHtml) {
+        const [title, subtitle] = appModuleTitles[module] || ["Modul", ""]; 
+        $("dashboardContent").classList.add("hidden");
+        $("appModulePage").classList.remove("hidden");
+        $("appModulePage").innerHTML = moduleHeader(title, subtitle) + bodyHtml;
+        setActiveMenu(module);
+        document.querySelector(".topbar .fw-semibold").textContent = title;
+        const back = $("appModulePage").querySelector("[data-back-dashboard]");
+        if (back) back.addEventListener("click", showDashboardModule);
+    }
+
+    function moduleLoading() {
+        return `<div class="panel"><div class="text-secondary small"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div></div>`;
+    }
+
+    function moduleEmpty(text) {
+        return `<div class="panel text-center py-5"><i class="bi bi-inbox fs-2 text-secondary"></i><div class="mt-2 fw-semibold">${escapeHtml(text)}</div><div class="text-secondary small mt-1">Data akan tampil setelah modul mulai digunakan.</div></div>`;
+    }
+
+    async function openAppModule(module) {
+        if (!activeAppProfile?.bumdes_id) return;
+        if (module === "dashboard") { showDashboardModule(); return; }
+        showModuleShell(module, moduleLoading());
+
+        try {
+            if (module === "unit") return await renderUnitsModule();
+            if (module === "pengguna") return await renderUsersModule();
+            if (module === "transaksi") return await renderTransactionsModule();
+            if (module === "jurnal") return await renderJournalsModule();
+            if (module === "bukubesar") return await renderLedgerModule();
+            if (module === "kasbank") return await renderCashBankModule();
+            if (["saldoawal","penyesuaian","aset","labarugi","neraca","aruskas","ekuitas","calk","tambahunit","pengaturan"].includes(module)) {
+                const [title] = appModuleTitles[module];
+                showModuleShell(module, `<div class="panel"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-1"></i><strong>${escapeHtml(title)}</strong> sudah terhubung ke navigasi. Tampilan operasional dan proses penyimpanan akan dibangun pada tahap modul berikutnya agar tetap sesuai dengan struktur akuntansi dan RLS yang sudah dibuat.</div></div>`);
+                return;
+            }
+        } catch (err) {
+            console.error(err);
+            showModuleShell(module, `<div class="alert alert-danger">Gagal memuat modul: ${escapeHtml(err.message || String(err))}</div>`);
+        }
+    }
+
+    async function renderUnitsModule() {
+        const { data, error } = await supabaseClient.from("units").select("id,nama_unit,kode_unit,alamat,status,created_at").eq("bumdes_id", activeAppProfile.bumdes_id).order("created_at", { ascending:true });
+        if (error) throw error;
+        if (!data?.length) return showModuleShell("unit", moduleEmpty("Belum ada Unit Usaha."));
+        const rows = data.map((u,i)=>`<tr><td>${i+1}</td><td><strong>${escapeHtml(u.nama_unit)}</strong></td><td>${escapeHtml(u.kode_unit)}</td><td>${escapeHtml(u.alamat || "-")}</td><td>${escapeHtml(u.status || "-")}</td></tr>`).join("");
+        showModuleShell("unit", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Unit Usaha</th><th>Kode</th><th>Alamat</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+    }
+
+    async function renderUsersModule() {
+        const { data, error } = await supabaseClient.from("profiles").select("id,nama,email,role,status,unit_id").eq("bumdes_id", activeAppProfile.bumdes_id).order("created_at", { ascending:true });
+        if (error) throw error;
+        if (!data?.length) return showModuleShell("pengguna", moduleEmpty("Belum ada pengguna."));
+        const unitIds=[...new Set(data.map(x=>x.unit_id).filter(Boolean))];
+        let units=[];
+        if(unitIds.length){ const r=await supabaseClient.from("units").select("id,nama_unit").in("id",unitIds); units=r.data||[]; }
+        const um=new Map(units.map(u=>[u.id,u.nama_unit]));
+        const rows=data.map((p,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(p.nama||"-")}</td><td>${escapeHtml(p.email||"-")}</td><td>${escapeHtml(p.role||"-")}</td><td>${escapeHtml(p.unit_id?um.get(p.unit_id)||"-":"Pusat")}</td><td>${escapeHtml(p.status||"-")}</td></tr>`).join("");
+        showModuleShell("pengguna", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Unit</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+    }
+
+    async function renderTransactionsModule() {
+        const { data, error } = await supabaseClient.from("transactions").select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,created_by,created_at").eq("bumdes_id", activeAppProfile.bumdes_id).order("transaction_date", { ascending:false }).order("created_at", { ascending:false }).limit(200);
+        if (error) throw error;
+        if (!data?.length) return showModuleShell("transaksi", moduleEmpty("Belum ada transaksi."));
+        const unitIds=[...new Set(data.map(x=>x.unit_id).filter(Boolean))]; let units=[];
+        if(unitIds.length){const r=await supabaseClient.from("units").select("id,nama_unit").in("id",unitIds);units=r.data||[];}
+        const um=new Map(units.map(u=>[u.id,u.nama_unit]));
+        const rows=data.map((t,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(t.transaction_date||"-")}</td><td><strong>${escapeHtml(t.transaction_number||"-")}</strong></td><td>${escapeHtml(t.description||"-")}</td><td>${escapeHtml(t.unit_id?um.get(t.unit_id)||"-":"Pusat")}</td><td class="text-end">${rupiah(t.amount)}</td></tr>`).join("");
+        showModuleShell("transaksi", `<div class="panel"><div class="d-flex justify-content-between mb-3"><span class="text-secondary small">Menampilkan maksimal 200 transaksi terbaru.</span><span class="badge text-bg-light border">BUMDes: ${escapeHtml(activeAppBumdes?.nama||"-")}</span></div><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Unit</th><th class="text-end">Nominal</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+    }
+
+    async function renderJournalsModule() {
+        const { data, error } = await supabaseClient.from("journals").select("id,journal_date,journal_number,description,unit_id,account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id).order("journal_date", {ascending:false}).order("created_at", {ascending:false}).limit(300);
+        if(error) throw error;
+        if(!data?.length) return showModuleShell("jurnal", moduleEmpty("Belum ada jurnal."));
+        const accIds=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
+        if(accIds.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama").in("id",accIds);acc=r.data||[];}
+        const am=new Map(acc.map(a=>[a.id,`${a.kode} — ${a.nama}`]));
+        const rows=data.map((j,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(j.journal_date||"-")}</td><td>${escapeHtml(j.journal_number||"-")}</td><td>${escapeHtml(am.get(j.account_id)||"-")}</td><td>${escapeHtml(j.description||"-")}</td><td class="text-end">${rupiah(j.debit)}</td><td class="text-end">${rupiah(j.credit)}</td></tr>`).join("");
+        showModuleShell("jurnal", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Jurnal</th><th>Akun</th><th>Uraian</th><th class="text-end">Debit</th><th class="text-end">Kredit</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+    }
+
+    async function renderLedgerModule() {
+        const { data, error } = await supabaseClient.from("journals").select("journal_date,journal_number,description,account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id).order("journal_date", {ascending:true}).order("created_at", {ascending:true}).limit(1000);
+        if(error) throw error;
+        if(!data?.length) return showModuleShell("bukubesar", moduleEmpty("Belum ada mutasi buku besar."));
+        const accIds=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
+        if(accIds.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama").in("id",accIds);acc=r.data||[];}
+        const am=new Map(acc.map(a=>[a.id,a])); const groups=new Map();
+        data.forEach(j=>{const a=am.get(j.account_id); if(!a)return; if(!groups.has(j.account_id))groups.set(j.account_id,{a,items:[],debit:0,credit:0}); const g=groups.get(j.account_id);g.items.push(j);g.debit+=Number(j.debit||0);g.credit+=Number(j.credit||0);});
+        const cards=[...groups.values()].map(g=>`<div class="panel mb-3"><div class="d-flex justify-content-between"><strong>${escapeHtml(g.a.kode)} — ${escapeHtml(g.a.nama)}</strong><span class="small text-secondary">Debit ${rupiah(g.debit)} · Kredit ${rupiah(g.credit)}</span></div><div class="table-responsive mt-2"><table class="table table-sm mb-0"><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="text-end">Debit</th><th class="text-end">Kredit</th></tr></thead><tbody>${g.items.map(j=>`<tr><td>${escapeHtml(j.journal_date||"-")}</td><td>${escapeHtml(j.journal_number||"-")}</td><td>${escapeHtml(j.description||"-")}</td><td class="text-end">${rupiah(j.debit)}</td><td class="text-end">${rupiah(j.credit)}</td></tr>`).join("")}</tbody></table></div></div>`).join("");
+        showModuleShell("bukubesar", cards);
+    }
+
+    async function renderCashBankModule() {
+        const { data, error } = await supabaseClient.from("journals").select("account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id);
+        if(error) throw error;
+        if(!data?.length) return showModuleShell("kasbank", moduleEmpty("Belum ada transaksi kas/bank."));
+        const ids=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
+        if(ids.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama,account_type").in("id",ids);acc=r.data||[];}
+        const cashAcc=acc.filter(a=>a.account_type==="aset" && /kas|bank/i.test(a.nama)); const map=new Map(data.map(x=>[x.account_id,x]));
+        const rows=cashAcc.map((a,i)=>{const ds=data.filter(j=>j.account_id===a.id).reduce((n,j)=>n+Number(j.debit||0),0);const cs=data.filter(j=>j.account_id===a.id).reduce((n,j)=>n+Number(j.credit||0),0);return `<tr><td>${i+1}</td><td>${escapeHtml(a.kode)}</td><td>${escapeHtml(a.nama)}</td><td class="text-end">${rupiah(ds)}</td><td class="text-end">${rupiah(cs)}</td><td class="text-end"><strong>${rupiah(ds-cs)}</strong></td></tr>`;}).join("");
+        if(!rows) return showModuleShell("kasbank", moduleEmpty("Belum ada akun Kas/Bank yang memiliki mutasi."));
+        showModuleShell("kasbank", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Kode</th><th>Akun</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+    }
+
+    document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
+        link.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await openAppModule(link.dataset.module);
+            $("sidebar").classList.remove("open");
+        });
+    });
 
     // =========================================================
     // LANGGANAN & INVOICE ADMIN PUSAT
