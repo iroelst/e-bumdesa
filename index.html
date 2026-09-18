@@ -804,6 +804,365 @@
             }
         }
 
+
+        /* ===== SUBSCRIPTION / LANGGANAN ===== */
+        #subscriptionPage {
+            min-height: 100vh;
+            min-height: 100dvh;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(47,103,183,.12), transparent 30%),
+                radial-gradient(circle at 90% 85%, rgba(107,155,69,.12), transparent 30%),
+                linear-gradient(135deg, #f5f8fc 0%, #eef4fb 48%, #f7faf5 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .subscription-page {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 42px 22px;
+            position: relative;
+        }
+
+        .subscription-decoration {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            border: 1px solid rgba(47,103,183,.08);
+        }
+
+        .subscription-decoration.one {
+            width: 420px;
+            height: 420px;
+            left: -220px;
+            top: -170px;
+        }
+
+        .subscription-decoration.two {
+            width: 520px;
+            height: 520px;
+            right: -300px;
+            bottom: -250px;
+            border-color: rgba(107,155,69,.09);
+        }
+
+        .subscription-shell {
+            width: min(100%, 1080px);
+            position: relative;
+            z-index: 2;
+        }
+
+        .subscription-header {
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        .subscription-logo {
+            width: 62px;
+            height: 62px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 8px 18px rgba(35,75,125,.16));
+        }
+
+        .subscription-header h1 {
+            margin: 0;
+            color: #17365f;
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800;
+            letter-spacing: -.8px;
+        }
+
+        .subscription-header h1 span {
+            color: #2f67b7;
+        }
+
+        .subscription-header p {
+            margin: 8px auto 0;
+            color: #718096;
+            font-size: 15px;
+            max-width: 620px;
+        }
+
+        .subscription-grid {
+            display: grid;
+            grid-template-columns: .82fr 1.18fr;
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .subscription-info,
+        .subscription-plan {
+            background: rgba(255,255,255,.94);
+            border: 1px solid rgba(218,225,235,.95);
+            border-radius: 22px;
+            box-shadow: 0 20px 55px rgba(38,68,105,.10);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .subscription-info {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .subscription-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: #fff6dc;
+            color: #9a6900;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .subscription-status i {
+            font-size: 13px;
+        }
+
+        .subscription-info h2 {
+            margin: 20px 0 8px;
+            color: #17365f;
+            font-size: 25px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .subscription-bumdes-name {
+            color: #52667d;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .subscription-note {
+            margin-top: 25px;
+            padding: 15px 16px;
+            border-radius: 14px;
+            background: #f4f8fd;
+            color: #61758c;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .subscription-note i {
+            color: #2f67b7;
+            font-size: 17px;
+            margin-right: 6px;
+        }
+
+        .subscription-plan {
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            border-color: rgba(47,103,183,.20);
+        }
+
+        .subscription-plan::before {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            right: -95px;
+            top: -115px;
+            background: rgba(47,103,183,.07);
+            pointer-events: none;
+        }
+
+        .subscription-plan-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 15px;
+            position: relative;
+        }
+
+        .subscription-plan-label {
+            color: #718096;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.3px;
+            text-transform: uppercase;
+        }
+
+        .subscription-plan h3 {
+            margin: 5px 0 0;
+            color: #17365f;
+            font-size: 25px;
+            font-weight: 800;
+        }
+
+        .subscription-recommended {
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: #eaf6e5;
+            color: #4e7c31;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .subscription-price {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            margin: 22px 0 5px;
+        }
+
+        .subscription-price strong {
+            color: #24549a;
+            font-size: clamp(34px, 5vw, 48px);
+            line-height: 1;
+            font-weight: 850;
+            letter-spacing: -1.5px;
+        }
+
+        .subscription-price span {
+            color: #7b8da1;
+            font-size: 14px;
+        }
+
+        .subscription-price-caption {
+            color: #7b8da1;
+            font-size: 12px;
+        }
+
+        .subscription-features {
+            list-style: none;
+            padding: 0;
+            margin: 22px 0 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 11px 20px;
+        }
+
+        .subscription-features li {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: #4f6278;
+            font-size: 13px;
+        }
+
+        .subscription-features i {
+            color: #63a43d;
+            font-size: 16px;
+            flex: 0 0 auto;
+        }
+
+        .subscription-pay-btn {
+            width: 100%;
+            height: 52px;
+            border: 0;
+            border-radius: 13px;
+            background: linear-gradient(135deg, #2f67b7 0%, #24549a 100%);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 750;
+            box-shadow: 0 12px 24px rgba(47,103,183,.20);
+            transition: .18s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subscription-pay-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 15px 28px rgba(47,103,183,.27);
+        }
+
+        .subscription-pay-btn:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .subscription-secure {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 7px;
+            margin-top: 13px;
+            color: #91a0b0;
+            font-size: 11px;
+        }
+
+        .subscription-secure i {
+            color: #5d8f42;
+        }
+
+        .subscription-footer {
+            text-align: center;
+            margin-top: 18px;
+            color: #9aa7b5;
+            font-size: 11px;
+        }
+
+        .subscription-logout {
+            border: 0;
+            background: transparent;
+            color: #6f8195;
+            font-size: 12px;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        @media (max-width: 800px) {
+            .subscription-page {
+                padding: 30px 16px;
+                align-items: flex-start;
+            }
+
+            .subscription-header {
+                margin-bottom: 20px;
+            }
+
+            .subscription-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .subscription-info,
+            .subscription-plan {
+                padding: 24px;
+            }
+
+            .subscription-features {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .subscription-page {
+                padding: 24px 12px;
+            }
+
+            .subscription-header h1 {
+                font-size: 29px;
+            }
+
+            .subscription-info,
+            .subscription-plan {
+                border-radius: 18px;
+                padding: 21px;
+            }
+
+            .subscription-plan-top {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .subscription-features {
+                grid-template-columns: 1fr;
+            }
+        }
+
     </style>
 
 
@@ -997,6 +1356,95 @@
     </div>
 </section>
 
+<!-- SUBSCRIPTION -->
+<section id="subscriptionPage" class="hidden">
+    <div class="subscription-page">
+        <div class="subscription-decoration one"></div>
+        <div class="subscription-decoration two"></div>
+
+        <div class="subscription-shell">
+            <div class="subscription-header">
+                <img src="e-bumdesa-logo.png"
+                     alt="Logo e-BUMDesa"
+                     class="subscription-logo">
+                <h1><span>e-BUMDesa</span> — Langganan</h1>
+                <p>Aktifkan layanan untuk mulai menggunakan seluruh fitur pengelolaan keuangan BUM Desa.</p>
+            </div>
+
+            <div class="subscription-grid">
+                <div class="subscription-info">
+                    <div>
+                        <div id="subscriptionStatus" class="subscription-status">
+                            <i class="bi bi-hourglass-split"></i>
+                            <span>Menunggu Aktivasi</span>
+                        </div>
+
+                        <h2 id="subscriptionBumdesName">BUM Desa</h2>
+                        <div class="subscription-bumdes-name">
+                            Langganan untuk BUMDes ini belum aktif.
+                            Setelah pembayaran berhasil, akses sistem akan diaktifkan.
+                        </div>
+
+                        <div class="subscription-note">
+                            <i class="bi bi-shield-check"></i>
+                            Data BUMDes tetap tersimpan dengan aman. Pembayaran digunakan untuk mengaktifkan masa penggunaan layanan.
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <button id="subscriptionLogoutBtn" class="subscription-logout">
+                            Keluar dari akun
+                        </button>
+                    </div>
+                </div>
+
+                <div class="subscription-plan">
+                    <div class="subscription-plan-top">
+                        <div>
+                            <div class="subscription-plan-label">Paket Langganan</div>
+                            <h3>e-BUMDesa</h3>
+                        </div>
+                        <div class="subscription-recommended">
+                            <i class="bi bi-star-fill me-1"></i> Paket Utama
+                        </div>
+                    </div>
+
+                    <div class="subscription-price">
+                        <strong>Rp100.000</strong>
+                        <span>/ bulan</span>
+                    </div>
+                    <div class="subscription-price-caption">
+                        Akses 1 BUMDes selama 1 bulan
+                    </div>
+
+                    <ul class="subscription-features">
+                        <li><i class="bi bi-check-circle-fill"></i> Keuangan Pusat</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Unit Usaha</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Jurnal & Buku Besar</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Laporan Keuangan</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Pengguna & Hak Akses</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Data tersimpan di cloud</li>
+                    </ul>
+
+                    <button id="subscriptionPayBtn" class="subscription-pay-btn" type="button">
+                        <i class="bi bi-credit-card-2-front me-2"></i>
+                        Lanjutkan Pembayaran
+                    </button>
+
+                    <div class="subscription-secure">
+                        <i class="bi bi-lock-fill"></i>
+                        Pembayaran aman dan diproses melalui payment gateway
+                    </div>
+                </div>
+            </div>
+
+            <div class="subscription-footer">
+                © <span id="subscriptionYear"></span> e-BUMDesa · Sistem Keuangan BUM Desa
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- APP -->
 <section id="appPage" class="hidden">
     <aside id="sidebar" class="sidebar">
@@ -1166,7 +1614,7 @@
     const $ = (id) => document.getElementById(id);
 
     function showOnly(id) {
-        ["loadingPage", "loginPage", "registerPage", "appPage"].forEach(x => {
+        ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "appPage"].forEach(x => {
             $(x).classList.add("hidden");
         });
         $(id).classList.remove("hidden");
@@ -1437,6 +1885,18 @@
     });
 
     // =========================================================
+    // SUBSCRIPTION PAGE
+    // =========================================================
+    $("subscriptionLogoutBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        showOnly("loginPage");
+    });
+
+    $("subscriptionPayBtn").addEventListener("click", () => {
+        alert("Pembayaran Midtrans akan dihubungkan pada tahap integrasi payment gateway.");
+    });
+
+    // =========================================================
     // AUTH STATE
     // =========================================================
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -1446,6 +1906,7 @@
     });
 
     $("loginYear").textContent = new Date().getFullYear();
+    $("subscriptionYear").textContent = new Date().getFullYear();
 
     // =========================================================
     // START
