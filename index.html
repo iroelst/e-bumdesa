@@ -3034,15 +3034,226 @@
     }
 
     async function renderLedgerModule() {
-        const { data, error } = await supabaseClient.from("journals").select("journal_date,journal_number,description,account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id).order("journal_date", {ascending:true}).order("created_at", {ascending:true}).limit(1000);
-        if(error) throw error;
-        if(!data?.length) return showModuleShell("bukubesar", moduleEmpty("Belum ada mutasi buku besar."));
-        const accIds=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
-        if(accIds.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama").in("id",accIds);acc=r.data||[];}
-        const am=new Map(acc.map(a=>[a.id,a])); const groups=new Map();
-        data.forEach(j=>{const a=am.get(j.account_id); if(!a)return; if(!groups.has(j.account_id))groups.set(j.account_id,{a,items:[],debit:0,credit:0}); const g=groups.get(j.account_id);g.items.push(j);g.debit+=Number(j.debit||0);g.credit+=Number(j.credit||0);});
-        const cards=[...groups.values()].map(g=>`<div class="panel mb-3"><div class="d-flex justify-content-between"><strong>${escapeHtml(g.a.kode)} — ${escapeHtml(g.a.nama)}</strong><span class="small text-secondary">Debit ${rupiah(g.debit)} · Kredit ${rupiah(g.credit)}</span></div><div class="table-responsive mt-2"><table class="table table-sm mb-0"><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="text-end">Debit</th><th class="text-end">Kredit</th></tr></thead><tbody>${g.items.map(j=>`<tr><td>${escapeHtml(j.journal_date||"-")}</td><td>${escapeHtml(j.journal_number||"-")}</td><td>${escapeHtml(j.description||"-")}</td><td class="text-end">${rupiah(j.debit)}</td><td class="text-end">${rupiah(j.credit)}</td></tr>`).join("")}</tbody></table></div></div>`).join("");
-        showModuleShell("bukubesar", cards);
+        const [{ data: journals, error: jError }, { data: opening, error: oError }, { data: accounts, error: aError }, { data: units, error: uError }] = await Promise.all([
+            supabaseClient.from("journals")
+                .select("id,journal_date,journal_number,description,unit_id,account_id,debit,credit,created_at")
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .order("journal_date", { ascending:true })
+                .order("created_at", { ascending:true })
+                .limit(2000),
+            supabaseClient.from("opening_balances")
+                .select("id,unit_id,period_id,account_id,debit,credit,created_at")
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .order("created_at", { ascending:true })
+                .limit(2000),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,report_group,is_active")
+                .eq("is_active", true)
+                .eq("level", 4)
+                .order("kode", { ascending:true }),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .order("created_at", { ascending:true })
+        ]);
+
+        if (jError) throw jError;
+        if (oError) throw oError;
+        if (aError) throw aError;
+        if (uError) throw uError;
+
+        const accountMap = new Map((accounts || []).map(a => [a.id, a]));
+        const unitMap = new Map((units || []).map(u => [u.id, u]));
+        const periodMap = new Map();
+
+        const { data: periods, error: pError } = await supabaseClient
+            .from("account_periods")
+            .select("id,period_type,start_date,end_date,status")
+            .eq("bumdes_id", activeAppProfile.bumdes_id)
+            .order("start_date", { ascending:false });
+
+        if (pError) throw pError;
+        (periods || []).forEach(p => periodMap.set(p.id, p));
+
+        const allItems = [];
+
+        (opening || []).forEach(o => {
+            const a = accountMap.get(o.account_id);
+            if (!a) return;
+            const p = periodMap.get(o.period_id);
+            allItems.push({
+                kind: "opening",
+                date: p?.start_date || "",
+                number: "SALDO AWAL",
+                description: "Saldo awal",
+                unit_id: o.unit_id,
+                account_id: o.account_id,
+                debit: Number(o.debit || 0),
+                credit: Number(o.credit || 0),
+                created_at: o.created_at || ""
+            });
+        });
+
+        (journals || []).forEach(j => {
+            if (!accountMap.has(j.account_id)) return;
+            allItems.push({
+                kind: "journal",
+                date: j.journal_date || "",
+                number: j.journal_number || "",
+                description: j.description || "",
+                unit_id: j.unit_id,
+                account_id: j.account_id,
+                debit: Number(j.debit || 0),
+                credit: Number(j.credit || 0),
+                created_at: j.created_at || ""
+            });
+        });
+
+        allItems.sort((a,b) => {
+            const d = String(a.date).localeCompare(String(b.date));
+            if (d !== 0) return d;
+            return String(a.created_at).localeCompare(String(b.created_at));
+        });
+
+        const accountNormal = (a) => {
+            if (!a) return "debit";
+            const code = String(a.kode || "");
+            if (code.startsWith("1.") || code.startsWith("5.") || code.startsWith("6.") || code.startsWith("7.2.")) return "debit";
+            if (code.startsWith("2.") || code.startsWith("3.") || code.startsWith("4.") || code.startsWith("7.1.")) return "credit";
+            return ["aset","hpp","beban"].includes(a.account_type) ? "debit" : "credit";
+        };
+
+        const fmtDate = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID") : "-";
+
+        const buildOptions = (items, valueKey, labelFn) => items.map(x =>
+            `<option value="${escapeHtml(x[valueKey])}">${escapeHtml(labelFn(x))}</option>`
+        ).join("");
+
+        const accountOptions = buildOptions(accounts || [], "id", a => `${a.kode} — ${a.nama}`);
+        const unitOptions = `<option value="">Semua lokasi</option>` +
+            buildOptions(units || [], "id", u => `${u.kode_unit} — ${u.nama_unit}`);
+
+        const shell = `
+            <div class="panel mb-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="mb-1">Buku Besar</h5>
+                        <div class="text-secondary small">
+                            Mutasi akun berdasarkan jurnal dan saldo awal. Saldo berjalan mengikuti saldo normal akun.
+                        </div>
+                    </div>
+                    <span class="badge text-bg-light border">${(allItems || []).length} baris sumber</span>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Akun</label>
+                        <select id="ledgerAccountFilter" class="form-select">
+                            <option value="">Semua akun</option>${accountOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Lokasi</label>
+                        <select id="ledgerUnitFilter" class="form-select">${unitOptions}</select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Dari</label>
+                        <input id="ledgerStartFilter" class="form-control" type="date">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Sampai</label>
+                        <input id="ledgerEndFilter" class="form-control" type="date">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button id="ledgerApplyFilter" class="btn btn-primary w-100" type="button" title="Terapkan">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="ledgerResults"></div>`;
+
+        showModuleShell("bukubesar", shell);
+
+        const render = () => {
+            const accountId = $("ledgerAccountFilter")?.value || "";
+            const unitId = $("ledgerUnitFilter")?.value || "";
+            const start = $("ledgerStartFilter")?.value || "";
+            const end = $("ledgerEndFilter")?.value || "";
+
+            let items = allItems.filter(x =>
+                (!accountId || x.account_id === accountId) &&
+                (!unitId || x.unit_id === unitId) &&
+                (!start || x.date >= start) &&
+                (!end || x.date <= end)
+            );
+
+            const grouped = new Map();
+            items.forEach(x => {
+                if (!grouped.has(x.account_id)) {
+                    grouped.set(x.account_id, { account: accountMap.get(x.account_id), items: [] });
+                }
+                grouped.get(x.account_id).items.push(x);
+            });
+
+            if (!grouped.size) {
+                $("ledgerResults").innerHTML = moduleEmpty("Belum ada mutasi sesuai filter.");
+                return;
+            }
+
+            const cards = [...grouped.values()].sort((a,b) =>
+                String(a.account?.kode || "").localeCompare(String(b.account?.kode || ""), undefined, { numeric:true })
+            ).map(g => {
+                const normal = accountNormal(g.account);
+                let balance = 0;
+                let totalDebit = 0;
+                let totalCredit = 0;
+
+                const rows = g.items.map((x, i) => {
+                    totalDebit += x.debit;
+                    totalCredit += x.credit;
+                    balance += normal === "debit" ? (x.debit - x.credit) : (x.credit - x.debit);
+
+                    return `<tr>
+                        <td>${i + 1}</td>
+                        <td>${escapeHtml(fmtDate(x.date))}</td>
+                        <td>${escapeHtml(x.number || "-")}</td>
+                        <td>${escapeHtml(x.description || "-")}</td>
+                        <td>${escapeHtml(x.unit_id ? (unitMap.get(x.unit_id)?.nama_unit || "-") : "Pusat")}</td>
+                        <td class="text-end">${rupiah(x.debit)}</td>
+                        <td class="text-end">${rupiah(x.credit)}</td>
+                        <td class="text-end fw-semibold">${rupiah(balance)}</td>
+                    </tr>`;
+                }).join("");
+
+                return `<div class="panel mb-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <strong>${escapeHtml(g.account?.kode || "-")} — ${escapeHtml(g.account?.nama || "-")}</strong>
+                            <div class="small text-secondary">Saldo normal: ${normal === "debit" ? "Debit" : "Kredit"}</div>
+                        </div>
+                        <div class="text-end small">
+                            <div>Debit: <strong>${rupiah(totalDebit)}</strong></div>
+                            <div>Kredit: <strong>${rupiah(totalCredit)}</strong></div>
+                            <div>Saldo: <strong>${rupiah(balance)}</strong></div>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr>
+                                <th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th>
+                                <th>Lokasi</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th>
+                            </tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }).join("");
+
+            $("ledgerResults").innerHTML = cards;
+        };
+
+        $("ledgerApplyFilter")?.addEventListener("click", render);
+        render();
     }
 
     async function renderCashBankModule() {
