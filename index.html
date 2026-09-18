@@ -2078,6 +2078,28 @@
     // =========================================================
     const $ = (id) => document.getElementById(id);
 
+    // Format tanggal aplikasi: DD-MM-YYYY
+    function fmtDate(value) {
+        if (!value) return "-";
+        const raw = String(value);
+        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "-";
+        return String(d.getDate()).padStart(2,"0") + "-" +
+               String(d.getMonth()+1).padStart(2,"0") + "-" +
+               d.getFullYear();
+    }
+
+    function fmtDateTime(value) {
+        if (!value) return "-";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "-";
+        return fmtDate(d) + " " +
+               String(d.getHours()).padStart(2,"0") + ":" +
+               String(d.getMinutes()).padStart(2,"0");
+    }
+
     function showOnly(id) {
         ["loadingPage", "loginPage", "registerPage", "subscriptionPage", "customerSubscriptionPage", "invoicePrintPage", "superAdminPage", "appPage"].forEach(x => {
             $(x).classList.add("hidden");
@@ -2412,7 +2434,7 @@
                     <td><strong>${escapeHtml(p.invoice_number || "-")}</strong></td>
                     <td>${rupiah(p.amount)}</td>
                     <td><span class="sa-badge ${statusClass(p.status)}">${escapeHtml(invoiceStatusLabel(p.status))}</span></td>
-                    <td>${p.paid_at ? new Date(p.paid_at).toLocaleDateString("id-ID") : new Date(p.created_at).toLocaleDateString("id-ID")}</td>
+                    <td>${p.paid_at ? fmtDateTime(p.paid_at) : fmtDateTime(p.created_at)}</td>
                 </tr>`).join("")}</tbody>
             </table>` : '<div class="sa-empty">Belum ada pembayaran.</div>';
 
@@ -2593,7 +2615,8 @@
             if (module === "bukubesar") return await renderLedgerModule();
             if (module === "coa") return await renderCOAModule();
             if (module === "kasbank") return await renderCashBankModule();
-            if (["saldoawal","penyesuaian","aset","labarugi","neraca","aruskas","ekuitas","calk","tambahunit","pengaturan"].includes(module)) {
+            if (module === "saldoawal") return await renderOpeningBalancesModule();
+            if (["penyesuaian","aset","labarugi","neraca","aruskas","ekuitas","calk","tambahunit","pengaturan"].includes(module)) {
                 const [title] = appModuleTitles[module];
                 showModuleShell(module, `<div class="panel"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-1"></i><strong>${escapeHtml(title)}</strong> sudah terhubung ke navigasi. Tampilan operasional dan proses penyimpanan akan dibangun pada tahap modul berikutnya agar tetap sesuai dengan struktur akuntansi dan RLS yang sudah dibuat.</div></div>`);
                 return;
@@ -2602,6 +2625,301 @@
             console.error(err);
             showModuleShell(module, `<div class="alert alert-danger">Gagal memuat modul: ${escapeHtml(err.message || String(err))}</div>`);
         }
+    }
+
+
+    // =========================================================
+    // MODUL SALDO AWAL
+    // =========================================================
+    async function renderOpeningBalancesModule() {
+        const bumdesId = activeAppProfile.bumdes_id;
+
+        const [
+            { data: periods, error: periodError },
+            { data: accounts, error: accountError },
+            { data: units, error: unitError },
+            { data: opening, error: openingError }
+        ] = await Promise.all([
+            supabaseClient.from("account_periods")
+                .select("id,period_type,start_date,end_date,status")
+                .eq("bumdes_id", bumdesId)
+                .order("start_date", { ascending: false }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_active")
+                .eq("is_active", true)
+                .eq("level", 4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .order("kode", { ascending: true }),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", { ascending: true }),
+            supabaseClient.from("opening_balances")
+                .select("id,unit_id,period_id,account_id,debit,credit,created_at")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", { ascending: true })
+                .limit(5000)
+        ]);
+
+        if (periodError) throw periodError;
+        if (accountError) throw accountError;
+        if (unitError) throw unitError;
+        if (openingError) throw openingError;
+
+        const openPeriods = (periods || []).filter(p => p.status === "open");
+        const periodOptions = openPeriods.length
+            ? openPeriods.map(p =>
+                `<option value="${p.id}">${escapeHtml(p.period_type.toUpperCase())} — ${fmtDate(p.start_date)} s/d ${fmtDate(p.end_date)}</option>`
+              ).join("")
+            : `<option value="">Belum ada periode terbuka</option>`;
+
+        const locationOptions = [
+            `<option value="">Kantor Pusat</option>`,
+            ...(units || []).filter(u => u.status !== "nonaktif").map(u =>
+                `<option value="${u.id}">${escapeHtml(u.nama_unit)}${u.kode_unit ? ` (${escapeHtml(u.kode_unit)})` : ""}</option>`
+            )
+        ].join("");
+
+        const accountMap = new Map((accounts || []).map(a => [a.id, a]));
+        const openingMap = new Map();
+        (opening || []).forEach(o => {
+            const key = `${o.period_id}|${o.unit_id || "pusat"}|${o.account_id}`;
+            openingMap.set(key, {
+                debit: Number(o.debit || 0),
+                credit: Number(o.credit || 0)
+            });
+        });
+
+        showModuleShell("saldoawal", `
+            <div class="panel">
+                <div class="row g-3 align-items-end mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Periode</label>
+                        <select id="obPeriod" class="form-select" ${openPeriods.length ? "" : "disabled"}>
+                            ${periodOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Lokasi</label>
+                        <select id="obUnit" class="form-select">${locationOptions}</select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-secondary mb-1">Status</div>
+                        <div id="obStatus" class="fw-semibold text-secondary">Menunggu pilihan</div>
+                    </div>
+                </div>
+
+                <div id="obMessage" class="alert alert-info py-2 small">
+                    Pilih periode dan lokasi untuk menampilkan saldo awal.
+                </div>
+
+                <div class="table-responsive" style="max-height: 58vh; overflow:auto;">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width:145px;">Kode</th>
+                                <th>Nama Akun</th>
+                                <th style="width:190px;" class="text-end">Debit</th>
+                                <th style="width:190px;" class="text-end">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="obRows">
+                            <tr><td colspan="4" class="text-center text-secondary py-4">Pilih periode dan lokasi.</td></tr>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="2" class="text-end">TOTAL</th>
+                                <th id="obTotalDebit" class="text-end">Rp 0</th>
+                                <th id="obTotalCredit" class="text-end">Rp 0</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2" class="text-end">SELISIH</th>
+                                <th colspan="2" id="obDifference" class="text-end text-secondary">Rp 0</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 gap-2 flex-wrap">
+                    <div class="small text-secondary">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Isi hanya akun yang memiliki saldo awal. Total Debit dan Kredit harus sama.
+                    </div>
+                    <button id="obSaveBtn" class="btn btn-primary" disabled>
+                        <i class="bi bi-save me-1"></i>Simpan Saldo Awal
+                    </button>
+                </div>
+            </div>
+        `);
+
+        const periodEl = $("obPeriod");
+        const unitEl = $("obUnit");
+        const rowsEl = $("obRows");
+        const saveBtn = $("obSaveBtn");
+        const msgEl = $("obMessage");
+        const statusEl = $("obStatus");
+        const totalDebitEl = $("obTotalDebit");
+        const totalCreditEl = $("obTotalCredit");
+        const differenceEl = $("obDifference");
+
+        function selectedKey(accountId) {
+            return `${periodEl.value}|${unitEl.value || "pusat"}|${accountId}`;
+        }
+
+        function renderRows() {
+            const periodId = periodEl.value;
+            if (!periodId) {
+                rowsEl.innerHTML = `<tr><td colspan="4" class="text-center text-secondary py-4">Pilih periode terlebih dahulu.</td></tr>`;
+                updateTotals();
+                return;
+            }
+
+            if (!accounts?.length) {
+                rowsEl.innerHTML = `<tr><td colspan="4" class="text-center text-secondary py-4">COA level 4 belum tersedia.</td></tr>`;
+                updateTotals();
+                return;
+            }
+
+            rowsEl.innerHTML = accounts.map(a => {
+                const v = openingMap.get(selectedKey(a.id)) || { debit: 0, credit: 0 };
+                return `
+                    <tr data-account-id="${a.id}">
+                        <td class="fw-semibold">${escapeHtml(a.kode)}</td>
+                        <td>${escapeHtml(a.nama)}</td>
+                        <td>
+                            <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end ob-debit" value="${v.debit || ""}" placeholder="0">
+                        </td>
+                        <td>
+                            <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end ob-credit" value="${v.credit || ""}" placeholder="0">
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+
+            rowsEl.querySelectorAll("input").forEach(input => {
+                input.addEventListener("input", updateTotals);
+                input.addEventListener("change", updateTotals);
+            });
+
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let debit = 0, credit = 0;
+            rowsEl.querySelectorAll("tr[data-account-id]").forEach(row => {
+                const d = Number(row.querySelector(".ob-debit")?.value || 0);
+                const c = Number(row.querySelector(".ob-credit")?.value || 0);
+                debit += Number.isFinite(d) ? d : 0;
+                credit += Number.isFinite(c) ? c : 0;
+            });
+
+            const diff = debit - credit;
+            totalDebitEl.textContent = rupiah(debit);
+            totalCreditEl.textContent = rupiah(credit);
+            differenceEl.textContent = rupiah(Math.abs(diff));
+
+            if (!periodEl.value) {
+                statusEl.textContent = "Menunggu pilihan";
+                statusEl.className = "fw-semibold text-secondary";
+                saveBtn.disabled = true;
+                return;
+            }
+
+            if (Math.abs(diff) < 0.005) {
+                statusEl.textContent = "✓ Saldo Awal Seimbang";
+                statusEl.className = "fw-semibold text-success";
+                saveBtn.disabled = false;
+            } else {
+                statusEl.textContent = `Belum seimbang — selisih ${rupiah(Math.abs(diff))}`;
+                statusEl.className = "fw-semibold text-danger";
+                saveBtn.disabled = true;
+            }
+        }
+
+        periodEl.addEventListener("change", renderRows);
+        unitEl.addEventListener("change", renderRows);
+
+        saveBtn.addEventListener("click", async () => {
+            const periodId = periodEl.value;
+            const unitId = unitEl.value || null;
+            if (!periodId) return;
+
+            let debitTotal = 0, creditTotal = 0;
+            const rows = [];
+
+            rowsEl.querySelectorAll("tr[data-account-id]").forEach(row => {
+                const accountId = row.dataset.accountId;
+                const debit = Math.max(0, Number(row.querySelector(".ob-debit")?.value || 0));
+                const credit = Math.max(0, Number(row.querySelector(".ob-credit")?.value || 0));
+                debitTotal += debit;
+                creditTotal += credit;
+
+                if (debit > 0 || credit > 0) {
+                    rows.push({
+                        bumdes_id: bumdesId,
+                        unit_id: unitId,
+                        period_id: periodId,
+                        account_id: accountId,
+                        debit,
+                        credit,
+                        created_by: activeAppProfile.id
+                    });
+                }
+            });
+
+            if (Math.abs(debitTotal - creditTotal) >= 0.005) {
+                alert("Saldo awal belum seimbang. Total Debit harus sama dengan Total Kredit.");
+                return;
+            }
+
+            const original = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+            try {
+                // Replace the selected period/location set. Existing values are loaded into the form first.
+                const { error: deleteError } = await supabaseClient
+                    .from("opening_balances")
+                    .delete()
+                    .eq("bumdes_id", bumdesId)
+                    .eq("period_id", periodId)
+                    .is("unit_id", unitId);
+
+                if (deleteError) throw deleteError;
+
+                if (rows.length) {
+                    const { error: insertError } = await supabaseClient
+                        .from("opening_balances")
+                        .insert(rows);
+                    if (insertError) throw insertError;
+                }
+
+                // Refresh local cache.
+                for (const [key] of openingMap) {
+                    if (key.startsWith(`${periodId}|${unitId || "pusat"}|`)) openingMap.delete(key);
+                }
+                rows.forEach(r => {
+                    openingMap.set(`${r.period_id}|${r.unit_id || "pusat"}|${r.account_id}`, {
+                        debit: Number(r.debit || 0),
+                        credit: Number(r.credit || 0)
+                    });
+                });
+
+                msgEl.className = "alert alert-success py-2 small";
+                msgEl.innerHTML = `<i class="bi bi-check-circle me-1"></i>Saldo awal berhasil disimpan.`;
+                statusEl.textContent = "✓ Tersimpan & Seimbang";
+                statusEl.className = "fw-semibold text-success";
+            } catch (err) {
+                console.error(err);
+                msgEl.className = "alert alert-danger py-2 small";
+                msgEl.textContent = "Gagal menyimpan saldo awal: " + (err.message || String(err));
+            } finally {
+                saveBtn.innerHTML = original;
+                updateTotals();
+            }
+        });
+
+        renderRows();
     }
 
     async function renderUnitsModule() {
@@ -2661,7 +2979,7 @@
         if (unitError) throw unitError;
 
         const periodOptions = (periods || []).map(p =>
-            `<option value="${escapeHtml(p.id)}">${escapeHtml(p.period_type)} · ${escapeHtml(p.start_date)} s/d ${escapeHtml(p.end_date)}</option>`
+            `<option value="${escapeHtml(p.id)}">${escapeHtml(p.period_type)} · ${escapeHtml(fmtDate(p.start_date))} s/d ${escapeHtml(fmtDate(p.end_date))}</option>`
         ).join("");
 
         const accountOptions = (accounts || []).map(a =>
@@ -2815,7 +3133,7 @@
         const rows = (transactions || []).map((t,i) =>
             `<tr>
                 <td>${i+1}</td>
-                <td>${escapeHtml(t.transaction_date || "-")}</td>
+                <td>${escapeHtml(fmtDate(t.transaction_date))}</td>
                 <td><strong>${escapeHtml(t.transaction_number || "-")}</strong></td>
                 <td>${escapeHtml(t.description || "-")}</td>
                 <td>${escapeHtml(t.unit_id ? ((units || []).find(u => u.id === t.unit_id)?.nama_unit || "-") : "Pusat")}</td>
@@ -3061,7 +3379,7 @@
         const accIds=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
         if(accIds.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama").in("id",accIds);acc=r.data||[];}
         const am=new Map(acc.map(a=>[a.id,`${a.kode} — ${a.nama}`]));
-        const rows=data.map((j,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(j.journal_date||"-")}</td><td>${escapeHtml(j.journal_number||"-")}</td><td>${escapeHtml(am.get(j.account_id)||"-")}</td><td>${escapeHtml(j.description||"-")}</td><td class="text-end">${rupiah(j.debit)}</td><td class="text-end">${rupiah(j.credit)}</td></tr>`).join("");
+        const rows=data.map((j,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(fmtDate(j.journal_date))}</td><td>${escapeHtml(j.journal_number||"-")}</td><td>${escapeHtml(am.get(j.account_id)||"-")}</td><td>${escapeHtml(j.description||"-")}</td><td class="text-end">${rupiah(j.debit)}</td><td class="text-end">${rupiah(j.credit)}</td></tr>`).join("");
         showModuleShell("jurnal", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Jurnal</th><th>Akun</th><th>Uraian</th><th class="text-end">Debit</th><th class="text-end">Kredit</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
     }
 
@@ -3156,7 +3474,6 @@
             return ["aset","hpp","beban"].includes(a.account_type) ? "debit" : "credit";
         };
 
-        const fmtDate = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString("id-ID") : "-";
 
         const buildOptions = (items, valueKey, labelFn) => items.map(x =>
             `<option value="${escapeHtml(x[valueKey])}">${escapeHtml(labelFn(x))}</option>`
@@ -3462,7 +3779,7 @@
         $("customerSubUserEmail").textContent = profile.email || "";
         $("customerSubBumdesName").textContent = bumdes?.nama || "-";
         $("customerSubStatus").textContent = subscription?.status === "active" ? "Aktif" : (subscription?.status || "Belum aktif");
-        $("customerSubExpires").textContent = subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString("id-ID") : "-";
+        $("customerSubExpires").textContent = subscription?.expires_at ? fmtDate(subscription.expires_at) : "-";
         $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
 
         showOnly("customerSubscriptionPage");
@@ -3502,10 +3819,10 @@
 
         box.innerHTML = data.map(p => `
             <div class="invoice-row">
-                <div><div class="invoice-number">${escapeHtml(p.invoice_number || "-")}</div><div class="invoice-meta">${new Date(p.created_at).toLocaleDateString("id-ID")}</div></div>
+                <div><div class="invoice-number">${escapeHtml(p.invoice_number || "-")}</div><div class="invoice-meta">${fmtDateTime(p.created_at)}</div></div>
                 <div>${rupiah(p.amount)}</div>
                 <div><span class="invoice-status ${escapeHtml(p.status || "pending")}">${escapeHtml(invoiceStatusLabel(p.status))}</span></div>
-                <div class="invoice-meta">${p.paid_at ? "Dibayar " + new Date(p.paid_at).toLocaleDateString("id-ID") : (p.expired_at ? "Jatuh tempo " + new Date(p.expired_at).toLocaleDateString("id-ID") : "")}</div>
+                <div class="invoice-meta">${p.paid_at ? "Dibayar " + fmtDateTime(p.paid_at) : (p.expired_at ? "Jatuh tempo " + fmtDateTime(p.expired_at) : "")}</div>
                 <div>
                     <button class="invoice-btn" type="button" data-view-invoice="${escapeHtml(p.id)}">Lihat</button>
                     ${p.status === "pending" ? `<button class="invoice-btn primary" type="button" data-pay-invoice="${escapeHtml(p.id)}">Bayar</button>` : ""}
@@ -3528,8 +3845,8 @@
         $("invoicePrintNumber").textContent = p.invoice_number || "-";
         $("invoicePrintBumdes").textContent = b.nama || "-";
         $("invoicePrintAddress").textContent = [b.alamat,b.desa,b.kecamatan,b.kabupaten,b.provinsi].filter(Boolean).join(", ") || "-";
-        $("invoicePrintDate").textContent = new Date(p.created_at).toLocaleDateString("id-ID");
-        $("invoicePrintDue").textContent = p.expired_at ? new Date(p.expired_at).toLocaleDateString("id-ID") : "-";
+        $("invoicePrintDate").textContent = fmtDateTime(p.created_at);
+        $("invoicePrintDue").textContent = p.expired_at ? fmtDateTime(p.expired_at) : "-";
         $("invoicePrintPlan").textContent = ctx.subscription?.plan_name || "Langganan e-BUMDesa";
         $("invoicePrintPeriod").textContent = `${p.metadata?.billing_period_months || ctx.subscription?.billing_period_months || 1} Bulan`;
         $("invoicePrintAmount").textContent = rupiah(p.amount);
