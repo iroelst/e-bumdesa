@@ -3909,72 +3909,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
         <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
         <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div>
-<!-- MODAL TAMBAH COA CUSTOM -->
-<div id="addCustomCOAModal" class="coa-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addCustomCOAModalLabel">
-    <div class="coa-modal-card">
-        <div class="coa-modal-head">
-            <div>
-                <div class="fw-bold fs-5" id="addCustomCOAModalLabel">
-                    <i class="bi bi-plus-circle me-1"></i> Tambah Akun COA
-                </div>
-                <div class="text-secondary small mt-1">Menambahkan akun custom khusus BUMDes ini.</div>
-            </div>
-            <button type="button" id="coaModalCloseBtn" class="coa-modal-close" aria-label="Tutup">&times;</button>
-        </div>
-
-        <form id="addCustomCOAForm">
-            <div class="coa-modal-body">
-                <div class="alert alert-info py-2 small mb-3">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Akun custom dibuat sebagai <strong>Level 4</strong> di bawah akun header Level 3.
-                    Akun tidak menjadi akun sistem dan hanya berlaku untuk BUMDes ini.
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Parent / Kelompok Akun *</label>
-                    <select id="coaCustomParent" class="form-select" required>
-                        <option value="">Memuat kelompok akun...</option>
-                    </select>
-                    <div id="coaCustomParentInfo" class="coa-readonly-box mt-2 hidden"></div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Kode Akun *</label>
-                    <input id="coaCustomCode" class="form-control" maxlength="10"
-                           placeholder="Contoh: 6.2.99.01" required>
-                    <div class="coa-form-note mt-1">
-                        Format <span class="coa-code-prefix">X.X.XX.XX</span>.
-                        Dua digit terakhir tidak boleh <span class="coa-code-prefix">00</span>.
-                        Kode harus berada di bawah parent yang dipilih.
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Nama Akun *</label>
-                    <input id="coaCustomName" class="form-control" maxlength="150"
-                           placeholder="Contoh: Beban Operasional Digital" required>
-                </div>
-
-                <div class="mb-1">
-                    <label class="form-label">Saldo Normal *</label>
-                    <select id="coaCustomNormal" class="form-select" required>
-                        <option value="debit">Debit</option>
-                        <option value="kredit">Kredit</option>
-                    </select>
-                </div>
-
-                <div id="coaCustomValidation" class="small text-danger mt-2 hidden"></div>
-            </div>
-
-            <div class="coa-modal-foot">
-                <button type="button" id="coaModalCancelBtn" class="btn btn-light border">Batal</button>
-                <button id="coaCustomSaveBtn" type="submit" class="btn btn-primary">
-                    <i class="bi bi-check2-circle me-1"></i> Simpan Akun
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
 </body></html>`;
 
@@ -7849,6 +7783,73 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     });
 })();
 </script>
+
+<!-- MODAL TAMBAH COA CUSTOM -->
+<div id="addCustomCOAModal" class="coa-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addCustomCOAModalLabel">
+    <div class="coa-modal-card">
+        <div class="coa-modal-head">
+            <div>
+                <div class="fw-bold fs-5" id="addCustomCOAModalLabel">
+                    <i class="bi bi-plus-circle me-1"></i> Tambah Akun COA
+                </div>
+                <div class="text-secondary small mt-1">Menambahkan akun custom khusus BUMDes ini.</div>
+            </div>
+            <button type="button" id="coaModalCloseBtn" class="coa-modal-close" aria-label="Tutup">&times;</button>
+        </div>
+
+        <form id="addCustomCOAForm">
+            <div class="coa-modal-body">
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Akun custom dibuat sebagai <strong>Level 4</strong> di bawah akun header Level 3.
+                    Akun tidak menjadi akun sistem dan hanya berlaku untuk BUMDes ini.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Parent / Kelompok Akun *</label>
+                    <select id="coaCustomParent" class="form-select" required>
+                        <option value="">Memuat kelompok akun...</option>
+                    </select>
+                    <div id="coaCustomParentInfo" class="coa-readonly-box mt-2 hidden"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Kode Akun *</label>
+                    <input id="coaCustomCode" class="form-control" maxlength="10"
+                           placeholder="Contoh: 6.2.99.01" required>
+                    <div class="coa-form-note mt-1">
+                        Format <span class="coa-code-prefix">X.X.XX.XX</span>.
+                        Dua digit terakhir tidak boleh <span class="coa-code-prefix">00</span>.
+                        Kode harus berada di bawah parent yang dipilih.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nama Akun *</label>
+                    <input id="coaCustomName" class="form-control" maxlength="150"
+                           placeholder="Contoh: Beban Operasional Digital" required>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label">Saldo Normal *</label>
+                    <select id="coaCustomNormal" class="form-select" required>
+                        <option value="debit">Debit</option>
+                        <option value="kredit">Kredit</option>
+                    </select>
+                </div>
+
+                <div id="coaCustomValidation" class="small text-danger mt-2 hidden"></div>
+            </div>
+
+            <div class="coa-modal-foot">
+                <button type="button" id="coaModalCancelBtn" class="btn btn-light border">Batal</button>
+                <button id="coaCustomSaveBtn" type="submit" class="btn btn-primary">
+                    <i class="bi bi-check2-circle me-1"></i> Simpan Akun
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 </body>
 </html>
