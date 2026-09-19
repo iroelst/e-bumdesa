@@ -3891,34 +3891,24 @@
             <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
             <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div></body></html>`;
 
-            // Gunakan iframe tersembunyi agar tidak membuka tab/jendela Chrome baru.
-            // Browser langsung memanggil print preview setelah dokumen siap.
+            // Gunakan iframe tersembunyi. Print dipanggil langsung dari event klik
+            // agar Chrome tetap mempertahankan user activation dan membuka Print Preview.
             const iframe = document.createElement("iframe");
             iframe.style.position = "fixed";
-            iframe.style.right = "0";
-            iframe.style.bottom = "0";
-            iframe.style.width = "0";
-            iframe.style.height = "0";
+            iframe.style.left = "-10000px";
+            iframe.style.top = "0";
+            iframe.style.width = "1px";
+            iframe.style.height = "1px";
             iframe.style.border = "0";
-            iframe.style.visibility = "hidden";
+            iframe.style.opacity = "0";
             document.body.appendChild(iframe);
             const doc = iframe.contentDocument || iframe.contentWindow.document;
             doc.open();
             doc.write(printHtml);
             doc.close();
-            const doPrint = () => {
-                try {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                } finally {
-                    setTimeout(() => iframe.remove(), 1000);
-                }
-            };
-            if (doc.fonts?.ready) {
-                doc.fonts.ready.then(() => setTimeout(doPrint, 80));
-            } else {
-                setTimeout(doPrint, 150);
-            }
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => iframe.remove(), 2000);
         }
 
     document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
