@@ -1972,7 +1972,61 @@
             .dashboard-chart-svg{height:215px}
         }
 
-    </style>
+    
+/* =========================================================
+   MODUL LAPORAN KEUANGAN MODERN
+   ========================================================= */
+.report-page{display:flex;flex-direction:column;gap:16px}
+.report-control-card{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #e6ebf2;border-radius:18px;box-shadow:0 8px 24px rgba(31,45,61,.06);padding:18px}
+.report-control-grid{display:grid;grid-template-columns:1.1fr 1.1fr 1fr 1fr auto;gap:12px;align-items:end}
+.report-control-label{font-size:11px;font-weight:700;color:#6f7d8d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.report-control-card .form-select,.report-control-card .form-control{border-radius:11px;border-color:#dfe6ef;background:#fff;min-height:42px}
+.report-btn{border:0;border-radius:11px;min-height:42px;padding:0 16px;font-weight:700;box-shadow:0 5px 12px rgba(43,83,140,.12)}
+.report-btn-primary{background:linear-gradient(135deg,#4677c5,#315fae);color:#fff}
+.report-btn-light{background:#fff;border:1px solid #dfe6ef;color:#425268;box-shadow:none}
+.report-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:2px 2px 0}
+.report-meta-title{font-size:20px;font-weight:800;color:#243449}
+.report-meta-sub{font-size:12px;color:#7c8998;margin-top:3px}
+.report-scope-pill{background:#eef4ff;color:#315fae;border:1px solid #dce8fb;border-radius:999px;padding:7px 12px;font-size:11px;font-weight:700;white-space:nowrap}
+.report-card{background:#fff;border:1px solid #e5eaf0;border-radius:18px;box-shadow:0 10px 28px rgba(31,45,61,.06);overflow:hidden}
+.report-card-head{padding:22px 24px 16px;background:linear-gradient(135deg,#f9fbff,#fff);border-bottom:1px solid #edf1f5}
+.report-brand{font-size:18px;font-weight:800;color:#23344d;text-align:center}
+.report-title{font-size:17px;font-weight:800;text-align:center;color:#1e2d42;margin-top:4px;letter-spacing:.01em}
+.report-period{text-align:center;color:#788696;font-size:12px;margin-top:5px}
+.report-table-wrap{overflow:auto}
+.report-table{width:100%;border-collapse:collapse;font-size:12px}
+.report-table th{background:#f4f7fb;color:#657487;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;padding:11px 14px;border-bottom:1px solid #e5eaf0;position:sticky;top:0;z-index:1}
+.report-table td{padding:8px 14px;border-bottom:1px solid #edf1f5;color:#344458;vertical-align:middle}
+.report-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.report-table .no{width:52px;text-align:center;color:#9aa6b4}
+.report-table .group td{font-weight:800;color:#24344a;background:#f8fafc;border-top:1px solid #e1e7ef}
+.report-table .section td{font-weight:900;color:#315fae;background:#eef4ff;border-top:1px solid #dce8fb}
+.report-table .subtotal td{font-weight:800;color:#27384d;background:#fafbfd;border-top:1px solid #e3e9f0}
+.report-table .grand td{font-weight:900;color:#1f3148;background:linear-gradient(90deg,#edf5ff,#f8fbff);border-top:2px solid #4a76b9;border-bottom:2px solid #dce6f2}
+.report-table .indent-1{padding-left:28px}
+.report-table .indent-2{padding-left:44px}
+.report-table .muted{color:#95a1af}
+.report-empty{padding:52px 20px;text-align:center;color:#7d8997}
+.report-empty i{font-size:36px;color:#b9c4d1}
+.report-footer{padding:16px 24px 22px;color:#84909e;font-size:10px;display:flex;justify-content:space-between;gap:10px}
+.report-print-title{display:none}
+.report-positive{color:#2f8a58!important}.report-negative{color:#c44d4d!important}
+.report-toolbar-note{font-size:11px;color:#84909e}
+.report-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:2px}
+.report-tab{border:1px solid #dfe6ef;background:#fff;color:#667588;border-radius:999px;padding:8px 13px;font-size:11px;font-weight:700;cursor:pointer}
+.report-tab.active{background:#edf4ff;color:#315fae;border-color:#cfe0fb}
+.report-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 18px;border-bottom:1px solid #edf1f5;background:#fbfcfe}
+.report-mini-card{border:1px solid #e6ebf2;border-radius:12px;padding:11px 12px;background:#fff}
+.report-mini-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a96a5;font-weight:800}.report-mini-value{font-size:14px;font-weight:800;color:#26374c;margin-top:4px}
+@media(max-width:1100px){.report-control-grid{grid-template-columns:1fr 1fr 1fr 1fr}.report-control-grid .report-actions{grid-column:1/-1;display:flex;gap:8px}.report-control-grid .report-actions .report-btn{flex:1}.report-summary-strip{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.report-control-grid{grid-template-columns:1fr 1fr}.report-meta{align-items:flex-start;flex-direction:column}.report-card-head{padding:18px 14px 14px}.report-table{font-size:11px}.report-table td,.report-table th{padding:8px 9px}.report-summary-strip{grid-template-columns:1fr 1fr}.report-footer{flex-direction:column}}
+@media print{
+ body{background:#fff!important}.sidebar,.topbar,.module-toolbar,.report-control-card,.report-meta,.report-tabs,.no-print{display:none!important}
+ .main{margin:0!important;padding:0!important}.content,.report-page,.report-card{box-shadow:none!important;border:0!important}.report-card{border-radius:0!important}.report-card-head{padding:0 0 12px;background:#fff}.report-brand{font-size:16px}.report-title{font-size:15px}.report-period{font-size:11px}.report-print-title{display:block}
+ .report-table th{position:static;background:#f2f2f2!important;color:#222!important}.report-table td{padding:5px 7px}.report-footer{padding:12px 0}.report-summary-strip{display:none}
+ @page{size:A4 portrait;margin:12mm}
+}
+</style>
 
 
 </head>
@@ -3753,7 +3807,10 @@
             if (module === "coa") return await renderCOAModule();
             if (module === "kasbank") return await renderCashBankModule();
             if (module === "saldoawal") return await renderOpeningBalancesModule();
-            if (["penyesuaian","aset","labarugi","neraca","aruskas","ekuitas","calk","tambahunit","pengaturan"].includes(module)) {
+            if (["labarugi","neraca","aruskas","ekuitas","calk"].includes(module)) {
+                return await renderFinancialReportModule(module);
+            }
+            if (["penyesuaian","aset","tambahunit","pengaturan"].includes(module)) {
                 const [title] = appModuleTitles[module];
                 showModuleShell(module, `<div class="panel"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-1"></i><strong>${escapeHtml(title)}</strong> sudah terhubung ke navigasi. Tampilan operasional dan proses penyimpanan akan dibangun pada tahap modul berikutnya agar tetap sesuai dengan struktur akuntansi dan RLS yang sudah dibuat.</div></div>`);
                 return;
@@ -3764,6 +3821,407 @@
         }
     }
 
+
+
+    // =========================================================
+    // MODUL LAPORAN KEUANGAN — FORMAT PEDOMAN 42–55
+    // =========================================================
+    function reportPeriodPreset(type){
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth()+1;
+        const d = now.getDate();
+        if(type === 'bulanan'){
+            const last = new Date(y,m,0).getDate();
+            return {start:`${y}-${String(m).padStart(2,'0')}-01`, end:`${y}-${String(m).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`, label:'Bulan Berjalan'};
+        }
+        if(type === 'semester'){
+            const s = m <= 6 ? 1 : 7;
+            const e = s === 1 ? 6 : 12;
+            const last = new Date(y,e,0).getDate();
+            return {start:`${y}-${String(s).padStart(2,'0')}-01`, end:`${y}-${String(e).padStart(2,'0')}-${String(last).padStart(2,'0')}`, label:s===1?'Semester I':'Semester II'};
+        }
+        return {start:`${y}-01-01`, end:`${y}-12-31`, label:'Tahunan'};
+    }
+
+    function reportScopeOptions(profile, units){
+        const unitUsers = ['admin_unit','operator_unit'].includes(profile?.role);
+        if(unitUsers){
+            const u=(units||[]).find(x=>x.id===profile.unit_id);
+            return u ? `<option value="unit:${escapeHtml(u.id)}">Unit Usaha — ${escapeHtml(u.nama_unit)}</option>` : '';
+        }
+        return `<option value="pusat">Kantor Pusat</option><option value="gabungan">Gabungan / Konsolidasian</option>`+
+            (units||[]).filter(u=>u.status!=='nonaktif').map(u=>`<option value="unit:${escapeHtml(u.id)}">Unit Usaha — ${escapeHtml(u.nama_unit)}</option>`).join('');
+    }
+
+    async function fetchReportRows(queryBuilder){
+        const pageSize=1000; let from=0; const out=[];
+        while(true){
+            const {data,error}=await queryBuilder.range(from,from+pageSize-1);
+            if(error) throw error;
+            const rows=data||[]; out.push(...rows);
+            if(rows.length<pageSize) break; from+=pageSize;
+        }
+        return out;
+    }
+
+    function reportNormalBalance(account, debit, credit){
+        const nb=String(account?.normal_balance||'').toUpperCase();
+        if(nb==='K' || nb==='CREDIT') return Number(credit||0)-Number(debit||0);
+        if(nb==='D' || nb==='DEBIT') return Number(debit||0)-Number(credit||0);
+        const code=String(account?.kode||'');
+        const t=String(account?.account_type||'').toLowerCase();
+        if(t==='kewajiban'||t==='ekuitas'||t==='pendapatan'||(t==='lain_lain'&&code.startsWith('7.1'))) return Number(credit||0)-Number(debit||0);
+        return Number(debit||0)-Number(credit||0);
+    }
+
+    function reportIsIncome(account){
+        const t=String(account?.account_type||'').toLowerCase(), code=String(account?.kode||'');
+        return t==='pendapatan' || (t==='lain_lain' && code.startsWith('7.1'));
+    }
+    function reportIsExpense(account){
+        const t=String(account?.account_type||'').toLowerCase(), code=String(account?.kode||'');
+        return t==='hpp' || t==='beban' || (t==='lain_lain' && (code.startsWith('7.2')||code.startsWith('7.3')));
+    }
+    function reportCodePrefix(code, level){
+        const p=String(code||'').split('.');
+        if(level===1) return p[0]+'.0.00.00';
+        if(level===2) return p.slice(0,2).join('.')+'.00.00';
+        if(level===3) return p.slice(0,3).join('.')+'.00';
+        return code;
+    }
+    function reportDisplayValue(v){
+        const n=Number(v||0); return n===0?'–':rupiah(n);
+    }
+    function reportSigned(v){
+        const n=Number(v||0); return n<0?`(${rupiah(Math.abs(n))})`:rupiah(n);
+    }
+
+    async function loadFinancialReportData({module,startDate,endDate,scope}){
+        const bumdesId=activeAppProfile.bumdes_id;
+        const startYear=Number(String(startDate).slice(0,4));
+        const endYear=Number(String(endDate).slice(0,4));
+        const scopeUnit=scope.startsWith('unit:')?scope.slice(5):null;
+        const isConsolidated=scope==='gabungan';
+
+        const {data:accounts,error:accErr}=await supabaseClient.from('chart_of_accounts')
+            .select('id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_active')
+            .eq('is_active',true).or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`).order('kode',{ascending:true});
+        if(accErr) throw accErr;
+        const accountMap=new Map(); (accounts||[]).forEach(a=>accountMap.set(a.id,a));
+        const leafAccounts=(accounts||[]).filter(a=>a.level===4);
+        const groupAccounts=(accounts||[]).filter(a=>a.level===3);
+
+        let jQuery=supabaseClient.from('journals').select('id,transaction_id,account_id,unit_id,journal_date,debit,credit,journal_number,description')
+            .eq('bumdes_id',bumdesId).gte('journal_date',`${startYear}-01-01`).lte('journal_date',endDate).order('journal_date',{ascending:true});
+        if(scopeUnit) jQuery=jQuery.eq('unit_id',scopeUnit);
+        const journals=await fetchReportRows(jQuery);
+
+        // Saldo awal tahun untuk posisi keuangan. Gunakan periode tahunan yang sesuai tahun laporan.
+        const {data:period}=await supabaseClient.from('account_periods').select('id,start_date,end_date')
+            .eq('bumdes_id',bumdesId).eq('period_type','tahunan').eq('start_date',`${startYear}-01-01`).eq('end_date',`${startYear}-12-31`).limit(1).maybeSingle();
+        let openings=[];
+        if(period?.id){
+            let oQuery=supabaseClient.from('opening_balances').select('account_id,unit_id,debit,credit').eq('bumdes_id',bumdesId).eq('period_id',period.id);
+            if(scopeUnit) oQuery=oQuery.eq('unit_id',scopeUnit);
+            openings=await fetchReportRows(oQuery);
+        }
+
+        const balanceMap=new Map();
+        const moveMap=new Map();
+        const add=(map,id,val)=>map.set(id,(map.get(id)||0)+Number(val||0));
+        openings.forEach(o=>{const a=accountMap.get(o.account_id);if(a)add(balanceMap,o.account_id,reportNormalBalance(a,o.debit,o.credit));});
+        journals.forEach(j=>{const a=accountMap.get(j.account_id);if(!a)return; add(balanceMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
+            if(j.journal_date>=startDate && j.journal_date<=endDate) add(moveMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
+        });
+
+        // Nilai saldo periode sebelumnya untuk neraca komparatif: saldo awal tahun laporan.
+        const priorMap=new Map();
+        openings.forEach(o=>{const a=accountMap.get(o.account_id);if(a)add(priorMap,o.account_id,reportNormalBalance(a,o.debit,o.credit));});
+
+        // Jika tidak ada saldo awal, gunakan jurnal sampai 31 Desember tahun sebelumnya.
+        if(openings.length===0){
+            let pQuery=supabaseClient.from('journals').select('account_id,unit_id,journal_date,debit,credit').eq('bumdes_id',bumdesId)
+                .gte('journal_date',`${startYear-1}-01-01`).lte('journal_date',`${startYear-1}-12-31`);
+            if(scopeUnit) pQuery=pQuery.eq('unit_id',scopeUnit);
+            const prev=await fetchReportRows(pQuery);
+            prev.forEach(j=>{const a=accountMap.get(j.account_id);if(a)add(priorMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));});
+        }
+
+        // Bagi hasil mengikuti akun 3.2 pada COA; pengeluaran ekuitas ditampilkan sebagai pengurang.
+        const balances={}; const movements={}; const priors={};
+        [...leafAccounts].forEach(a=>{balances[a.id]=balanceMap.get(a.id)||0;movements[a.id]=moveMap.get(a.id)||0;priors[a.id]=priorMap.get(a.id)||0;});
+        if(isConsolidated){
+            // Eliminasi akun timbal balik Pusat ↔ Unit pada laporan konsolidasian.
+            leafAccounts.forEach(a=>{if(String(a.kode).startsWith('1.1.99.')||String(a.kode).startsWith('3.8.')){balances[a.id]=0;priors[a.id]=0;}});
+        }
+        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,startDate,endDate,scope,isConsolidated};
+    }
+
+    function reportGroupTotal(data, prefix, mapName='balances'){
+        return data.leafAccounts.filter(a=>String(a.kode).startsWith(prefix)).reduce((s,a)=>s+Number((data[mapName]||{})[a.id]||0),0);
+    }
+    function reportRowsForGroup(data,prefix, mapName='balances', indent=1){
+        return data.leafAccounts.filter(a=>String(a.kode).startsWith(prefix)).map(a=>({name:a.nama,code:a.kode,value:Number((data[mapName]||{})[a.id]||0),indent}));
+    }
+    function reportGroupByLevel3(data,prefix,mapName='balances'){
+        return data.groupAccounts.filter(a=>String(a.kode).startsWith(prefix)).map(g=>({group:g, value:reportGroupTotal(data,g.kode.replace(/\.00$/,''),mapName)}));
+    }
+
+    function buildProfitLossReport(data){
+        const incomeService=data.groupAccounts.find(a=>a.kode==='4.1.00.00');
+        const incomeGoods=data.groupAccounts.find(a=>a.kode==='4.2.00.00');
+        const incomeFinished=data.groupAccounts.find(a=>a.kode==='4.3.00.00');
+        const hppGoods=data.groupAccounts.find(a=>a.kode==='5.1.00.00');
+        const hppFinished=data.groupAccounts.find(a=>a.kode==='5.2.00.00');
+        const grossRevenue=reportGroupTotal(data,'4.','movements');
+        const hpp=reportGroupTotal(data,'5.','movements');
+        const opExpense=reportGroupTotal(data,'6.','movements');
+        const otherIncome=reportGroupTotal(data,'7.1.','movements');
+        const otherExpense=reportGroupTotal(data,'7.2.','movements')+reportGroupTotal(data,'7.3.','movements');
+        const service=incomeService?reportGroupTotal(data,'4.1.','movements'):0;
+        const goods=incomeGoods?reportGroupTotal(data,'4.2.','movements'):0;
+        const finished=incomeFinished?reportGroupTotal(data,'4.3.','movements'):0;
+        const gross=service+goods+finished-hpp;
+        const op=gross-opExpense;
+        const net=op+otherIncome-otherExpense;
+        const groups=['4.1.','4.2.','4.3.','5.1.','5.2.','6.1.','6.2.','6.3.','7.1.','7.2.','7.3.'];
+        const rows=[];
+        rows.push({type:'section',name:'PENDAPATAN USAHA'});
+        ['4.1.','4.2.','4.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''), 'movements',2).forEach(r=>rows.push(r));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Total Pendapatan',value:grossRevenue});
+        rows.push({type:'section',name:'HARGA POKOK PENJUALAN'});
+        ['5.1.','5.2.','5.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:-rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Laba (Rugi) Kotor',value:gross});
+        rows.push({type:'section',name:'BEBAN-BEBAN USAHA'});
+        ['6.1.','6.2.','6.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:-rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Laba (Rugi) Operasi',value:op});
+        rows.push({type:'section',name:'PENDAPATAN DAN BEBAN LAIN-LAIN'});
+        ['7.1.','7.2.','7.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                const sign=pref==='7.1.'?1:-1;
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:r.value*sign}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:rptGroup(data,g.kode.replace(/\.00$/,''),'movements')*sign});
+            });
+        });
+        rows.push({type:'grand',name:'LABA (RUGI) BERSIH TAHUN BERJALAN',value:net});
+        return {rows,net,grossRevenue,hpp,opExpense,otherIncome,otherExpense};
+    }
+    function rptGroup(data,prefix,mapName){return reportGroupTotal(data,prefix,mapName);}
+
+    function buildBalanceSheetReport(data){
+        const sections=[
+            {title:'ASET LANCAR',prefix:'1.1.',exclude:['1.1.99.'],sub:['1.1.01.','1.1.02.','1.1.03.','1.1.04.','1.1.05.','1.1.06.','1.1.07.','1.1.98.']},
+            {title:'INVESTASI',prefix:'1.2.',sub:['1.2.01.']},
+            {title:'ASET TETAP',prefix:'1.3.',sub:['1.3.01.','1.3.02.','1.3.03.','1.3.04.','1.3.05.','1.3.06.','1.3.07.','1.3.99.']},
+            {title:'ASET TAKBERWUJUD',prefix:'1.4.',sub:['1.4.01.','1.4.02.']},
+            {title:'ASET LAIN-LAIN',prefix:'1.9.',sub:['1.9.01.','1.9.02.']}
+        ];
+        const rows=[]; let totalAssets=0;
+        sections.forEach(sec=>{
+            rows.push({type:'section',name:sec.title}); let secTotal=0;
+            sec.sub.forEach(pref=>{
+                const g=data.groupAccounts.find(a=>a.kode.startsWith(pref));
+                if(!g) return;
+                let val=reportGroupTotal(data,pref,'balances');
+                if(sec.exclude?.some(x=>pref.startsWith(x))) val=0;
+                secTotal+=val;
+                rows.push({type:'group',name:g.nama,value:val});
+                reportRowsForGroup(data,pref,'balances',2).forEach(r=>rows.push(r));
+            });
+            rows.push({type:'subtotal',name:`Total ${sec.title.replace(/^ASET /,'Aset ')}`,value:secTotal}); totalAssets+=secTotal;
+        });
+        rows.push({type:'grand',name:'TOTAL ASET',value:totalAssets});
+        rows.push({type:'section',name:'KEWAJIBAN'}); let totalLiab=0;
+        [['2.1.','KEWAJIBAN JANGKA PENDEK'],['2.2.','KEWAJIBAN JANGKA PANJANG']].forEach(([pref,title])=>{
+            const val=reportGroupTotal(data,pref,'balances'); totalLiab+=val;
+            rows.push({type:'group',name:title,value:val});
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{rows.push({type:'group',name:g.nama,value:reportGroupTotal(data,g.kode.replace(/\.00$/,''),'balances')}); reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'balances',2).forEach(r=>rows.push(r));});
+            rows.push({type:'subtotal',name:`Total ${title}`,value:val});
+        });
+        rows.push({type:'grand',name:'TOTAL KEWAJIBAN',value:totalLiab});
+        rows.push({type:'section',name:'EKUITAS'}); const equity=reportGroupTotal(data,'3.','balances')-reportGroupTotal(data,'3.9.','balances');
+        rows.push({type:'group',name:'Ekuitas Akhir',value:equity});
+        rows.push({type:'grand',name:'TOTAL EKUITAS',value:equity});
+        rows.push({type:'grand',name:'TOTAL KEWAJIBAN DAN EKUITAS',value:totalLiab+equity});
+        return {rows,totalAssets,totalLiab,equity};
+    }
+
+    function buildEquityReport(data,profit){
+        const modalDesa=reportGroupTotal(data,'3.1.01.','balances');
+        const modalMasy=reportGroupTotal(data,'3.1.02.','balances');
+        const saldoTidak=reportGroupTotal(data,'3.3.01.01','balances');
+        const saldoCad=reportGroupTotal(data,'3.3.01.02','balances')+reportGroupTotal(data,'3.3.01.03','balances');
+        const donasi=reportGroupTotal(data,'3.4.01.','balances');
+        const rows=[
+            {type:'section',name:'PENYERTAAN MODAL'},
+            {type:'group',name:'Penyertaan modal awal:'},
+            {name:'Penyertaan Modal Desa',value:modalDesa,indent:2},
+            {name:'Penyertaan Modal Masyarakat',value:modalMasy,indent:2},
+            {type:'group',name:'Penambahan Investasi periode berjalan:'},
+            {name:'Penyertaan Modal Desa',value:reportGroupTotal(data,'3.1.01.','movements'),indent:2},
+            {name:'Penyertaan Modal Masyarakat',value:reportGroupTotal(data,'3.1.02.','movements'),indent:2},
+            {type:'subtotal',name:'Penyertaan Modal Akhir',value:modalDesa+modalMasy},
+            {type:'section',name:'SALDO LABA'},
+            {name:'Saldo Laba Awal — Tidak Dicadangkan',value:saldoTidak,indent:1},
+            {name:'Saldo Laba Awal — Dicadangkan',value:saldoCad,indent:1},
+            {name:'Laba (Rugi) periode berjalan',value:profit,indent:1},
+            {type:'group',name:'Bagi Hasil Penyertaan:'},
+            {name:'Bagi Hasil Penyertaan Modal Desa',value:-Math.abs(reportGroupTotal(data,'3.2.01.','movements')),indent:2},
+            {name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-Math.abs(reportGroupTotal(data,'3.2.02.','movements')),indent:2},
+            {type:'subtotal',name:'Saldo Laba Akhir',value:saldoTidak+saldoCad+profit-Math.abs(reportGroupTotal(data,'3.2.','movements'))},
+            {type:'section',name:'MODAL DONASI/SUMBANGAN'},
+            {name:'Modal Donasi/Sumbangan',value:donasi,indent:1},
+            {type:'grand',name:'EKUITAS AKHIR',value:modalDesa+modalMasy+saldoTidak+saldoCad+profit-Math.abs(reportGroupTotal(data,'3.2.','movements'))+donasi}
+        ];
+        return {rows};
+    }
+
+    function buildCashFlowReport(data,profit){
+        // Metode langsung berbasis jurnal: transaksi yang melibatkan kas/bank
+        // dikelompokkan menurut akun lawan. Jika satu transaksi memiliki lebih
+        // dari satu akun lawan, nilai kas dialokasikan proporsional terhadap lawan.
+        const cashAccounts=data.leafAccounts.filter(a=>a.kode.startsWith('1.1.01.')||a.kode.startsWith('1.1.02.'));
+        const cashIds=new Set(cashAccounts.map(a=>a.id));
+        const byTx=new Map();
+        data.journals.filter(j=>j.journal_date>=data.startDate&&j.journal_date<=data.endDate).forEach(j=>{if(!byTx.has(j.transaction_id))byTx.set(j.transaction_id,[]);byTx.get(j.transaction_id).push(j);});
+        const flow={operasi:{in:0,out:0},investasi:{in:0,out:0},pendanaan:{in:0,out:0}};
+        const classify=(a)=>{const c=String(a?.kode||''); if(c.startsWith('1.2.')||c.startsWith('1.3.')||c.startsWith('1.4.')||c.startsWith('1.9.')||c.startsWith('7.1.05.')||c.startsWith('7.2.04.'))return'investasi'; if(c.startsWith('2.2.')||c.startsWith('3.1.')||c.startsWith('3.4.')||c.startsWith('3.2.'))return'pendanaan'; return'operasi';};
+        byTx.forEach(lines=>{
+            const cash=lines.filter(j=>cashIds.has(j.account_id)); const others=lines.filter(j=>!cashIds.has(j.account_id)); if(!cash.length||!others.length)return;
+            const totalOther=others.reduce((s,j)=>s+Number(j.debit||0)+Number(j.credit||0),0)||1;
+            cash.forEach(c=>{
+                const amount=Number(c.debit||0)>0?Number(c.debit):Number(c.credit||0); if(!amount)return;
+                const incoming=Number(c.debit||0)>0; const weights=others.map(o=>({o, w:(Number(o.debit||0)+Number(o.credit||0))/totalOther}));
+                weights.forEach(({o,w})=>{const cat=classify(data.accountMap.get(o.account_id)); const v=amount*w; if(incoming)flow[cat].in+=v;else flow[cat].out+=v;});
+            });
+        });
+        const netOp=flow.operasi.in-flow.operasi.out, netInv=flow.investasi.in-flow.investasi.out, netFin=flow.pendanaan.in-flow.pendanaan.out, increase=netOp+netInv+netFin;
+        const cashEnd=cashAccounts.reduce((s,a)=>s+Number(data.balances[a.id]||0),0);
+        const cashOpen=cashEnd-increase;
+        const rows=[
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS OPERASI'},
+            {type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan kas dari penjualan barang dan jasa',value:flow.operasi.in,indent:2},{name:'Penerimaan kas dari bunga dan dividen',value:0,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas operasi',value:flow.operasi.in},
+            {type:'group',name:'Arus Kas Keluar'},{name:'Pengeluaran kas untuk pembayaran ke pemasok barang dan jasa',value:-flow.operasi.out,indent:2},{name:'Pengeluaran kas untuk pembayaran gaji/upah pegawai/karyawan',value:0,indent:2},{name:'Pengeluaran kas untuk pembayaran pajak',value:0,indent:2},{name:'Pengeluaran kas untuk pembayaran bunga',value:0,indent:2},{name:'Pengeluaran kas untuk pembayaran beban-beban yang lain',value:0,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas operasi',value:-flow.operasi.out},{type:'grand',name:'Arus kas bersih dari aktivitas operasi',value:netOp},
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS INVESTASI'},{name:'Penerimaan Kas dari Penjualan Aset Tetap',value:flow.investasi.in,indent:1},{name:'Penerimaan Kas dari Penjualan Investasi',value:0,indent:1},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas Investasi',value:flow.investasi.in},{name:'Pengeluaran Kas untuk Pembelian Aset Tetap',value:-flow.investasi.out,indent:1},{name:'Pengeluaran Kas untuk Pembelian Investasi',value:0,indent:1},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas Investasi',value:-flow.investasi.out},{type:'grand',name:'Arus kas bersih dari aktivitas Investasi',value:netInv},
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS PENDANAAN'},{name:'Penerimaan kas dari penyertaan modal desa',value:flow.pendanaan.in,indent:1},{name:'Penerimaan kas dari penyertaan modal masyarakat',value:0,indent:1},{name:'Penerimaan kas dari modal donasi/sumbangan',value:0,indent:1},{name:'Penerimaan kas dari utang jangka panjang',value:0,indent:1},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas Pendanaan',value:flow.pendanaan.in},{name:'Pembayaran bagi hasil penyertaan modal desa',value:-flow.pendanaan.out,indent:1},{name:'Pembayaran bagi hasil penyertaan modal masyarakat',value:0,indent:1},{name:'Pembayaran pokok utang jangka panjang',value:0,indent:1},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas Pendanaan',value:-flow.pendanaan.out},{type:'grand',name:'Arus kas bersih dari aktivitas Pendanaan',value:netFin},
+            {type:'grand',name:'Kenaikan (Penurunan) Kas',value:increase},{name:'Saldo kas awal tahun',value:cashOpen,indent:1},{type:'grand',name:'Saldo kas akhir tahun',value:cashEnd}
+        ];
+        return {rows,netOp,netInv,netFin,increase,cashOpen,cashEnd};
+    }
+
+    function renderReportRows(rows, comparative=false){
+        let n=0;
+        return rows.map(r=>{
+            const cls=r.type||''; const indent=r.indent?`indent-${Math.min(2,r.indent)}`:'';
+            const value=r.value;
+            const valCell=typeof value==='number'?`<td class="num ${value<0?'report-negative':value>0?'report-positive':''}">${reportSigned(value)}</td>`:'<td class="num">–</td>';
+            if(r.type==='section') return `<tr class="section"><td colspan="2">${escapeHtml(r.name)}</td>${comparative?'<td></td>':''}</tr>`;
+            if(r.type==='group') return `<tr class="group"><td></td><td class="${indent}">${escapeHtml(r.name)}</td>${valCell}${comparative?'<td class="num">–</td>':''}</tr>`;
+            n++; return `<tr class="${cls}"><td class="no">${n}</td><td class="${indent}">${escapeHtml(r.name||'')}</td>${valCell}</tr>`;
+        }).join('');
+    }
+
+    function renderBalanceRows(rows, data){
+        let n=0;
+        return rows.map(r=>{
+            const cls=r.type||''; const indent=r.indent?`indent-${Math.min(2,r.indent)}`:''; const v=Number(r.value||0);
+            if(r.type==='section') return `<tr class="section"><td colspan="3">${escapeHtml(r.name)}</td></tr>`;
+            n++; return `<tr class="${cls}"><td class="no">${n}</td><td class="${indent}">${escapeHtml(r.name||'')}</td><td class="num ${v<0?'report-negative':''}">${reportSigned(v)}</td></tr>`;
+        }).join('');
+    }
+
+    function reportHeaderHtml(data,title,scopeLabel){
+        const bumdesName=activeAppBumdes?.nama||'BUM Desa';
+        return `<div class="report-card-head"><div class="report-brand">${escapeHtml(bumdesName)}</div><div class="report-title">${escapeHtml(title)}</div><div class="report-period">Periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} · ${escapeHtml(scopeLabel)}</div></div>`;
+    }
+
+    async function renderFinancialReportModule(module){
+        const bumdesId=activeAppProfile.bumdes_id;
+        const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
+        if(uErr) throw uErr;
+        const preset=reportPeriodPreset('tahunan');
+        const scopeOptions=reportScopeOptions(activeAppProfile,units||[]);
+        const reportNames={labarugi:'Laporan Laba Rugi',neraca:'Laporan Posisi Keuangan (Neraca)',aruskas:'Laporan Arus Kas',ekuitas:'Laporan Perubahan Ekuitas',calk:'Catatan atas Laporan Keuangan (CALK)'};
+        showModuleShell(module,`<div class="report-page">
+            <div class="report-control-card no-print">
+                <div class="report-tabs">
+                    ${Object.entries(reportNames).map(([k,v])=>`<button class="report-tab ${k===module?'active':''}" data-report-tab="${k}">${escapeHtml(v.replace('Laporan ',''))}</button>`).join('')}
+                </div>
+                <div class="report-control-grid">
+                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" selected>Tahunan</option><option value="custom">Custom</option></select></div>
+                    <div><div class="report-control-label">Dari</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
+                    <div><div class="report-control-label">Sampai</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
+                    <div><div class="report-control-label">Lingkup Laporan</div><select id="reportScope" class="form-select">${scopeOptions}</select></div>
+                    <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>PDF / Cetak</button></div>
+                </div>
+                <div class="report-toolbar-note mt-2"><i class="bi bi-info-circle me-1"></i>Format dan susunan mengikuti contoh halaman 42–55 Pedoman Aplikasi. Akun diambil dari COA e-BUMDesa.</div>
+            </div>
+            <div id="financialReportOutput" class="report-card"><div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menyiapkan laporan...</div></div>
+        </div>`);
+
+        const presetEl=$('reportPreset'), startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
+        presetEl.addEventListener('change',()=>{if(presetEl.value!=='custom'){const p=reportPeriodPreset(presetEl.value);startEl.value=p.start;endEl.value=p.end;}});
+        document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab)));
+        $('btnPrintReport').addEventListener('click',()=>window.print());
+        $('btnGenerateReport').addEventListener('click',()=>refreshFinancialReport(module));
+        await refreshFinancialReport(module);
+    }
+
+    async function refreshFinancialReport(module){
+        const out=$('financialReportOutput'); if(!out)return;
+        const start=$('reportStart').value, end=$('reportEnd').value, scope=$('reportScope').value;
+        if(!start||!end||start>end){out.innerHTML='<div class="report-empty"><i class="bi bi-exclamation-circle"></i><div class="mt-2 fw-semibold">Periode laporan tidak valid.</div></div>';return;}
+        out.innerHTML='<div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menghitung laporan dari jurnal dan saldo awal...</div>';
+        try{
+            const data=await loadFinancialReportData({module,startDate:start,endDate:end,scope});
+            const scopeLabel=scope==='pusat'?'Kantor Pusat':scope==='gabungan'?'Gabungan / Konsolidasian':`Unit Usaha`;
+            let html=reportHeaderHtml(data,{labarugi:'LAPORAN LABA RUGI',neraca:'LAPORAN POSISI KEUANGAN (NERACA)',aruskas:'LAPORAN ARUS KAS',ekuitas:'LAPORAN PERUBAHAN EKUITAS',calk:'CATATAN ATAS LAPORAN KEUANGAN (CALK)'}[module],scopeLabel);
+            if(module==='labarugi'){
+                const p=buildProfitLossReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Pendapatan</div><div class="report-mini-value">${reportSigned(p.grossRevenue)}</div></div><div class="report-mini-card"><div class="report-mini-label">HPP</div><div class="report-mini-value">${reportSigned(p.hpp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Beban Usaha</div><div class="report-mini-value">${reportSigned(p.opExpense)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba/Rugi Bersih</div><div class="report-mini-value ${p.net<0?'report-negative':'report-positive'}">${reportSigned(p.net)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(p.rows)}</tbody></table></div>`;
+            } else if(module==='neraca'){
+                const b=buildBalanceSheetReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Total Aset</div><div class="report-mini-value">${reportSigned(b.totalAssets)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban</div><div class="report-mini-value">${reportSigned(b.totalLiab)}</div></div><div class="report-mini-card"><div class="report-mini-label">Ekuitas</div><div class="report-mini-value">${reportSigned(b.equity)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban + Ekuitas</div><div class="report-mini-value">${reportSigned(b.totalLiab+b.equity)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderBalanceRows(b.rows,data)}</tbody></table></div>`;
+            } else if(module==='ekuitas'){
+                const p=buildProfitLossReport(data), e=buildEquityReport(data,p.net); html+=`<div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(e.rows)}</tbody></table></div>`;
+            } else if(module==='aruskas'){
+                const p=buildProfitLossReport(data), c=buildCashFlowReport(data,p.net); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Kas Awal</div><div class="report-mini-value">${reportSigned(c.cashOpen)}</div></div><div class="report-mini-card"><div class="report-mini-label">Operasi</div><div class="report-mini-value">${reportSigned(c.netOp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Investasi</div><div class="report-mini-value">${reportSigned(c.netInv)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kas Akhir</div><div class="report-mini-value">${reportSigned(c.cashEnd)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(c.rows)}</tbody></table></div>`;
+            } else {
+                html+=`<div class="report-table-wrap"><table class="report-table"><tbody>
+                    <tr class="section"><td colspan="2">A. PERNYATAAN LAPORAN KEUANGAN DISUSUN SESUAI KEPUTUSAN MENTERI DESA PDTT NOMOR 136 TAHUN 2022</td></tr>
+                    <tr><td class="no">1</td><td>Dasar penyusunan laporan keuangan mengacu pada pedoman laporan keuangan BUM Desa.</td></tr>
+                    <tr class="section"><td colspan="2">B. DASAR PENYUSUNAN LAPORAN KEUANGAN</td></tr>
+                    <tr><td class="no">2</td><td>Laporan disusun berdasarkan data transaksi, jurnal, dan saldo awal yang tersedia dalam sistem e-BUMDesa.</td></tr>
+                    <tr class="section"><td colspan="2">C. RINGKASAN KEBIJAKAN AKUNTANSI SIGNIFIKAN</td></tr>
+                    <tr><td class="no">3</td><td>Dasar pengukuran dan kebijakan akuntansi pokok disajikan sesuai pedoman yang digunakan BUM Desa.</td></tr>
+                    <tr class="section"><td colspan="2">D. RINCIAN POS-POS LAPORAN KEUANGAN</td></tr>
+                    <tr><td class="no">4</td><td>Aset</td></tr><tr><td class="no">5</td><td>Kewajiban</td></tr><tr><td class="no">6</td><td>Ekuitas</td></tr><tr><td class="no">7</td><td>Pendapatan</td></tr><tr><td class="no">8</td><td>Beban-Beban</td></tr><tr><td class="no">9</td><td>Pendapatan Lain-lain</td></tr><tr><td class="no">10</td><td>Beban Lain-lain</td></tr>
+                    <tr class="section"><td colspan="2">E. PENGUNGKAPAN LAIN</td></tr>
+                    <tr><td class="no">11</td><td>Informasi tambahan yang relevan terhadap pemahaman laporan keuangan.</td></tr>
+                </tbody></table></div>`;
+            }
+            html+=`<div class="report-footer"><span>e-BUMDesa · Laporan Keuangan</span><span>Dicetak: ${fmtDateTime(new Date())}</span></div>`;
+            out.innerHTML=html;
+        }catch(err){console.error(err);out.innerHTML=`<div class="report-empty"><i class="bi bi-exclamation-triangle"></i><div class="mt-2 fw-semibold">Gagal membuat laporan</div><div class="small mt-1">${escapeHtml(err.message||String(err))}</div></div>`;}
+    }
 
     // =========================================================
     // MODUL SALDO AWAL
