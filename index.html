@@ -3939,11 +3939,10 @@
                     showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti baru: ${latestTx.transaction_number}. Tanggal: ${fmtDate(latestTx.transaction_date)}.`);
                     close();
 
-                    // Jangan mempertahankan DOM/data transaksi lama. Setelah perubahan header
-                    // transaksi dan jurnal selesai, muat ulang halaman aplikasi agar daftar
-                    // Riwayat Transaksi pasti membaca record terbaru dari Supabase.
-                    // Sesi login tetap dipertahankan oleh Supabase Auth.
-                    setTimeout(() => window.location.reload(), 250);
+                    // Tetap berada di menu Transaksi. Muat ulang hanya modul Transaksi
+                    // agar Riwayat Transaksi langsung membaca data terbaru dari Supabase
+                    // tanpa me-refresh seluruh halaman atau mengembalikan pengguna ke Dashboard.
+                    await renderTransactionsModule();
 
                 } catch (err) {
                     console.error(err);
