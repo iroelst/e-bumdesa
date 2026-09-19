@@ -3320,17 +3320,37 @@
             });
         });
 
+        // Tentukan saldo normal. Beberapa data COA lama dapat memiliki
+        // normal_balance kosong; jangan otomatis menganggapnya Debit karena
+        // akun Pendapatan, Kewajiban, dan Ekuitas secara normal bersaldo Kredit.
+        const getNormalBalance = (account) => {
+            if (!account) return "D";
+            const stored = String(account.normal_balance || "").trim().toUpperCase();
+            if (stored === "D" || stored === "K") return stored;
+
+            const type = String(account.account_type || "").toLowerCase();
+            const code = String(account.kode || "");
+
+            if (["kewajiban", "ekuitas", "pendapatan"].includes(type)) return "K";
+            if (["aset", "hpp", "beban"].includes(type)) return "D";
+            if (type === "lain_lain") return code.startsWith("7.1") ? "K" : "D";
+
+            // Akun kontra aset pada pedoman bersaldo Kredit.
+            if (code.startsWith("1.1.04.") || code.startsWith("1.3.07.") ||
+                code.startsWith("1.4.02.") || code.startsWith("1.9.02.")) return "K";
+
+            return "D";
+        };
+
         // Saldo akun: saldo awal + jurnal tahun berjalan.
-        // Saldo dinormalisasi mengikuti normal_balance akun (D/K).
+        // Saldo dinormalisasi mengikuti saldo normal akun (D/K).
         const accountBalances = new Map();
         const addNormalizedBalance = (accountId, debit, credit) => {
             const account = accountMap.get(accountId);
             if (!account) return;
             const d = Number(debit || 0);
             const c = Number(credit || 0);
-            const delta = String(account.normal_balance || "D").toUpperCase() === "K"
-                ? (c - d)
-                : (d - c);
+            const delta = getNormalBalance(account) === "K" ? (c - d) : (d - c);
             accountBalances.set(
                 accountId,
                 Number(accountBalances.get(accountId) || 0) + delta
@@ -3345,8 +3365,7 @@
             if (!account) return 0;
             const d = Number(debit || 0);
             const c = Number(credit || 0);
-            const normal = String(account.normal_balance || "D").toUpperCase();
-            const balance = normal === "K" ? (c - d) : (d - c);
+            const balance = getNormalBalance(account) === "K" ? (c - d) : (d - c);
 
             if (account.account_type === "pendapatan") return balance;
             if (account.account_type === "hpp" || account.account_type === "beban") return -balance;
