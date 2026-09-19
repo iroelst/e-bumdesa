@@ -2126,6 +2126,28 @@
             }
             .no-print { display:none !important; }
         }
+
+        .cashbank-head{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:20px 22px;border:1px solid #e8edf3;background:#fff;border-radius:16px;}
+        .cashbank-kicker{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#6b7280;margin-bottom:4px;}
+        .cashbank-filters{display:flex;gap:8px;min-width:260px;}
+        .cashbank-summary-card{height:100%;padding:18px 20px;border:1px solid #e8edf3;border-radius:15px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.035);}
+        .cashbank-summary-card.primary{border-color:#d9e6ff;background:linear-gradient(135deg,#f8fbff,#fff);}
+        .cashbank-summary-label{font-size:.82rem;color:#6b7280;font-weight:600;}
+        .cashbank-summary-value{font-size:1.35rem;font-weight:800;margin-top:5px;color:#172033;}
+        .cashbank-summary-note{font-size:.72rem;color:#8a93a3;margin-top:3px;}
+        .panel-header-modern{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 20px;border-bottom:1px solid #edf0f4;}
+        .cashbank-total-mini{font-size:.75rem;color:#6b7280;background:#f5f7fa;border:1px solid #e7ebf0;border-radius:999px;padding:5px 10px;white-space:nowrap;}
+        .cashbank-account-card{border:1px solid #e7ebf0;border-radius:15px;padding:16px;background:#fff;height:100%;transition:.15s ease;}
+        .cashbank-account-card:hover{box-shadow:0 7px 20px rgba(15,23,42,.07);transform:translateY(-1px);}
+        .cashbank-account-top{display:flex;align-items:center;gap:11px;}
+        .cashbank-account-icon{width:42px;height:42px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#334155;flex:0 0 42px;}
+        .cashbank-account-name{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .cashbank-account-code{font-size:.72rem;color:#8a93a3;margin-top:2px;}
+        .cashbank-account-balance{font-weight:800;font-size:.98rem;white-space:nowrap;}
+        .cashbank-account-meta{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0;font-size:.7rem;color:#7b8493;}
+        .cashbank-account-meta span{padding:4px 7px;border-radius:7px;background:#f7f8fa;}
+        .cashbank-detail-panel{scroll-margin-top:20px;}
+        @media(max-width:700px){.cashbank-head{align-items:stretch;flex-direction:column}.cashbank-filters{min-width:0;flex-direction:column}.cashbank-account-balance{font-size:.9rem}.cashbank-account-top{align-items:flex-start}}
 </style>
 
 
@@ -6142,15 +6164,194 @@
     }
 
     async function renderCashBankModule() {
-        const { data, error } = await supabaseClient.from("journals").select("account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id);
-        if(error) throw error;
-        if(!data?.length) return showModuleShell("kasbank", moduleEmpty("Belum ada transaksi kas/bank."));
-        const ids=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
-        if(ids.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama,account_type").in("id",ids);acc=r.data||[];}
-        const cashAcc=acc.filter(a=>a.account_type==="aset" && /kas|bank/i.test(a.nama)); const map=new Map(data.map(x=>[x.account_id,x]));
-        const rows=cashAcc.map((a,i)=>{const ds=data.filter(j=>j.account_id===a.id).reduce((n,j)=>n+Number(j.debit||0),0);const cs=data.filter(j=>j.account_id===a.id).reduce((n,j)=>n+Number(j.credit||0),0);return `<tr><td>${i+1}</td><td>${escapeHtml(a.kode)}</td><td>${escapeHtml(a.nama)}</td><td class="text-end">${rupiah(ds)}</td><td class="text-end">${rupiah(cs)}</td><td class="text-end"><strong>${rupiah(ds-cs)}</strong></td></tr>`;}).join("");
-        if(!rows) return showModuleShell("kasbank", moduleEmpty("Belum ada akun Kas/Bank yang memiliki mutasi."));
-        showModuleShell("kasbank", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Kode</th><th>Akun</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) return showModuleShell("kasbank", moduleEmpty("BUMDes belum terhubung dengan akun."));
+
+        const now = new Date();
+        const defaultYear = now.getFullYear();
+        const years = [defaultYear, defaultYear - 1, defaultYear - 2, defaultYear - 3];
+
+        // Rekening Kas/Bank mengikuti COA sumber: Kas 1.1.01.xx dan Setara Kas 1.1.02.xx.
+        const { data: accounts, error: accountError } = await supabaseClient
+            .from("chart_of_accounts")
+            .select("id,kode,nama,level,account_type,normal_balance,is_active")
+            .eq("is_active", true)
+            .eq("level", 4)
+            .eq("account_type", "aset")
+            .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+            .order("kode", { ascending: true });
+        if (accountError) throw accountError;
+
+        const cashAccounts = (accounts || []).filter(a => /^1\.1\.01\.|^1\.1\.02\./.test(String(a.kode || "")));
+        if (!cashAccounts.length) return showModuleShell("kasbank", moduleEmpty("Akun Kas/Bank belum tersedia pada COA."));
+
+        showModuleShell("kasbank", `
+            <div class="cashbank-head panel mb-3">
+                <div>
+                    <div class="cashbank-kicker"><i class="bi bi-wallet2"></i> KEUANGAN</div>
+                    <h4 class="mb-1">Kas & Bank</h4>
+                    <div class="text-secondary small">Daftar rekening, saldo, dan mutasi berdasarkan jurnal serta saldo awal.</div>
+                </div>
+                <div class="cashbank-filters">
+                    <select id="cashBankYear" class="form-select form-select-sm">
+                        ${years.map(y => `<option value="${y}" ${y === defaultYear ? "selected" : ""}>Tahun ${y}</option>`).join("")}
+                    </select>
+                    <select id="cashBankUnit" class="form-select form-select-sm">
+                        <option value="all">Semua Unit</option>
+                    </select>
+                </div>
+            </div>
+            <div id="cashBankContent"><div class="panel p-4 text-center text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat rekening...</div></div>
+        `);
+
+        const unitSelect = $("cashBankUnit");
+        let units = [];
+        if (unitSelect) {
+            const { data: unitData, error: unitError } = await supabaseClient
+                .from("units").select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId).order("created_at", { ascending: true });
+            if (unitError) throw unitError;
+            units = unitData || [];
+            units.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.id;
+                opt.textContent = `${u.nama_unit}${u.kode_unit ? ` (${u.kode_unit})` : ""}`;
+                unitSelect.appendChild(opt);
+            });
+            if (typeof isUnitUser !== "undefined" && isUnitUser && typeof allowedUnitId !== "undefined" && allowedUnitId) {
+                unitSelect.value = allowedUnitId;
+                unitSelect.disabled = true;
+            }
+        }
+
+        const load = async () => {
+            const year = Number($("cashBankYear")?.value || defaultYear);
+            const unitId = $("cashBankUnit")?.value || "all";
+            const start = `${year}-01-01`;
+            const end = `${year}-12-31`;
+
+            // Periode tahunan dipakai untuk saldo awal, sama seperti perhitungan posisi keuangan dashboard.
+            const { data: period } = await supabaseClient
+                .from("account_periods").select("id")
+                .eq("bumdes_id", bumdesId).eq("period_type", "tahunan")
+                .eq("start_date", start).eq("end_date", end).limit(1).maybeSingle();
+
+            let openingQuery = supabaseClient
+                .from("opening_balances")
+                .select("account_id,unit_id,debit,credit")
+                .eq("bumdes_id", bumdesId);
+            if (period?.id) openingQuery = openingQuery.eq("period_id", period.id);
+            if (unitId !== "all") openingQuery = openingQuery.eq("unit_id", unitId);
+            const { data: openings, error: openingError } = await openingQuery;
+            if (openingError) throw openingError;
+
+            let journalQuery = supabaseClient
+                .from("journals")
+                .select("id,account_id,unit_id,journal_date,journal_number,description,debit,credit")
+                .eq("bumdes_id", bumdesId)
+                .gte("journal_date", start).lte("journal_date", end)
+                .order("journal_date", { ascending: true }).order("created_at", { ascending: true });
+            if (unitId !== "all") journalQuery = journalQuery.eq("unit_id", unitId);
+            const { data: journals, error: journalError } = await journalQuery;
+            if (journalError) throw journalError;
+
+            const accById = new Map(cashAccounts.map(a => [a.id, a]));
+            const openingByAccount = new Map();
+            (openings || []).forEach(o => {
+                if (!accById.has(o.account_id)) return;
+                const v = Number(o.debit || 0) - Number(o.credit || 0);
+                openingByAccount.set(o.account_id, (openingByAccount.get(o.account_id) || 0) + v);
+            });
+
+            const journalByAccount = new Map();
+            (journals || []).forEach(j => {
+                if (!accById.has(j.account_id)) return;
+                if (!journalByAccount.has(j.account_id)) journalByAccount.set(j.account_id, []);
+                journalByAccount.get(j.account_id).push(j);
+            });
+
+            const accountRows = cashAccounts.map(a => {
+                const js = journalByAccount.get(a.id) || [];
+                const opening = openingByAccount.get(a.id) || 0;
+                const debit = js.reduce((n, j) => n + Number(j.debit || 0), 0);
+                const credit = js.reduce((n, j) => n + Number(j.credit || 0), 0);
+                const balance = opening + debit - credit;
+                return { a, opening, debit, credit, balance, count: js.length };
+            });
+
+            const visibleRows = accountRows.filter(r => r.opening !== 0 || r.debit !== 0 || r.credit !== 0);
+            const totalBalance = visibleRows.reduce((n, r) => n + r.balance, 0);
+            const totalDebit = visibleRows.reduce((n, r) => n + r.debit, 0);
+            const totalCredit = visibleRows.reduce((n, r) => n + r.credit, 0);
+            const cashRows = visibleRows.filter(r => /^1\.1\.01\./.test(r.a.kode));
+            const cashBalance = cashRows.reduce((n, r) => n + r.balance, 0);
+            const equivalentRows = visibleRows.filter(r => /^1\.1\.02\./.test(r.a.kode));
+            const equivalentBalance = equivalentRows.reduce((n, r) => n + r.balance, 0);
+
+            const cards = visibleRows.map((r, i) => `
+                <div class="cashbank-account-card">
+                    <div class="cashbank-account-top">
+                        <div class="cashbank-account-icon"><i class="bi ${/^1\.1\.02\./.test(r.a.kode) ? "bi-safe2" : /tunai|kecil/i.test(r.a.nama) ? "bi-cash-stack" : "bi-bank"}"></i></div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="cashbank-account-name">${escapeHtml(r.a.nama)}</div>
+                            <div class="cashbank-account-code">${escapeHtml(r.a.kode)}</div>
+                        </div>
+                        <div class="cashbank-account-balance">${rupiah(r.balance)}</div>
+                    </div>
+                    <div class="cashbank-account-meta">
+                        <span>Debit ${rupiah(r.debit)}</span>
+                        <span>Kredit ${rupiah(r.credit)}</span>
+                        <span>${r.count} mutasi</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary w-100 cashbank-detail-btn" data-account-id="${r.a.id}">
+                        <i class="bi bi-list-ul me-1"></i>Lihat Mutasi Rekening
+                    </button>
+                </div>`).join("");
+
+            $("cashBankContent").innerHTML = `
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-4"><div class="cashbank-summary-card primary"><div class="cashbank-summary-label">Total Kas & Bank</div><div class="cashbank-summary-value">${rupiah(totalBalance)}</div><div class="cashbank-summary-note">Saldo seluruh rekening yang tampil</div></div></div>
+                    <div class="col-12 col-md-4"><div class="cashbank-summary-card"><div class="cashbank-summary-label">Kas & Bank Operasional</div><div class="cashbank-summary-value">${rupiah(cashBalance)}</div><div class="cashbank-summary-note">Akun 1.1.01.xx</div></div></div>
+                    <div class="col-12 col-md-4"><div class="cashbank-summary-card"><div class="cashbank-summary-label">Setara Kas</div><div class="cashbank-summary-value">${rupiah(equivalentBalance)}</div><div class="cashbank-summary-note">Akun 1.1.02.xx</div></div></div>
+                </div>
+
+                <div class="panel mb-3">
+                    <div class="panel-header-modern"><div><h5 class="mb-1">Daftar Rekening</h5><div class="text-secondary small">Saldo dihitung dari saldo awal dan jurnal tahun ${year}.</div></div><div class="cashbank-total-mini">${visibleRows.length} rekening</div></div>
+                    <div class="row g-3 p-3">${cards || `<div class="col-12">${moduleEmpty("Belum ada saldo atau mutasi pada rekening Kas/Bank untuk periode ini.")}</div>`}</div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header-modern"><div><h5 class="mb-1">Ringkasan Mutasi</h5><div class="text-secondary small">Total pergerakan debit dan kredit rekening Kas/Bank.</div></div></div>
+                    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Komponen</th><th class="text-end">Nilai</th></tr></thead>
+                        <tbody><tr><td>Saldo awal</td><td class="text-end">${rupiah(totalBalance - totalDebit + totalCredit)}</td></tr><tr><td>Total debit / kas masuk</td><td class="text-end text-success">${rupiah(totalDebit)}</td></tr><tr><td>Total kredit / kas keluar</td><td class="text-end text-danger">${rupiah(totalCredit)}</td></tr><tr class="fw-bold"><td>Saldo akhir</td><td class="text-end">${rupiah(totalBalance)}</td></tr></tbody>
+                    </table></div>
+                </div>
+
+                <div id="cashBankDetail" class="mt-3"></div>`;
+
+            document.querySelectorAll(".cashbank-detail-btn").forEach(btn => btn.addEventListener("click", () => {
+                const account = accById.get(btn.dataset.accountId);
+                const js = journalByAccount.get(btn.dataset.accountId) || [];
+                const opening = openingByAccount.get(btn.dataset.accountId) || 0;
+                let running = opening;
+                const rows = js.map((j, idx) => {
+                    running += Number(j.debit || 0) - Number(j.credit || 0);
+                    return `<tr><td>${fmtDate(j.journal_date)}</td><td>${escapeHtml(j.journal_number || "-")}</td><td>${escapeHtml(j.description || "-")}</td><td class="text-end text-success">${j.debit ? rupiah(j.debit) : "-"}</td><td class="text-end text-danger">${j.credit ? rupiah(j.credit) : "-"}</td><td class="text-end fw-semibold">${rupiah(running)}</td></tr>`;
+                }).join("");
+                $("cashBankDetail").innerHTML = `
+                    <div class="panel cashbank-detail-panel">
+                        <div class="panel-header-modern"><div><h5 class="mb-1">Mutasi: ${escapeHtml(account?.nama || "-")}</h5><div class="text-secondary small">Saldo awal ${rupiah(opening)} • ${rows ? js.length + " mutasi" : "belum ada mutasi"}</div></div><button type="button" class="btn btn-sm btn-light border" id="closeCashBankDetail"><i class="bi bi-x-lg"></i></button></div>
+                        <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="text-center text-secondary py-4">Belum ada mutasi pada rekening ini.</td></tr>`}</tbody></table></div>
+                    </div>`;
+                $("closeCashBankDetail")?.addEventListener("click", () => { $("cashBankDetail").innerHTML = ""; });
+                $("cashBankDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }));
+        };
+
+        $("cashBankYear")?.addEventListener("change", load);
+        $("cashBankUnit")?.addEventListener("change", load);
+        await load();
     }
 
     document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
