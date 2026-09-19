@@ -2030,6 +2030,96 @@
  .calk-section{break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}.calk-note{font-size:10px!important;line-height:1.55!important;color:#222!important}.calk-value-table td{padding:5px 7px!important}
  @page{size:A4 portrait;margin:12mm}
 }
+
+        /* ===== REPORT PRINT / PDF FIX ===== */
+        @media print {
+            @page { size: A4 portrait; margin: 10mm 10mm 12mm 10mm; }
+            html, body { background:#fff !important; height:auto !important; overflow:visible !important; }
+            body * { visibility:hidden !important; }
+            #financialReportOutput,
+            #financialReportOutput * { visibility:visible !important; }
+            #financialReportOutput {
+                display:block !important;
+                position:absolute !important;
+                left:0 !important;
+                top:0 !important;
+                width:100% !important;
+                max-width:none !important;
+                margin:0 !important;
+                padding:0 !important;
+                border:0 !important;
+                border-radius:0 !important;
+                box-shadow:none !important;
+                overflow:visible !important;
+                background:#fff !important;
+            }
+            #financialReportOutput .report-card,
+            #financialReportOutput.report-card {
+                display:block !important;
+                width:100% !important;
+                border:0 !important;
+                border-radius:0 !important;
+                box-shadow:none !important;
+                overflow:visible !important;
+                background:#fff !important;
+            }
+            #financialReportOutput .report-card-head {
+                padding:0 0 8mm !important;
+                background:#fff !important;
+                border-bottom:1px solid #222 !important;
+            }
+            #financialReportOutput .report-table-wrap {
+                overflow:visible !important;
+                width:100% !important;
+            }
+            #financialReportOutput .report-table {
+                width:100% !important;
+                border-collapse:collapse !important;
+                table-layout:auto !important;
+                font-size:10px !important;
+            }
+            #financialReportOutput .report-table th {
+                position:static !important;
+                background:#f3f3f3 !important;
+                color:#111 !important;
+                border-bottom:1px solid #333 !important;
+                padding:6px 8px !important;
+            }
+            #financialReportOutput .report-table td {
+                color:#111 !important;
+                border-bottom:1px solid #d8d8d8 !important;
+                padding:5px 8px !important;
+            }
+            #financialReportOutput .report-table thead {
+                display:table-header-group !important;
+            }
+            #financialReportOutput .report-table tr {
+                break-inside:avoid !important;
+                page-break-inside:avoid !important;
+            }
+            #financialReportOutput .report-table .group td,
+            #financialReportOutput .report-table .section td,
+            #financialReportOutput .report-table .subtotal td,
+            #financialReportOutput .report-table .grand td {
+                background:#fff !important;
+                color:#111 !important;
+            }
+            #financialReportOutput .report-table .grand td {
+                border-top:1.5px solid #111 !important;
+                border-bottom:1.5px solid #111 !important;
+            }
+            #financialReportOutput .calk-section,
+            #financialReportOutput .calk-block {
+                break-inside:avoid !important;
+                page-break-inside:avoid !important;
+            }
+            #financialReportOutput .calk-section-title {
+                color:#111 !important;
+                background:#f3f3f3 !important;
+                border-left:3px solid #315fae !important;
+            }
+            .no-print { display:none !important; }
+        }
 </style>
 
 
