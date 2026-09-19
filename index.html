@@ -3883,7 +3883,7 @@
     }
 
 function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
-        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Semua Unit";
+        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Pusat/Kantor Pusat";
         const bumdesName = activeAppBumdes?.nama || "BUM Desa";
         const alamat = [activeAppBumdes?.alamat, activeAppBumdes?.desa ? `Desa ${activeAppBumdes.desa}` : "", activeAppBumdes?.kecamatan ? `Kec. ${activeAppBumdes.kecamatan}` : "", activeAppBumdes?.kabupaten ? `Kab. ${activeAppBumdes.kabupaten}` : "", activeAppBumdes?.provinsi || ""].filter(Boolean).join(" · ");
         const printHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
@@ -6235,7 +6235,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         ${years.map(y => `<option value="${y}" ${y === defaultYear ? "selected" : ""}>Tahun ${y}</option>`).join("")}
                     </select>
                     <select id="cashBankUnit" class="form-select form-select-sm">
-                        <option value="all">Semua Unit</option>
+                        <option value="all">Pusat/Kantor Pusat</option>
                     </select>
                 </div>
             </div>
