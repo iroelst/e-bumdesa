@@ -3107,6 +3107,9 @@
     }
 
     async function renderTransactionsModule() {
+        const bumdesId = activeAppProfile.bumdes_id;
+        const canManageTransactions = activeAppProfile.role === "admin_pusat";
+
         const [
             { data: transactions, error: txError },
             { data: periods, error: periodError },
@@ -3114,26 +3117,24 @@
             { data: units, error: unitError }
         ] = await Promise.all([
             supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,created_by,created_at")
-                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                .eq("bumdes_id", bumdesId)
                 .order("transaction_date", { ascending:false })
                 .order("created_at", { ascending:false })
                 .limit(200),
             supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
-                .eq("bumdes_id", activeAppProfile.bumdes_id)
-                .eq("status", "open")
+                .eq("bumdes_id", bumdesId)
                 .order("start_date", { ascending:false }),
             supabaseClient.from("chart_of_accounts")
                 .select("id,kode,nama,level,account_type,is_active,bumdes_id")
                 .eq("is_active", true)
                 .eq("level", 4)
-                .or(`bumdes_id.is.null,bumdes_id.eq.${activeAppProfile.bumdes_id}`)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .order("kode", { ascending:true }),
             supabaseClient.from("units")
                 .select("id,nama_unit,kode_unit,status")
-                .eq("bumdes_id", activeAppProfile.bumdes_id)
-                .eq("status", "aktif")
+                .eq("bumdes_id", bumdesId)
                 .order("created_at", { ascending:true })
         ]);
 
@@ -3142,6 +3143,8 @@
         if (accountError) throw accountError;
         if (unitError) throw unitError;
 
+        const allPeriods = periods || [];
+        const openPeriods = allPeriods.filter(p => p.status === "open");
         const accountOptions = (accounts || []).map(a =>
             `<option value="${escapeHtml(a.id)}">${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`
         ).join("");
@@ -3149,20 +3152,20 @@
         let unitOptions = "";
         if (activeAppProfile.role === "admin_pusat") {
             unitOptions += `<option value="">Pusat / Kantor Pusat</option>`;
-            unitOptions += (units || []).map(u =>
+            unitOptions += (units || []).filter(u => u.status === "aktif").map(u =>
                 `<option value="${escapeHtml(u.id)}">${escapeHtml(u.kode_unit)} — ${escapeHtml(u.nama_unit)}</option>`
             ).join("");
         } else {
-            const ownUnit = (units || []).find(u => u.id === activeAppProfile.unit_id);
-            if (ownUnit) {
-                unitOptions = `<option value="${escapeHtml(ownUnit.id)}">${escapeHtml(ownUnit.kode_unit)} — ${escapeHtml(ownUnit.nama_unit)}</option>`;
-            }
+            const ownUnit = (units || []).find(u => u.id === activeAppProfile.unit_id && u.status === "aktif");
+            if (ownUnit) unitOptions = `<option value="${escapeHtml(ownUnit.id)}">${escapeHtml(ownUnit.kode_unit)} — ${escapeHtml(ownUnit.nama_unit)}</option>`;
         }
 
-        const formDisabled = (!periods?.length || !accounts?.length || !unitOptions);
+        const formDisabled = (!openPeriods.length || !accounts?.length || !unitOptions);
         const accountDisabled = !accounts?.length;
         const unitDisabled = !unitOptions;
         const today = new Date().toISOString().slice(0,10);
+        const periodMap = new Map(allPeriods.map(p => [p.id, p]));
+        const unitMap = new Map((units || []).map(u => [u.id, u]));
 
         const journalRow = (index = 0) => `
             <tr class="journal-input-row">
@@ -3172,15 +3175,9 @@
                         <option value="">Pilih akun detail</option>${accountOptions}
                     </select>
                 </td>
-                <td>
-                    <input class="form-control form-control-sm tx-debit text-end" type="number" min="0" step="1" value="0">
-                </td>
-                <td>
-                    <input class="form-control form-control-sm tx-credit text-end" type="number" min="0" step="1" value="0">
-                </td>
-                <td>
-                    <input class="form-control form-control-sm tx-note" maxlength="250" placeholder="Keterangan">
-                </td>
+                <td><input class="form-control form-control-sm tx-debit text-end" type="number" min="0" step="1" value="0"></td>
+                <td><input class="form-control form-control-sm tx-credit text-end" type="number" min="0" step="1" value="0"></td>
+                <td><input class="form-control form-control-sm tx-note" maxlength="250" placeholder="Keterangan"></td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger tx-remove-row" title="Hapus baris" ${accountDisabled ? "disabled" : ""}>
                         <i class="bi bi-trash"></i>
@@ -3193,14 +3190,10 @@
                 <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
                     <div>
                         <h5 class="mb-1">Tambah Transaksi</h5>
-                        <div class="text-secondary small">
-                            Pencatatan menggunakan mekanisme <strong>double entry</strong>. Debit dan Kredit harus seimbang.
-                            Sistem membuat jurnal dari baris transaksi yang disimpan.
-                        </div>
+                        <div class="text-secondary small">Pencatatan menggunakan mekanisme <strong>double entry</strong>. Debit dan Kredit harus seimbang.</div>
                     </div>
                     <span class="badge text-bg-light border">${escapeHtml(activeAppProfile.role || "-")}</span>
                 </div>
-
                 <form id="transactionForm" class="mt-3">
                     <div class="row g-3">
                         <div class="col-md-3">
@@ -3226,8 +3219,7 @@
                         <div class="col-md-9">
                             <label class="form-label small fw-semibold">Uraian Transaksi</label>
                             <input id="txDescription" class="form-control" maxlength="500"
-                                placeholder="Contoh: Menerima pendapatan tiket masuk secara tunai"
-                                required>
+                                placeholder="Contoh: Menerima pendapatan tiket masuk secara tunai" required>
                         </div>
                     </div>
 
@@ -3235,9 +3227,7 @@
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                             <div>
                                 <strong>Jurnal Transaksi</strong>
-                                <div class="text-secondary small">
-                                    Sesuai format jurnal pedoman: tanggal, nomor bukti, uraian, post reff, debit, kredit, keterangan.
-                                </div>
+                                <div class="text-secondary small">Sesuai format jurnal pedoman: tanggal, nomor bukti, uraian, post reff, debit, kredit, keterangan.</div>
                             </div>
                             <button type="button" id="txAddRow" class="btn btn-sm btn-outline-primary" ${accountDisabled ? "disabled" : ""}>
                                 <i class="bi bi-plus-lg me-1"></i>Tambah Baris
@@ -3261,9 +3251,7 @@
                                         <td colspan="2" class="text-end">Total</td>
                                         <td id="txTotalDebit" class="text-end">Rp0</td>
                                         <td id="txTotalCredit" class="text-end">Rp0</td>
-                                        <td colspan="2">
-                                            <span id="txBalanceStatus" class="badge text-bg-secondary">Belum diisi</span>
-                                        </td>
+                                        <td colspan="2"><span id="txBalanceStatus" class="badge text-bg-secondary">Belum diisi</span></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -3279,22 +3267,44 @@
                         </button>
                     </div>
 
-                    ${!periods?.length ? `<div class="alert alert-warning mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada periode akuntansi <strong>terbuka</strong>. Buat periode terlebih dahulu sebelum mencatat transaksi.</div>` : ""}
+                    ${!openPeriods.length ? `<div class="alert alert-warning mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada periode akuntansi <strong>terbuka</strong>. Buat periode terlebih dahulu sebelum mencatat transaksi.</div>` : ""}
                     ${!accounts?.length ? `<div class="alert alert-warning mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Belum ada akun detail level 4 yang aktif. COA diperlukan sebelum transaksi dapat dicatat.</div>` : `<div class="alert alert-light border mt-3 mb-0 small"><i class="bi bi-info-circle me-1"></i>Akun Detail mengambil akun level 4 dari COA sistem BUMDesa.</div>`}
                 </form>
             </div>`;
 
-        const rows = (transactions || []).map((t,i) =>
-            `<tr>
+        const rows = (transactions || []).map((t,i) => {
+            const period = periodMap.get(t.period_id);
+            const isOpen = period?.status === "open";
+            const unitName = t.unit_id ? (unitMap.get(t.unit_id)?.nama_unit || "-") : "Pusat";
+            const statusBadge = period
+                ? (isOpen ? `<span class="badge text-bg-success">Terbuka</span>` : `<span class="badge text-bg-secondary">Tertutup</span>`)
+                : `<span class="badge text-bg-warning">Periode tidak ditemukan</span>`;
+
+            const actions = canManageTransactions
+                ? `<div class="d-flex justify-content-center gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-primary tx-edit" data-id="${escapeHtml(t.id)}"
+                        ${!isOpen ? `disabled title="Periode tertutup"` : `title="Edit transaksi"`}>
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger tx-delete" data-id="${escapeHtml(t.id)}"
+                        ${!isOpen ? `disabled title="Periode tertutup"` : `title="Hapus transaksi"`}>
+                        <i class="bi bi-trash"></i>
+                    </button>
+                  </div>`
+                : `<span class="text-secondary small">-</span>`;
+
+            return `<tr>
                 <td>${i+1}</td>
                 <td>${escapeHtml(fmtDate(t.transaction_date))}</td>
                 <td><strong>${escapeHtml(t.transaction_number || "-")}</strong></td>
                 <td>${escapeHtml(t.description || "-")}</td>
-                <td>${escapeHtml(t.unit_id ? ((units || []).find(u => u.id === t.unit_id)?.nama_unit || "-") : "Pusat")}</td>
+                <td>${escapeHtml(unitName)}</td>
                 <td>${escapeHtml(t.transaction_type || "-")}</td>
+                <td>${statusBadge}</td>
                 <td class="text-end">${rupiah(t.amount)}</td>
-            </tr>`
-        ).join("");
+                <td class="text-center">${actions}</td>
+            </tr>`;
+        }).join("");
 
         const table = transactions?.length
             ? `<div class="panel">
@@ -3306,12 +3316,15 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead><tr>
                             <th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th>
-                            <th>Unit</th><th>Jenis</th><th class="text-end">Nominal</th>
+                            <th>Unit</th><th>Jenis</th><th>Status Periode</th><th class="text-end">Nominal</th><th class="text-center">Aksi</th>
                         </tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
                 </div>
-            </div>`
+                ${!canManageTransactions
+                    ? `<div class="text-secondary small mt-3"><i class="bi bi-info-circle me-1"></i>Edit dan hapus transaksi saat ini hanya tersedia untuk Admin Pusat sesuai hak akses jurnal.</div>`
+                    : `<div class="text-secondary small mt-3"><i class="bi bi-shield-check me-1"></i>Transaksi pada periode tertutup tidak dapat diedit atau dihapus.</div>`}
+              </div>`
             : `<div class="panel"><div class="text-center text-secondary py-4">
                 Belum ada transaksi. Gunakan formulir di atas untuk mencatat transaksi pertama.
             </div></div>`;
@@ -3320,14 +3333,17 @@
 
         const txForm = $("transactionForm");
         const journalRowsEl = $("txJournalRows");
+
         const updateTotals = () => {
             let debit = 0, credit = 0;
             journalRowsEl?.querySelectorAll(".journal-input-row").forEach(row => {
                 debit += Math.max(0, Number(row.querySelector(".tx-debit")?.value || 0));
                 credit += Math.max(0, Number(row.querySelector(".tx-credit")?.value || 0));
             });
+
             $("txTotalDebit").textContent = rupiah(debit);
             $("txTotalCredit").textContent = rupiah(credit);
+
             const badge = $("txBalanceStatus");
             if (!debit && !credit) {
                 badge.className = "badge text-bg-secondary";
@@ -3358,14 +3374,16 @@
             updateTotals();
         });
 
-        journalRowsEl?.addEventListener("click", (e) => {
+        journalRowsEl?.addEventListener("click", e => {
             const remove = e.target.closest(".tx-remove-row");
             if (!remove) return;
+
             const all = journalRowsEl.querySelectorAll(".journal-input-row");
             if (all.length <= 2) {
-                alert("Minimal harus ada 2 baris jurnal.");
+                showAppToast("info", "Baris jurnal tidak dapat dihapus", "Minimal harus ada 2 baris jurnal.");
                 return;
             }
+
             remove.closest(".journal-input-row").remove();
             renumberRows();
             updateTotals();
@@ -3373,7 +3391,7 @@
 
         updateTotals();
 
-        if (txForm) txForm.addEventListener("submit", async (e) => {
+        if (txForm) txForm.addEventListener("submit", async e => {
             e.preventDefault();
 
             const btn = $("txSaveBtn");
@@ -3384,39 +3402,29 @@
             const totals = updateTotals();
 
             if (!date || !description) {
-                alert("Lengkapi tanggal dan uraian transaksi.");
+                showAppToast("error", "Data belum lengkap", "Lengkapi tanggal dan uraian transaksi.");
                 return;
             }
 
-            // Periode ditentukan otomatis berdasarkan tanggal transaksi.
-            const matchingPeriods = (periods || []).filter(p =>
-                p.status === "open" &&
-                date >= p.start_date &&
-                date <= p.end_date
-            );
-
+            const matchingPeriods = openPeriods.filter(p => date >= p.start_date && date <= p.end_date);
             if (matchingPeriods.length !== 1) {
-                alert(
+                showAppToast("error", "Periode tidak valid",
                     matchingPeriods.length === 0
-                        ? "Tidak ada periode akuntansi terbuka untuk tanggal transaksi tersebut."
-                        : "Terdapat lebih dari satu periode terbuka yang mencakup tanggal tersebut. Periksa pengaturan periode akuntansi."
-                );
+                        ? "Tidak ada periode terbuka untuk tanggal transaksi tersebut."
+                        : "Terdapat lebih dari satu periode terbuka yang mencakup tanggal tersebut.");
                 return;
             }
 
             const periodId = matchingPeriods[0].id;
 
-            const periodInfo = $("txPeriodInfo");
-            if (periodInfo) {
-                periodInfo.textContent = `Periode otomatis: ${fmtDate(matchingPeriods[0].start_date)} s/d ${fmtDate(matchingPeriods[0].end_date)}`;
+            if ($("txPeriodInfo")) {
+                $("txPeriodInfo").textContent = `Periode otomatis: ${fmtDate(matchingPeriods[0].start_date)} s/d ${fmtDate(matchingPeriods[0].end_date)}`;
             }
 
-            if (totals.debit <= 0 || totals.credit <= 0 || Math.abs(totals.debit - totals.credit) > 0.001) {
-                alert("Total Debit dan Kredit harus sama dan lebih besar dari Rp0.");
+            if (totals.debit <= 0 || totals.credit <= 0 || Math.abs(totals.debit-totals.credit) > 0.001) {
+                showAppToast("error", "Jurnal belum seimbang", "Total Debit dan Kredit harus sama dan lebih besar dari Rp0.");
                 return;
             }
-
-            const period = matchingPeriods[0];
 
             const lineRows = [...(journalRowsEl?.querySelectorAll(".journal-input-row") || [])].map(row => ({
                 accountId: row.querySelector(".tx-account")?.value || "",
@@ -3426,63 +3434,61 @@
             }));
 
             if (lineRows.length < 2) {
-                alert("Minimal harus ada 2 baris jurnal.");
+                showAppToast("error", "Jurnal tidak valid", "Minimal harus ada 2 baris jurnal.");
                 return;
             }
 
             for (let i = 0; i < lineRows.length; i++) {
                 const line = lineRows[i];
                 if (!line.accountId) {
-                    alert(`Baris ${i+1}: pilih akun detail.`);
+                    showAppToast("error", "Akun belum dipilih", `Baris ${i+1}: pilih akun detail.`);
                     return;
                 }
                 if (line.debit > 0 && line.credit > 0) {
-                    alert(`Baris ${i+1}: satu baris hanya boleh berisi Debit atau Kredit.`);
+                    showAppToast("error", "Baris jurnal tidak valid", `Baris ${i+1}: satu baris hanya boleh berisi Debit atau Kredit.`);
                     return;
                 }
                 if (line.debit === 0 && line.credit === 0) {
-                    alert(`Baris ${i+1}: isi nominal Debit atau Kredit.`);
+                    showAppToast("error", "Nominal belum diisi", `Baris ${i+1}: isi nominal Debit atau Kredit.`);
                     return;
                 }
             }
 
-            const uniqueAccounts = new Set(lineRows.map(x => x.accountId));
-            if (uniqueAccounts.size < 2) {
-                alert("Jurnal harus melibatkan minimal 2 akun.");
+            if (new Set(lineRows.map(x => x.accountId)).size < 2) {
+                showAppToast("error", "Akun jurnal tidak valid", "Jurnal harus melibatkan minimal 2 akun.");
                 return;
             }
 
             const { data: sessionData } = await supabaseClient.auth.getSession();
             const userId = sessionData?.session?.user?.id;
             if (!userId) {
-                alert("Sesi login tidak ditemukan. Silakan login kembali.");
+                showAppToast("error", "Sesi login tidak ditemukan", "Silakan login kembali.");
                 return;
             }
 
-            // Pola bukti mengikuti pedoman: No. Urut/No. Bulan/Kode Unit/Tahun.
             const year = date.slice(0,4);
             const month = date.slice(5,7);
             const selectedUnit = (units || []).find(u => u.id === unitId);
             const unitCode = selectedUnit?.kode_unit || "PST";
             const prefix = `%/${month}/${unitCode}/${year}`;
-            let existingNumbers = [];
+
             const { data: existingTx, error: seqError } = await supabaseClient
                 .from("transactions")
                 .select("transaction_number")
-                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .eq("bumdes_id", bumdesId)
                 .like("transaction_number", prefix);
 
             if (seqError) {
-                alert("Gagal menyiapkan nomor bukti: " + seqError.message);
+                showAppToast("error", "Gagal menyiapkan nomor bukti", seqError.message);
                 return;
             }
 
-            existingNumbers = (existingTx || [])
+            const existingNumbers = (existingTx || [])
                 .map(x => String(x.transaction_number || "").split("/")[0])
-                .map(x => parseInt(x, 10))
+                .map(x => parseInt(x,10))
                 .filter(Number.isFinite);
 
-            const nextNumber = String((existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1).padStart(3, "0");
+            const nextNumber = String((existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1).padStart(3,"0");
             const transactionNumber = `${nextNumber}/${month}/${unitCode}/${year}`;
 
             const original = btn.innerHTML;
@@ -3490,11 +3496,12 @@
             btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
 
             let transactionId = null;
+
             try {
                 const { data: tx, error: txInsertError } = await supabaseClient
                     .from("transactions")
                     .insert({
-                        bumdes_id: activeAppProfile.bumdes_id,
+                        bumdes_id: bumdesId,
                         unit_id: unitId,
                         period_id: periodId,
                         transaction_date: date,
@@ -3512,7 +3519,7 @@
 
                 const journalRowsToInsert = lineRows.map(line => ({
                     transaction_id: transactionId,
-                    bumdes_id: activeAppProfile.bumdes_id,
+                    bumdes_id: bumdesId,
                     unit_id: unitId,
                     period_id: periodId,
                     journal_date: date,
@@ -3531,17 +3538,421 @@
 
                 showAppToast("success", "Transaksi berhasil disimpan", `No. Bukti ${transactionNumber} • ${lineRows.length} baris jurnal telah dibuat.`);
                 await renderTransactionsModule();
+
             } catch (err) {
                 console.error(err);
+
                 if (transactionId) {
                     await supabaseClient.from("journals").delete().eq("transaction_id", transactionId);
                     await supabaseClient.from("transactions").delete().eq("id", transactionId);
                 }
-                alert("Gagal menyimpan transaksi: " + (err.message || String(err)));
+
+                showAppToast("error", "Gagal menyimpan transaksi", err.message || String(err));
                 btn.disabled = false;
                 btn.innerHTML = original;
             }
         });
+
+        // =====================================================
+        // EDIT TRANSAKSI
+        // =====================================================
+        async function openEditTransaction(transactionId) {
+            if (!canManageTransactions) return;
+
+            const tx = (transactions || []).find(x => x.id === transactionId);
+            if (!tx) {
+                showAppToast("error", "Transaksi tidak ditemukan", "Silakan muat ulang halaman.");
+                return;
+            }
+
+            const oldPeriod = periodMap.get(tx.period_id);
+            if (oldPeriod?.status !== "open") {
+                showAppToast("info", "Transaksi tidak dapat diedit", "Periode transaksi sudah ditutup.");
+                return;
+            }
+
+            const { data: journals, error: jError } = await supabaseClient
+                .from("journals")
+                .select("id,account_id,debit,credit,description,journal_date,journal_number,unit_id,period_id")
+                .eq("bumdes_id", bumdesId)
+                .eq("transaction_id", transactionId)
+                .order("created_at", { ascending:true });
+
+            if (jError) {
+                showAppToast("error", "Gagal memuat jurnal", jError.message);
+                return;
+            }
+
+            if (!journals?.length) {
+                showAppToast("error", "Jurnal tidak ditemukan", "Transaksi ini tidak memiliki baris jurnal yang dapat diedit.");
+                return;
+            }
+
+            const overlay = document.createElement("div");
+            overlay.id = "txEditOverlay";
+            overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,30,50,.48);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;";
+
+            const editRows = journals.map((j,i) => {
+                const fullDesc = String(j.description || "");
+                const baseDesc = String(tx.description || "");
+                const note = fullDesc.startsWith(baseDesc)
+                    ? fullDesc.slice(baseDesc.length).replace(/^ — /, "")
+                    : fullDesc;
+
+                return `<tr class="edit-journal-row">
+                    <td class="text-center edit-row-no">${i+1}</td>
+                    <td><select class="form-select form-select-sm edit-account">
+                        <option value="">Pilih akun detail</option>${accountOptions}
+                    </select></td>
+                    <td><input class="form-control form-control-sm edit-debit text-end" type="number" min="0" step="1" value="${Number(j.debit||0)}"></td>
+                    <td><input class="form-control form-control-sm edit-credit text-end" type="number" min="0" step="1" value="${Number(j.credit||0)}"></td>
+                    <td><input class="form-control form-control-sm edit-note" maxlength="250" value="${escapeHtml(note)}" placeholder="Keterangan"></td>
+                    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger edit-remove-row"><i class="bi bi-trash"></i></button></td>
+                </tr>`;
+            }).join("");
+
+            overlay.innerHTML = `<div style="width:min(1100px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 25px 80px rgba(0,0,0,.28);padding:22px;">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h5 class="mb-1">Edit Transaksi</h5>
+                        <div class="text-secondary small">No. Bukti <strong>${escapeHtml(tx.transaction_number || "-")}</strong> • Koreksi transaksi tanpa mengubah nomor bukti.</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="txEditClose"><i class="bi bi-x-lg"></i></button>
+                </div>
+
+                <div class="alert alert-warning py-2 small">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Edit hanya dapat dilakukan pada transaksi dalam periode yang masih terbuka.
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Tanggal</label>
+                        <input id="editTxDate" type="date" class="form-control" value="${escapeHtml(tx.transaction_date || "")}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Unit / Lokasi</label>
+                        <select id="editTxUnit" class="form-select">${unitOptions}</select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Jenis Transaksi</label>
+                        <select id="editTxType" class="form-select">
+                            <option value="umum">Umum</option><option value="penerimaan">Penerimaan</option><option value="pengeluaran">Pengeluaran</option>
+                            <option value="penjualan">Penjualan</option><option value="pembelian">Pembelian</option><option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label small fw-semibold">Uraian Transaksi</label>
+                        <input id="editTxDescription" class="form-control" maxlength="500" value="${escapeHtml(tx.description || "")}" required>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Jurnal Transaksi</strong>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="editAddRow"><i class="bi bi-plus-lg me-1"></i>Tambah Baris</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr>
+                                <th style="width:48px">#</th><th>Akun Detail</th>
+                                <th class="text-end" style="width:160px">Debit</th><th class="text-end" style="width:160px">Kredit</th>
+                                <th>Keterangan</th><th style="width:54px"></th>
+                            </tr></thead>
+                            <tbody id="editJournalRows">${editRows}</tbody>
+                            <tfoot><tr class="fw-semibold">
+                                <td colspan="2" class="text-end">Total</td>
+                                <td id="editTotalDebit" class="text-end">Rp0</td>
+                                <td id="editTotalCredit" class="text-end">Rp0</td>
+                                <td colspan="2"><span id="editBalance" class="badge text-bg-secondary">Belum diisi</span></td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button type="button" class="btn btn-outline-secondary" id="txEditCancel">Batal</button>
+                    <button type="button" class="btn btn-primary" id="txEditSave"><i class="bi bi-check2-circle me-1"></i>Simpan Perubahan</button>
+                </div>
+            </div>`;
+
+            document.body.appendChild(overlay);
+
+            const close = () => overlay.remove();
+            $("txEditClose")?.addEventListener("click", close);
+            $("txEditCancel")?.addEventListener("click", close);
+            overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+            $("editTxType").value = tx.transaction_type || "umum";
+            $("editTxUnit").value = tx.unit_id || "";
+            overlay.querySelectorAll(".edit-account").forEach((s,i) => s.value = journals[i].account_id || "");
+
+            const editRowsEl = $("editJournalRows");
+
+            const updateEditTotals = () => {
+                let d = 0, c = 0;
+                editRowsEl.querySelectorAll(".edit-journal-row").forEach(r => {
+                    d += Math.max(0, Number(r.querySelector(".edit-debit")?.value || 0));
+                    c += Math.max(0, Number(r.querySelector(".edit-credit")?.value || 0));
+                });
+
+                $("editTotalDebit").textContent = rupiah(d);
+                $("editTotalCredit").textContent = rupiah(c);
+
+                const b = $("editBalance");
+                if (!d && !c) {
+                    b.className = "badge text-bg-secondary";
+                    b.textContent = "Belum diisi";
+                } else if (d === c) {
+                    b.className = "badge text-bg-success";
+                    b.textContent = "Seimbang";
+                } else {
+                    b.className = "badge text-bg-danger";
+                    b.textContent = `Selisih ${rupiah(Math.abs(d-c))}`;
+                }
+
+                return { debit:d, credit:c };
+            };
+
+            const renumberEdit = () => editRowsEl.querySelectorAll(".edit-journal-row").forEach((r,i) => {
+                const c = r.querySelector(".edit-row-no");
+                if (c) c.textContent = i + 1;
+            });
+
+            editRowsEl.addEventListener("input", updateEditTotals);
+            editRowsEl.addEventListener("change", updateEditTotals);
+
+            $("editAddRow").addEventListener("click", () => {
+                editRowsEl.insertAdjacentHTML("beforeend", `
+                    <tr class="edit-journal-row">
+                        <td class="text-center edit-row-no">1</td>
+                        <td><select class="form-select form-select-sm edit-account"><option value="">Pilih akun detail</option>${accountOptions}</select></td>
+                        <td><input class="form-control form-control-sm edit-debit text-end" type="number" min="0" step="1" value="0"></td>
+                        <td><input class="form-control form-control-sm edit-credit text-end" type="number" min="0" step="1" value="0"></td>
+                        <td><input class="form-control form-control-sm edit-note" maxlength="250" placeholder="Keterangan"></td>
+                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger edit-remove-row"><i class="bi bi-trash"></i></button></td>
+                    </tr>`);
+                renumberEdit();
+                updateEditTotals();
+            });
+
+            editRowsEl.addEventListener("click", e => {
+                const b = e.target.closest(".edit-remove-row");
+                if (!b) return;
+
+                if (editRowsEl.querySelectorAll(".edit-journal-row").length <= 2) {
+                    showAppToast("info", "Baris jurnal tidak dapat dihapus", "Minimal harus ada 2 baris jurnal.");
+                    return;
+                }
+
+                b.closest(".edit-journal-row").remove();
+                renumberEdit();
+                updateEditTotals();
+            });
+
+            updateEditTotals();
+
+            $("txEditSave").addEventListener("click", async () => {
+                const save = $("txEditSave");
+                const date = $("editTxDate").value;
+                const unitId = $("editTxUnit").value || null;
+                const type = $("editTxType").value;
+                const description = $("editTxDescription").value.trim();
+                const totals = updateEditTotals();
+
+                if (!date || !description) {
+                    showAppToast("error", "Data belum lengkap", "Lengkapi tanggal dan uraian transaksi.");
+                    return;
+                }
+
+                const newPeriods = openPeriods.filter(p => date >= p.start_date && date <= p.end_date);
+                if (newPeriods.length !== 1) {
+                    showAppToast("error", "Periode tidak valid", "Tanggal baru harus berada dalam tepat satu periode yang masih terbuka.");
+                    return;
+                }
+
+                const newPeriodId = newPeriods[0].id;
+
+                if (totals.debit <= 0 || totals.credit <= 0 || Math.abs(totals.debit-totals.credit) > 0.001) {
+                    showAppToast("error", "Jurnal belum seimbang", "Total Debit dan Kredit harus sama dan lebih besar dari Rp0.");
+                    return;
+                }
+
+                const newLines = [...editRowsEl.querySelectorAll(".edit-journal-row")].map(r => ({
+                    accountId: r.querySelector(".edit-account")?.value || "",
+                    debit: Math.max(0, Number(r.querySelector(".edit-debit")?.value || 0)),
+                    credit: Math.max(0, Number(r.querySelector(".edit-credit")?.value || 0)),
+                    note: (r.querySelector(".edit-note")?.value || "").trim()
+                }));
+
+                if (newLines.length < 2) {
+                    showAppToast("error", "Jurnal tidak valid", "Minimal harus ada 2 baris jurnal.");
+                    return;
+                }
+
+                for (let i = 0; i < newLines.length; i++) {
+                    const l = newLines[i];
+                    if (!l.accountId) {
+                        showAppToast("error", "Akun belum dipilih", `Baris ${i+1}: pilih akun detail.`);
+                        return;
+                    }
+                    if (l.debit > 0 && l.credit > 0) {
+                        showAppToast("error", "Baris jurnal tidak valid", `Baris ${i+1}: satu baris hanya boleh berisi Debit atau Kredit.`);
+                        return;
+                    }
+                    if (l.debit === 0 && l.credit === 0) {
+                        showAppToast("error", "Nominal belum diisi", `Baris ${i+1}: isi nominal Debit atau Kredit.`);
+                        return;
+                    }
+                }
+
+                if (new Set(newLines.map(x => x.accountId)).size < 2) {
+                    showAppToast("error", "Akun jurnal tidak valid", "Jurnal harus melibatkan minimal 2 akun.");
+                    return;
+                }
+
+                const oldTx = {
+                    unit_id: tx.unit_id,
+                    period_id: tx.period_id,
+                    transaction_date: tx.transaction_date,
+                    description: tx.description,
+                    transaction_type: tx.transaction_type,
+                    amount: tx.amount
+                };
+
+                const oldJournals = journals.map(j => ({
+                    transaction_id: transactionId,
+                    bumdes_id: bumdesId,
+                    unit_id: j.unit_id,
+                    period_id: j.period_id,
+                    journal_date: j.journal_date,
+                    journal_number: j.journal_number,
+                    account_id: j.account_id,
+                    description: j.description,
+                    debit: Number(j.debit || 0),
+                    credit: Number(j.credit || 0)
+                }));
+
+                save.disabled = true;
+                save.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+
+                let journalsDeleted = false;
+
+                try {
+                    const { error: uError } = await supabaseClient
+                        .from("transactions")
+                        .update({
+                            unit_id: unitId,
+                            period_id: newPeriodId,
+                            transaction_date: date,
+                            description,
+                            transaction_type: type,
+                            amount: totals.debit
+                        })
+                        .eq("id", transactionId)
+                        .eq("bumdes_id", bumdesId);
+
+                    if (uError) throw uError;
+
+                    const { error: dError } = await supabaseClient
+                        .from("journals")
+                        .delete()
+                        .eq("transaction_id", transactionId)
+                        .eq("bumdes_id", bumdesId);
+
+                    if (dError) throw dError;
+                    journalsDeleted = true;
+
+                    const journalRowsToInsert = newLines.map(line => ({
+                        transaction_id: transactionId,
+                        bumdes_id: bumdesId,
+                        unit_id: unitId,
+                        period_id: newPeriodId,
+                        journal_date: date,
+                        journal_number: tx.transaction_number,
+                        account_id: line.accountId,
+                        description: line.note ? `${description} — ${line.note}` : description,
+                        debit: line.debit,
+                        credit: line.credit
+                    }));
+
+                    const { error: iError } = await supabaseClient
+                        .from("journals")
+                        .insert(journalRowsToInsert);
+
+                    if (iError) throw iError;
+
+                    showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti ${tx.transaction_number} telah dikoreksi.`);
+                    close();
+                    await renderTransactionsModule();
+
+                } catch (err) {
+                    console.error(err);
+
+                    await supabaseClient
+                        .from("transactions")
+                        .update(oldTx)
+                        .eq("id", transactionId)
+                        .eq("bumdes_id", bumdesId);
+
+                    if (journalsDeleted) {
+                        await supabaseClient.from("journals").delete().eq("transaction_id", transactionId).eq("bumdes_id", bumdesId);
+                        await supabaseClient.from("journals").insert(oldJournals);
+                    }
+
+                    showAppToast("error", "Gagal memperbarui transaksi", err.message || String(err));
+                    save.disabled = false;
+                    save.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan`;
+                }
+            });
+        }
+
+        document.querySelectorAll(".tx-edit").forEach(btn =>
+            btn.addEventListener("click", () => openEditTransaction(btn.dataset.id))
+        );
+
+        document.querySelectorAll(".tx-delete").forEach(btn =>
+            btn.addEventListener("click", async () => {
+                const id = btn.dataset.id;
+                const tx = (transactions || []).find(x => x.id === id);
+                if (!tx) return;
+
+                const period = periodMap.get(tx.period_id);
+                if (period?.status !== "open") {
+                    showAppToast("info", "Transaksi tidak dapat dihapus", "Periode transaksi sudah ditutup.");
+                    return;
+                }
+
+                if (!confirm(`Hapus transaksi ${tx.transaction_number || "ini"}?\n\nSeluruh jurnal yang terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.`)) return;
+
+                btn.disabled = true;
+
+                try {
+                    const { error: jError } = await supabaseClient
+                        .from("journals")
+                        .delete()
+                        .eq("transaction_id", id)
+                        .eq("bumdes_id", bumdesId);
+
+                    if (jError) throw jError;
+
+                    const { error: tError } = await supabaseClient
+                        .from("transactions")
+                        .delete()
+                        .eq("id", id)
+                        .eq("bumdes_id", bumdesId);
+
+                    if (tError) throw tError;
+
+                    showAppToast("success", "Transaksi dihapus", `No. Bukti ${tx.transaction_number || "-"} dan jurnal terkait telah dihapus.`);
+                    await renderTransactionsModule();
+
+                } catch (err) {
+                    console.error(err);
+                    showAppToast("error", "Gagal menghapus transaksi", err.message || String(err));
+                    btn.disabled = false;
+                }
+            })
+        );
     }
 
     async function renderJournalsModule() {
