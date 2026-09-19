@@ -3869,20 +3869,14 @@
                 save.disabled = true;
                 save.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
 
-                save.disabled = true;
-                save.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
+                let journalsDeleted = false;
 
                 try {
-                    const journalRows = newLines.map(line => ({
-                        account_id: line.accountId,
-                        description: line.note ? `${description} — ${line.note}` : description,
-                        debit: Number(line.debit || 0),
-                        credit: Number(line.credit || 0)
-                    }));
-
-                    // Seluruh proses edit dijalankan atomically di database.
+                    // Update HEADER transaksi melalui RPC SECURITY DEFINER.
+                    // RLS frontend tidak lagi menghalangi perubahan tanggal/nomor.
+                    // Trigger database akan otomatis menyamakan tanggal & nomor jurnal.
                     const { data: updatedTx, error: rpcError } = await supabaseClient
-                        .rpc("update_transaction_atomic", {
+                        .rpc("update_transaction_header_v2", {
                             p_transaction_id: transactionId,
                             p_transaction_date: date,
                             p_transaction_number: newTransactionNumber,
@@ -3890,8 +3884,7 @@
                             p_period_id: newPeriodId,
                             p_description: description,
                             p_transaction_type: type,
-                            p_amount: totals.debit,
-                            p_journal_rows: journalRows
+                            p_amount: totals.debit
                         });
 
                     if (rpcError) throw rpcError;
@@ -3900,6 +3893,39 @@
                     const verifiedTx = Array.isArray(updatedTx) ? updatedTx[0] : updatedTx;
                     if (!verifiedTx?.id) throw new Error("Database tidak mengembalikan transaksi yang diperbarui.");
 
+                    // Setelah header berubah, trigger database sudah menyamakan
+                    // journal_date dan journal_number.
+                    // Baris jurnal boleh diganti untuk perubahan akun/nominal/keterangan.
+                    const { error: dError } = await supabaseClient
+                        .from("journals")
+                        .delete()
+                        .eq("transaction_id", transactionId)
+                        .eq("bumdes_id", bumdesId);
+
+                    if (dError) throw dError;
+                    journalsDeleted = true;
+
+                    const journalRowsToInsert = newLines.map(line => ({
+                        transaction_id: transactionId,
+                        bumdes_id: bumdesId,
+                        unit_id: verifiedTx.unit_id,
+                        period_id: verifiedTx.period_id,
+                        journal_date: verifiedTx.transaction_date,
+                        journal_number: verifiedTx.transaction_number,
+                        account_id: line.accountId,
+                        description: line.note ? `${description} — ${line.note}` : description,
+                        debit: line.debit,
+                        credit: line.credit
+                    }));
+
+                    const { error: iError } = await supabaseClient
+                        .from("journals")
+                        .insert(journalRowsToInsert);
+
+                    if (iError) throw iError;
+
+                    // Pastikan yang tampil di Riwayat Transaksi adalah data header TRANSAKSI terbaru.
+                    // Jurnal mengambil identitas dari transaksi yang sama.
                     const { data: latestTx, error: latestTxError } = await supabaseClient
                         .from("transactions")
                         .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
@@ -3910,14 +3936,39 @@
                     if (latestTxError) throw latestTxError;
                     if (!latestTx) throw new Error("Data transaksi terbaru tidak ditemukan setelah penyimpanan.");
 
-                    showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti: ${latestTx.transaction_number}. Tanggal: ${fmtDate(latestTx.transaction_date)}.`);
+                    showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti baru: ${latestTx.transaction_number}. Tanggal: ${fmtDate(latestTx.transaction_date)}.`);
                     close();
 
-                    // Tetap di menu Transaksi; hanya modul ini yang dimuat ulang.
+                    // Tetap berada di menu Transaksi. Muat ulang hanya modul Transaksi
+                    // agar Riwayat Transaksi langsung membaca data terbaru dari Supabase
+                    // tanpa me-refresh seluruh halaman atau mengembalikan pengguna ke Dashboard.
                     await renderTransactionsModule();
 
                 } catch (err) {
                     console.error(err);
+
+                    // Kembalikan header melalui RPC yang sama agar tetap melewati
+                    // jalur SECURITY DEFINER dan trigger sinkronisasi jurnal.
+                    try {
+                        await supabaseClient.rpc("update_transaction_header_v2", {
+                            p_transaction_id: transactionId,
+                            p_transaction_date: oldTx.transaction_date,
+                            p_transaction_number: oldTx.transaction_number,
+                            p_unit_id: oldTx.unit_id,
+                            p_period_id: oldTx.period_id,
+                            p_description: oldTx.description,
+                            p_transaction_type: oldTx.transaction_type,
+                            p_amount: Number(oldTx.amount || 0)
+                        });
+                    } catch (rollbackErr) {
+                        console.error("Rollback header gagal:", rollbackErr);
+                    }
+
+                    if (journalsDeleted) {
+                        await supabaseClient.from("journals").delete().eq("transaction_id", transactionId).eq("bumdes_id", bumdesId);
+                        await supabaseClient.from("journals").insert(oldJournals);
+                    }
+
                     showAppToast("error", "Gagal memperbarui transaksi", err.message || String(err));
                     save.disabled = false;
                     save.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan`;
@@ -3946,23 +3997,18 @@
                 btn.disabled = true;
 
                 try {
-                    const { error: jError } = await supabaseClient
-                        .from("journals")
-                        .delete()
-                        .eq("transaction_id", id)
-                        .eq("bumdes_id", bumdesId);
+                    const { data: deleted, error: deleteError } = await supabaseClient
+                        .rpc("delete_transaction_atomic", {
+                            p_transaction_id: id
+                        });
 
-                    if (jError) throw jError;
-
-                    const { error: tError } = await supabaseClient
-                        .from("transactions")
-                        .delete()
-                        .eq("id", id)
-                        .eq("bumdes_id", bumdesId);
-
-                    if (tError) throw tError;
+                    if (deleteError) throw deleteError;
+                    if (deleted !== true) {
+                        throw new Error("Database tidak mengonfirmasi penghapusan transaksi.");
+                    }
 
                     showAppToast("success", "Transaksi dihapus", `No. Bukti ${tx.transaction_number || "-"} dan jurnal terkait telah dihapus.`);
+                    // Tetap di menu Transaksi dan hanya muat ulang modulnya.
                     await renderTransactionsModule();
 
                 } catch (err) {
