@@ -1561,6 +1561,20 @@
         .coa-normal.debit { color:#2d6f43; font-weight:700; }
         .coa-normal.credit { color:#8b5f18; font-weight:700; }
         .coa-count { color:#7b8998; font-size:11px; }
+        .coa-add-btn{white-space:nowrap}
+        .coa-form-note{font-size:11px;color:#7b8998;line-height:1.45}
+        .coa-readonly-box{background:#f6f8fb;border:1px solid #e3e8ef;border-radius:8px;padding:9px 11px;font-size:12px;color:#425466}
+        .coa-code-prefix{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-weight:700}
+        .coa-modal-backdrop{position:fixed;inset:0;z-index:10050;background:rgba(19,36,58,.46);display:flex;align-items:center;justify-content:center;padding:18px}
+        .coa-modal-backdrop.hidden{display:none!important}
+        .coa-modal-card{width:min(560px,100%);max-height:min(92vh,720px);overflow:auto;background:#fff;border:1px solid #e5e9ef;border-radius:18px;box-shadow:0 24px 70px rgba(25,45,75,.28)}
+        .coa-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px;border-bottom:1px solid #edf1f5}
+        .coa-modal-body{padding:18px 20px}
+        .coa-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #edf1f5}
+        .coa-modal-close{border:0;background:transparent;color:#7d8996;font-size:24px;line-height:1;cursor:pointer}
+        .coa-modal-close:hover{color:#23354a}
+        @media(max-width:576px){.coa-modal-backdrop{padding:10px}.coa-modal-card{border-radius:14px}.coa-modal-head,.coa-modal-body,.coa-modal-foot{padding-left:14px;padding-right:14px}}
+
 
 
         /* ===== DASHBOARD CARDS MODERN ===== */
@@ -1770,72 +1784,108 @@
         }
 
     
-        /* ===== DASHBOARD FINANCIAL SUMMARY ===== */
+        /* ===== DASHBOARD FINANCIAL SUMMARY - MODERN ===== */
         .dashboard-financial-summary{
             height:100%;
             min-height:300px;
             padding:0;
             overflow:hidden;
+            display:flex;
+            flex-direction:column;
+            border:1px solid #dfe5ee;
+            border-radius:14px;
+            box-shadow:0 5px 16px rgba(35,55,80,.055);
+            background:#fff;
         }
         .dashboard-financial-header{
+            flex:0 0 40px;
             display:flex;
             align-items:center;
             justify-content:space-between;
             gap:8px;
-            padding:9px 12px;
-            background:#4779bf;
+            padding:0 14px;
+            background:linear-gradient(135deg,#4779bf 0%,#3f70b5 100%);
             color:#fff;
-            font-size:12px;
-            font-weight:700;
+            font-size:11px;
+            font-weight:800;
             text-transform:uppercase;
-            letter-spacing:.25px;
+            letter-spacing:.45px;
         }
         .dashboard-financial-date{
             font-size:8px;
             font-weight:600;
-            opacity:.9;
+            opacity:.88;
             text-transform:none;
             letter-spacing:0;
             white-space:nowrap;
         }
         .dashboard-financial-list{
-            border:1px solid #7da05d;
-            border-top:0;
+            flex:1 1 auto;
+            min-height:0;
+            display:grid;
+            grid-template-rows:repeat(7,minmax(0,1fr));
             background:#fff;
         }
         .dashboard-financial-row{
-            min-height:36px;
+            min-height:0;
             display:flex;
             align-items:center;
             justify-content:space-between;
             gap:10px;
-            padding:6px 10px;
-            border-bottom:1px solid #7da05d;
+            padding:0 14px;
+            position:relative;
+            transition:background .16s ease, padding .16s ease;
         }
-        .dashboard-financial-row:last-child{border-bottom:0;}
+        .dashboard-financial-row:not(:last-child)::after{
+            content:"";
+            position:absolute;
+            left:14px;
+            right:14px;
+            bottom:0;
+            height:1px;
+            background:linear-gradient(90deg,rgba(78,154,98,.62),rgba(78,154,98,.16) 72%,rgba(78,154,98,0));
+        }
+        .dashboard-financial-row:hover{
+            background:#f8fbfd;
+            padding-left:17px;
+            padding-right:17px;
+        }
         .dashboard-financial-label{
-            color:#222;
-            font-size:11px;
-            font-weight:600;
+            color:#607085;
+            font-size:10px;
+            font-weight:750;
+            letter-spacing:.35px;
             white-space:nowrap;
         }
         .dashboard-financial-value{
-            color:#20364f;
-            font-size:11px;
-            font-weight:800;
+            color:#243b56;
+            font-size:12px;
+            font-weight:850;
             text-align:right;
             white-space:nowrap;
+            letter-spacing:-.15px;
+        }
+        .dashboard-financial-row.total{
+            background:linear-gradient(90deg,rgba(71,121,191,.035),rgba(71,121,191,.01));
         }
         .dashboard-financial-row.total .dashboard-financial-label,
         .dashboard-financial-row.total .dashboard-financial-value{
-            font-weight:800;
+            color:#2f67b7;
+            font-weight:850;
         }
         .dashboard-financial-row.profit .dashboard-financial-value.positive{color:#2d7a48;}
         .dashboard-financial-row.profit .dashboard-financial-value.negative{color:#b13a32;}
         @media(max-width:991.98px){
+            .dashboard-financial-summary{min-height:300px;}
+            .dashboard-financial-header{flex-basis:40px;padding:0 13px;}
+            .dashboard-financial-row{padding:0 13px;}
+            .dashboard-financial-row:not(:last-child)::after{left:13px;right:13px;}
+        }
+        @media(max-width:576px){
             .dashboard-financial-summary{min-height:0;}
-            .dashboard-financial-header{padding:10px 12px;}
-            .dashboard-financial-row{min-height:38px;}
+            .dashboard-financial-header{flex-basis:38px;}
+            .dashboard-financial-label{font-size:9px;}
+            .dashboard-financial-value{font-size:11px;}
         }
 
         /* ===== DASHBOARD FINANCIAL CHART ===== */
@@ -1936,9 +1986,189 @@
             .dashboard-chart-svg{height:215px}
         }
 
-    </style>
+    
+/* =========================================================
+   MODUL LAPORAN KEUANGAN MODERN
+   ========================================================= */
+.report-page{display:flex;flex-direction:column;gap:16px}
+.report-control-card{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #e6ebf2;border-radius:18px;box-shadow:0 8px 24px rgba(31,45,61,.06);padding:18px}
+.report-control-grid{display:grid;grid-template-columns:1.1fr 1.1fr 1fr 1fr auto;gap:12px;align-items:end}
+.report-control-label{font-size:11px;font-weight:700;color:#6f7d8d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.report-control-card .form-select,.report-control-card .form-control{border-radius:11px;border-color:#dfe6ef;background:#fff;min-height:42px}
+.report-btn{border:0;border-radius:11px;min-height:42px;padding:0 16px;font-weight:700;box-shadow:0 5px 12px rgba(43,83,140,.12)}
+.report-btn-primary{background:linear-gradient(135deg,#4677c5,#315fae);color:#fff}
+.report-btn-light{background:#fff;border:1px solid #dfe6ef;color:#425268;box-shadow:none}
+.report-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:2px 2px 0}
+.report-meta-title{font-size:20px;font-weight:800;color:#243449}
+.report-meta-sub{font-size:12px;color:#7c8998;margin-top:3px}
+.report-scope-pill{background:#eef4ff;color:#315fae;border:1px solid #dce8fb;border-radius:999px;padding:7px 12px;font-size:11px;font-weight:700;white-space:nowrap}
+.report-card{background:#fff;border:1px solid #e5eaf0;border-radius:18px;box-shadow:0 10px 28px rgba(31,45,61,.06);overflow:hidden}
+.report-card-head{padding:22px 24px 16px;background:linear-gradient(135deg,#f9fbff,#fff);border-bottom:1px solid #edf1f5}
+.report-brand{font-size:18px;font-weight:800;color:#23344d;text-align:center}
+.report-title{font-size:17px;font-weight:800;text-align:center;color:#1e2d42;margin-top:4px;letter-spacing:.01em}
+.report-period{text-align:center;color:#788696;font-size:12px;margin-top:5px}
+.report-table-wrap{overflow:auto}
+.report-table{width:100%;border-collapse:collapse;font-size:12px}
+.report-table th{background:#f4f7fb;color:#657487;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;padding:11px 14px;border-bottom:1px solid #e5eaf0;position:sticky;top:0;z-index:1}
+.report-table td{padding:8px 14px;border-bottom:1px solid #edf1f5;color:#344458;vertical-align:middle}
+.report-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.report-table .no{width:52px;text-align:center;color:#9aa6b4}
+.report-table .group td{font-weight:800;color:#24344a;background:#f8fafc;border-top:1px solid #e1e7ef}
+.report-table .section td{font-weight:900;color:#315fae;background:#eef4ff;border-top:1px solid #dce8fb}
+.report-table .subtotal td{font-weight:800;color:#27384d;background:#fafbfd;border-top:1px solid #e3e9f0}
+.report-table .grand td{font-weight:900;color:#1f3148;background:linear-gradient(90deg,#edf5ff,#f8fbff);border-top:2px solid #4a76b9;border-bottom:2px solid #dce6f2}
+.report-table .indent-1{padding-left:28px}
+.report-table .indent-2{padding-left:44px}
+.report-table .muted{color:#95a1af}
+.report-empty{padding:52px 20px;text-align:center;color:#7d8997}
+.report-empty i{font-size:36px;color:#b9c4d1}
+.report-footer{padding:16px 24px 22px;color:#84909e;font-size:10px;display:flex;justify-content:space-between;gap:10px}
+.report-print-title{display:none}
+.report-positive{color:#2f8a58!important}.report-negative{color:#c44d4d!important}
+.report-toolbar-note{font-size:11px;color:#84909e}
+.report-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:2px}
+.report-tab{border:1px solid #dfe6ef;background:#fff;color:#667588;border-radius:999px;padding:8px 13px;font-size:11px;font-weight:700;cursor:pointer}
+.report-tab.active{background:#edf4ff;color:#315fae;border-color:#cfe0fb}
+.report-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 18px;border-bottom:1px solid #edf1f5;background:#fbfcfe}
+.report-mini-card{border:1px solid #e6ebf2;border-radius:12px;padding:11px 12px;background:#fff}
+.report-mini-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a96a5;font-weight:800}.report-mini-value{font-size:14px;font-weight:800;color:#26374c;margin-top:4px}
+@media(max-width:1100px){.report-control-grid{grid-template-columns:1fr 1fr 1fr 1fr}.report-control-grid .report-actions{grid-column:1/-1;display:flex;gap:8px}.report-control-grid .report-actions .report-btn{flex:1}.report-summary-strip{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.report-control-grid{grid-template-columns:1fr 1fr}.report-meta{align-items:flex-start;flex-direction:column}.report-card-head{padding:18px 14px 14px}.report-table{font-size:11px}.report-table td,.report-table th{padding:8px 9px}.report-summary-strip{grid-template-columns:1fr 1fr}.report-footer{flex-direction:column}}
+.calk-wrap{padding:22px 24px 26px}.calk-section{margin-bottom:9px}.calk-heading{font-size:12px;font-weight:900;color:#315fae;letter-spacing:.03em;padding-bottom:8px;margin-bottom:9px;border-bottom:1px solid #dce7f4}.calk-note{font-size:11px;line-height:1.7;color:#526274}.calk-list{margin:0;padding-left:20px;color:#526274;font-size:11px;line-height:1.7}.calk-list li{margin-bottom:4px}.calk-value-table{border:1px solid #e5eaf0;border-radius:10px;overflow:hidden}.calk-check{display:flex;justify-content:space-between;gap:15px;margin-top:12px;padding:10px 12px;border-radius:10px;font-size:10px}.calk-check.ok{background:#eef9f2;border:1px solid #cfead8;color:#28734a}.calk-check.warn{background:#fff5f5;border:1px solid #f0cccc;color:#a63d3d}.calk-check strong{white-space:nowrap}.calk-wrap .report-table{font-size:11px}
+@media print{
+ body{background:#fff!important;color:#111!important}.sidebar,.topbar,.module-toolbar,.report-control-card,.report-meta,.report-tabs,.no-print{display:none!important}
+ .main{margin:0!important;padding:0!important}.content,.report-page,.report-card{box-shadow:none!important;border:0!important}.report-card{border-radius:0!important;overflow:visible!important}
+ .report-card-head{padding:0 0 10px;background:#fff;border-bottom:1.5px solid #222!important}.report-brand{font-size:16px;color:#111!important}.report-title{font-size:15px;color:#111!important}.report-period{font-size:10px;color:#333!important}
+ .report-table-wrap{overflow:visible!important}.report-table{font-size:10px!important}.report-table thead{display:table-header-group}.report-table th{position:static;background:#f2f2f2!important;color:#222!important;border-bottom:1px solid #222!important}.report-table td{padding:5px 7px;color:#111!important;border-bottom:1px solid #ddd!important}.report-table .section td{background:#eef2f6!important;color:#111!important;border-top:1px solid #777!important}.report-table .grand td{background:#f5f7f9!important;color:#111!important;border-top:1.5px solid #222!important;border-bottom:1px solid #777!important}
+ .report-footer{padding:12px 0;color:#555}.report-summary-strip{display:none}
+ .calk-section{break-inside:auto;page-break-inside:auto;margin-bottom:7px}.calk-note{font-size:10px!important;line-height:1.55!important;color:#222!important}.calk-value-table td{padding:5px 7px!important}
+ @page{size:A4 portrait;margin:12mm}
+}
+
+        /* ===== REPORT PRINT / PDF FIX ===== */
+        @media print {
+            @page { size: A4 portrait; margin: 10mm 10mm 12mm 10mm; }
+            html, body { background:#fff !important; height:auto !important; overflow:visible !important; }
+            body * { visibility:hidden !important; }
+            #financialReportOutput,
+            #financialReportOutput * { visibility:visible !important; }
+            #financialReportOutput {
+                display:block !important;
+                position:absolute !important;
+                left:0 !important;
+                top:0 !important;
+                width:100% !important;
+                max-width:none !important;
+                margin:0 !important;
+                padding:0 !important;
+                border:0 !important;
+                border-radius:0 !important;
+                box-shadow:none !important;
+                overflow:visible !important;
+                background:#fff !important;
+            }
+            #financialReportOutput .report-card,
+            #financialReportOutput.report-card {
+                display:block !important;
+                width:100% !important;
+                border:0 !important;
+                border-radius:0 !important;
+                box-shadow:none !important;
+                overflow:visible !important;
+                background:#fff !important;
+            }
+            #financialReportOutput .report-card-head {
+                padding:0 0 8mm !important;
+                background:#fff !important;
+                border-bottom:1px solid #222 !important;
+            }
+            #financialReportOutput .report-table-wrap {
+                overflow:visible !important;
+                width:100% !important;
+            }
+            #financialReportOutput .report-table {
+                width:100% !important;
+                border-collapse:collapse !important;
+                table-layout:auto !important;
+                font-size:10px !important;
+            }
+            #financialReportOutput .report-table th {
+                position:static !important;
+                background:#f3f3f3 !important;
+                color:#111 !important;
+                border-bottom:1px solid #333 !important;
+                padding:6px 8px !important;
+            }
+            #financialReportOutput .report-table td {
+                color:#111 !important;
+                border-bottom:1px solid #d8d8d8 !important;
+                padding:5px 8px !important;
+            }
+            #financialReportOutput .report-table th.current-year,
+            #financialReportOutput .report-table td.current-year { font-weight:800 !important; }
+            #financialReportOutput .calk-section { margin-bottom:6px !important; break-inside:auto !important; page-break-inside:auto !important; }
+            #financialReportOutput .calk-heading { margin-bottom:5px !important; padding-bottom:4px !important; }
+            #financialReportOutput .calk-note,
+            #financialReportOutput .calk-list { line-height:1.45 !important; }
+            #financialReportOutput .report-table thead {
+                display:table-header-group !important;
+            }
+            #financialReportOutput .report-table tr {
+                break-inside:avoid !important;
+                page-break-inside:avoid !important;
+            }
+            #financialReportOutput .report-table .group td,
+            #financialReportOutput .report-table .section td,
+            #financialReportOutput .report-table .subtotal td,
+            #financialReportOutput .report-table .grand td {
+                background:#fff !important;
+                color:#111 !important;
+            }
+            #financialReportOutput .report-table .grand td {
+                border-top:1.5px solid #111 !important;
+                border-bottom:1.5px solid #111 !important;
+            }
+            #financialReportOutput .calk-section,
+            #financialReportOutput .calk-block {
+                break-inside:avoid !important;
+                page-break-inside:avoid !important;
+            }
+            #financialReportOutput .calk-section-title {
+                color:#111 !important;
+                background:#f3f3f3 !important;
+                border-left:3px solid #315fae !important;
+            }
+            .no-print { display:none !important; }
+        }
+
+        .cashbank-head{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:20px 22px;border:1px solid #e8edf3;background:#fff;border-radius:16px;}
+        .cashbank-kicker{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#6b7280;margin-bottom:4px;}
+        .cashbank-filters{display:flex;gap:8px;min-width:260px;}
+        .cashbank-summary-card{height:100%;padding:18px 20px;border:1px solid #e8edf3;border-radius:15px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.035);}
+        .cashbank-summary-card.primary{border-color:#d9e6ff;background:linear-gradient(135deg,#f8fbff,#fff);}
+        .cashbank-summary-label{font-size:.82rem;color:#6b7280;font-weight:600;}
+        .cashbank-summary-value{font-size:1.35rem;font-weight:800;margin-top:5px;color:#172033;}
+        .cashbank-summary-note{font-size:.72rem;color:#8a93a3;margin-top:3px;}
+        .panel-header-modern{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 20px;border-bottom:1px solid #edf0f4;}
+        .cashbank-total-mini{font-size:.75rem;color:#6b7280;background:#f5f7fa;border:1px solid #e7ebf0;border-radius:999px;padding:5px 10px;white-space:nowrap;}
+        .cashbank-account-card{border:1px solid #e7ebf0;border-radius:15px;padding:16px;background:#fff;height:100%;transition:.15s ease;}
+        .cashbank-account-card:hover{box-shadow:0 7px 20px rgba(15,23,42,.07);transform:translateY(-1px);}
+        .cashbank-account-top{display:flex;align-items:center;gap:11px;}
+        .cashbank-account-icon{width:42px;height:42px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#334155;flex:0 0 42px;}
+        .cashbank-account-name{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .cashbank-account-code{font-size:.72rem;color:#8a93a3;margin-top:2px;}
+        .cashbank-account-balance{font-weight:800;font-size:.98rem;white-space:nowrap;}
+        .cashbank-account-meta{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0;font-size:.7rem;color:#7b8493;}
+        .cashbank-account-meta span{padding:4px 7px;border-radius:7px;background:#f7f8fa;}
+        .cashbank-detail-panel{scroll-margin-top:20px;}
+        @media(max-width:700px){.cashbank-head{align-items:stretch;flex-direction:column}.cashbank-filters{min-width:0;flex-direction:column}.cashbank-account-balance{font-size:.9rem}.cashbank-account-top{align-items:flex-start}}
+</style>
 
 
+
+<style>
+.cashbank-detail-filter{display:grid;grid-template-columns:1fr 1fr 150px;gap:10px;padding:12px 14px;border-bottom:1px solid #edf1f5;background:#fbfcfe}.cashbank-detail-filter .form-label{font-size:10px;font-weight:700;color:#68788b;margin-bottom:4px}.cashbank-detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;border-bottom:1px solid #edf1f5}.cashbank-detail-summary>div{padding:9px 10px;border:1px solid #e5eaf0;border-radius:9px;background:#fff}.cashbank-detail-summary span{display:block;font-size:9px;color:#8793a1;margin-bottom:4px}.cashbank-detail-summary strong{font-size:12px;color:#26374c}@media(max-width:700px){.cashbank-detail-filter{grid-template-columns:1fr 1fr}.cashbank-detail-filter>div:last-child{grid-column:1/-1}.cashbank-detail-summary{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 
 <body>
@@ -3666,6 +3896,108 @@
         });
     }
 
+function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
+        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Pusat/Kantor Pusat";
+        const bumdesName = activeAppBumdes?.nama || "BUM Desa";
+        const alamat = [activeAppBumdes?.alamat, activeAppBumdes?.desa ? `Desa ${activeAppBumdes.desa}` : "", activeAppBumdes?.kecamatan ? `Kec. ${activeAppBumdes.kecamatan}` : "", activeAppBumdes?.kabupaten ? `Kab. ${activeAppBumdes.kabupaten}` : "", activeAppBumdes?.provinsi || ""].filter(Boolean).join(" · ");
+        const printHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
+        <style>
+        @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0;background:#fff}h1{font-size:17px;margin:0 0 3px;font-weight:800;text-transform:uppercase}h2{font-size:14px;margin:0 0 4px;font-weight:700}.kop{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px}.kop-address{font-size:9px;color:#444;line-height:1.45}.report-subtitle{font-size:11px;color:#444;margin-top:7px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px;line-height:1.55}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #bbb;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px}table{width:100%;border-collapse:collapse}th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px}td{border-bottom:1px solid #ddd;padding:5px 6px;vertical-align:top}.right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
+        </style></head><body>
+        <div class="kop"><h1>${escapeHtml(bumdesName)}</h1><div class="kop-address">${escapeHtml(alamat || "")}</div><div class="report-subtitle">MUTASI REKENING</div></div>
+        <div class="meta"><div><strong>${escapeHtml(account?.nama || "-")}</strong><br>Kode COA: ${escapeHtml(account?.kode || "-")}</div><div class="right">Periode: ${fmtDate(from)} s.d. ${fmtDate(to)}<br>${escapeHtml(unitName)}</div></div>
+        <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
+        <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
+        <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div>
+<!-- MODAL TAMBAH COA CUSTOM -->
+<div id="addCustomCOAModal" class="coa-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addCustomCOAModalLabel">
+    <div class="coa-modal-card">
+        <div class="coa-modal-head">
+            <div>
+                <div class="fw-bold fs-5" id="addCustomCOAModalLabel">
+                    <i class="bi bi-plus-circle me-1"></i> Tambah Akun COA
+                </div>
+                <div class="text-secondary small mt-1">Menambahkan akun custom khusus BUMDes ini.</div>
+            </div>
+            <button type="button" id="coaModalCloseBtn" class="coa-modal-close" aria-label="Tutup">&times;</button>
+        </div>
+
+        <form id="addCustomCOAForm">
+            <div class="coa-modal-body">
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Akun custom dibuat sebagai <strong>Level 4</strong> di bawah akun header Level 3.
+                    Akun tidak menjadi akun sistem dan hanya berlaku untuk BUMDes ini.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Parent / Kelompok Akun *</label>
+                    <select id="coaCustomParent" class="form-select" required>
+                        <option value="">Memuat kelompok akun...</option>
+                    </select>
+                    <div id="coaCustomParentInfo" class="coa-readonly-box mt-2 hidden"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Kode Akun *</label>
+                    <input id="coaCustomCode" class="form-control" maxlength="10"
+                           placeholder="Contoh: 6.2.99.01" required>
+                    <div class="coa-form-note mt-1">
+                        Format <span class="coa-code-prefix">X.X.XX.XX</span>.
+                        Dua digit terakhir tidak boleh <span class="coa-code-prefix">00</span>.
+                        Kode harus berada di bawah parent yang dipilih.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nama Akun *</label>
+                    <input id="coaCustomName" class="form-control" maxlength="150"
+                           placeholder="Contoh: Beban Operasional Digital" required>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label">Saldo Normal *</label>
+                    <select id="coaCustomNormal" class="form-select" required>
+                        <option value="debit">Debit</option>
+                        <option value="kredit">Kredit</option>
+                    </select>
+                </div>
+
+                <div id="coaCustomValidation" class="small text-danger mt-2 hidden"></div>
+            </div>
+
+            <div class="coa-modal-foot">
+                <button type="button" id="coaModalCancelBtn" class="btn btn-light border">Batal</button>
+                <button id="coaCustomSaveBtn" type="submit" class="btn btn-primary">
+                    <i class="bi bi-check2-circle me-1"></i> Simpan Akun
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body></html>`;
+
+        // Gunakan iframe tersembunyi. Print dipanggil langsung dari event klik
+        // agar Chrome tetap mempertahankan user activation dan membuka Print Preview.
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.left = "-10000px";
+        iframe.style.top = "0";
+        iframe.style.width = "1px";
+        iframe.style.height = "1px";
+        iframe.style.border = "0";
+        iframe.style.opacity = "0";
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(printHtml);
+        doc.close();
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => iframe.remove(), 2000);
+    }
+
     function showDashboardModule() {
         $("dashboardContent").classList.remove("hidden");
         $("appModulePage").classList.add("hidden");
@@ -3717,7 +4049,12 @@
             if (module === "coa") return await renderCOAModule();
             if (module === "kasbank") return await renderCashBankModule();
             if (module === "saldoawal") return await renderOpeningBalancesModule();
-            if (["penyesuaian","aset","labarugi","neraca","aruskas","ekuitas","calk","tambahunit","pengaturan"].includes(module)) {
+            if (module === "aset") return await renderAssetsModule();
+            if (module === "penyesuaian") return await renderAdjustmentsModule();
+            if (["labarugi","neraca","aruskas","ekuitas","calk"].includes(module)) {
+                return await renderFinancialReportModule(module);
+            }
+            if (["tambahunit","pengaturan"].includes(module)) {
                 const [title] = appModuleTitles[module];
                 showModuleShell(module, `<div class="panel"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-1"></i><strong>${escapeHtml(title)}</strong> sudah terhubung ke navigasi. Tampilan operasional dan proses penyimpanan akan dibangun pada tahap modul berikutnya agar tetap sesuai dengan struktur akuntansi dan RLS yang sudah dibuat.</div></div>`);
                 return;
@@ -3728,6 +4065,1405 @@
         }
     }
 
+
+
+    // =========================================================
+    // MODUL ASET
+    // Sumber utama: Transaksi perolehan aset.
+    // Data transaksi tidak diketik ulang; pengguna hanya melengkapi
+    // identitas aset dan umur/manajemen penyusutan.
+    // =========================================================
+    async function renderAssetsModule() {
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) return;
+
+        const role = activeAppProfile.role;
+        const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
+        const canManage = role === "admin_pusat" || role === "admin_unit";
+
+        const [assetRes, txRes, unitRes, accountRes] = await Promise.all([
+            supabaseClient.from("fixed_assets")
+                .select(`
+                    id,asset_code,asset_name,acquisition_date,acquisition_cost,
+                    useful_life_months,depreciation_method,accumulated_depreciation,
+                    status,unit_id,source_transaction_id,depreciation_start_date,
+                    asset_account_id,accumulated_depreciation_account_id,
+                    depreciation_expense_account_id
+                `)
+                .eq("bumdes_id", bumdesId)
+                .order("acquisition_date", { ascending:false }),
+            supabaseClient.from("transactions")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id")
+                .eq("bumdes_id", bumdesId)
+                .eq("transaction_type", "aset_pembelian")
+                .order("transaction_date", { ascending:false })
+                .limit(500),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", { ascending:true }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,bumdes_id,is_active")
+                .eq("is_active",true)
+                .eq("level",4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .order("kode",{ascending:true})
+        ]);
+
+        if (assetRes.error) throw assetRes.error;
+        if (txRes.error) throw txRes.error;
+        if (unitRes.error) throw unitRes.error;
+        if (accountRes.error) throw accountRes.error;
+
+        let assets = assetRes.data || [];
+        let transactions = txRes.data || [];
+        const units = (unitRes.data || []).filter(u => u.status === "aktif");
+        const accounts = accountRes.data || [];
+
+        if (ownUnitId) {
+            assets = assets.filter(a => a.unit_id === ownUnitId);
+            transactions = transactions.filter(t => t.unit_id === ownUnitId);
+        }
+
+        const unitMap = new Map(units.map(u => [u.id,u]));
+        const accountMap = new Map(accounts.map(a => [a.kode,a]));
+        const accountIdMap = new Map(accounts.map(a => [a.id,a]));
+
+        const standardMap = {
+            kendaraan: {
+                asset: "1.3.02.01",
+                accum: "1.3.07.01",
+                expense: "6.1.07.02",
+                method: "garis_lurus",
+                life: 60
+            },
+            peralatan: {
+                asset: "1.3.03.01",
+                accum: "1.3.07.02",
+                expense: "6.1.07.03",
+                method: "garis_lurus",
+                life: 48
+            },
+            meubelair: {
+                asset: "1.3.04.01",
+                accum: "1.3.07.03",
+                expense: "6.1.07.04",
+                method: "garis_lurus",
+                life: 48
+            },
+            gedung: {
+                asset: "1.3.05.01",
+                accum: "1.3.07.04",
+                expense: "6.1.07.05",
+                method: "garis_lurus",
+                life: 240
+            },
+            tanah: {
+                asset: "1.3.01.01",
+                accum: null,
+                expense: null,
+                method: "tidak_disusutkan",
+                life: 0
+            },
+            lainnya: {
+                asset: "1.3.99.99",
+                accum: null,
+                expense: null,
+                method: "garis_lurus",
+                life: 48
+            }
+        };
+
+        const fmtAccount = id => {
+            const a = accountIdMap.get(id);
+            return a ? `${a.kode} — ${a.nama}` : "Belum diatur";
+        };
+        const scopeName = unitId => {
+            const u = unitId ? unitMap.get(unitId) : null;
+            return u ? `${u.kode_unit || ""} — ${u.nama_unit}` : "Pusat / Kantor Pusat";
+        };
+        const nextAssetCode = () => {
+            const year = new Date().getFullYear();
+            const re = new RegExp(`^AST-${year}-(\\d+)$`);
+            let max = 0;
+            assets.forEach(a => {
+                const m = String(a.asset_code || "").match(re);
+                if (m) max = Math.max(max, Number(m[1] || 0));
+            });
+            return `AST-${year}-${String(max + 1).padStart(3,"0")}`;
+        };
+
+        const sourceOptions = transactions.map(t => `
+            <option value="${escapeHtml(t.id)}"
+                    data-date="${escapeHtml(t.transaction_date || "")}"
+                    data-amount="${Number(t.amount || 0)}"
+                    data-unit="${escapeHtml(t.unit_id || "")}"
+                    data-description="${escapeHtml(t.description || "")}">
+                ${escapeHtml(fmtDate(t.transaction_date))} · ${escapeHtml(t.transaction_number || "-")} · ${escapeHtml(t.description || "-")} · ${rupiah(t.amount || 0)}
+            </option>
+        `).join("");
+
+        const assetRows = assets.map((a,i) => `
+            <tr>
+                <td>${i+1}</td>
+                <td>
+                    <div class="fw-semibold">${escapeHtml(a.asset_code || "-")}</div>
+                    <div>${escapeHtml(a.asset_name || "-")}</div>
+                    <div class="small text-secondary">${escapeHtml(scopeName(a.unit_id))}</div>
+                </td>
+                <td>${fmtDate(a.acquisition_date)}</td>
+                <td class="text-end">${rupiah(a.acquisition_cost || 0)}</td>
+                <td class="text-end">${Number(a.useful_life_months || 0) || "—"}</td>
+                <td>${escapeHtml(a.depreciation_method || "-")}</td>
+                <td class="text-end">${rupiah(a.accumulated_depreciation || 0)}</td>
+                <td class="text-end fw-semibold">${rupiah(Math.max(0,Number(a.acquisition_cost||0)-Number(a.accumulated_depreciation||0)))}</td>
+            </tr>
+        `).join("");
+
+        const body = `
+        <div class="panel mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                <div>
+                    <div class="fw-semibold">Aset Tetap</div>
+                    <div class="text-secondary small">
+                        Aset didaftarkan dari transaksi perolehan. Nilai, tanggal, dan unit mengikuti transaksi sumber.
+                        Umur manfaat ditentukan saat aset didaftarkan.
+                    </div>
+                </div>
+                <span class="badge text-bg-primary">${role === "admin_pusat" ? "Admin Pusat" : role === "admin_unit" ? "Admin Unit" : "Hanya lihat"}</span>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-md-3"><div class="small text-secondary">Aset Aktif</div><div class="fs-5 fw-bold">${assets.filter(a=>a.status==="aktif").length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Nilai Perolehan</div><div class="fs-5 fw-bold">${rupiah(assets.reduce((s,a)=>s+Number(a.acquisition_cost||0),0))}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Akumulasi Penyusutan</div><div class="fs-5 fw-bold">${rupiah(assets.reduce((s,a)=>s+Number(a.accumulated_depreciation||0),0))}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Nilai Buku</div><div class="fs-5 fw-bold">${rupiah(assets.reduce((s,a)=>s+Math.max(0,Number(a.acquisition_cost||0)-Number(a.accumulated_depreciation||0)),0))}</div></div>
+            </div>
+        </div>
+
+        ${canManage ? `
+        <div class="panel mb-3">
+            <div class="fw-semibold mb-1">Daftarkan Aset dari Transaksi</div>
+            <div class="text-secondary small mb-3">
+                Pilih transaksi dengan jenis <strong>Aset / Pembelian Aset</strong>. Sistem akan mengambil tanggal, nilai, dan Unit dari transaksi tersebut.
+                Anda hanya melengkapi kode, kategori, dan umur manfaat.
+            </div>
+
+            <form id="assetRegisterForm">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Transaksi Sumber *</label>
+                        <select id="assetSourceTx" class="form-select" required>
+                            <option value="">Pilih transaksi Aset / Pembelian Aset...</option>
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Kode Aset *</label>
+                        <input id="assetCode" class="form-control" value="${escapeHtml(nextAssetCode())}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nama Aset *</label>
+                        <input id="assetName" class="form-control" placeholder="Nama aset" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Tanggal Perolehan</label>
+                        <input id="assetDate" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Nilai Perolehan</label>
+                        <input id="assetCost" class="form-control bg-light text-end" readonly>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Kategori Aset *</label>
+                        <select id="assetCategory" class="form-select" required>
+                            <option value="">Pilih kategori...</option>
+                            <option value="kendaraan">Kendaraan</option>
+                            <option value="peralatan">Peralatan dan Mesin</option>
+                            <option value="meubelair">Meubelair</option>
+                            <option value="gedung">Gedung dan Bangunan</option>
+                            <option value="tanah">Tanah</option>
+                            <option value="lainnya">Aset Tetap Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Umur Manfaat (bulan) *</label>
+                        <input id="assetLife" type="number" min="1" step="1" class="form-control" placeholder="Contoh 60">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Metode Penyusutan</label>
+                        <input id="assetMethod" class="form-control bg-light" value="garis_lurus" readonly>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Mulai Penyusutan</label>
+                        <input id="assetDepStart" type="date" class="form-control">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Unit / Entitas</label>
+                        <input id="assetUnitName" class="form-control bg-light" readonly>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="p-3 rounded border bg-light">
+                            <div class="small fw-semibold mb-2">Akun Otomatis</div>
+                            <div class="row g-2 small">
+                                <div class="col-md-4"><span class="text-secondary">Akun Aset:</span> <span id="assetAccountLabel">—</span></div>
+                                <div class="col-md-4"><span class="text-secondary">Akumulasi:</span> <span id="assetAccumLabel">—</span></div>
+                                <div class="col-md-4"><span class="text-secondary">Beban:</span> <span id="assetExpenseLabel">—</span></div>
+                            </div>
+                            <div id="assetAccountWarning" class="text-danger small mt-2 d-none"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end">
+                        <button id="assetSaveBtn" class="btn btn-primary" type="submit">
+                            <i class="bi bi-save me-1"></i>Simpan Aset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>` : ""}
+
+        <div class="panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <div class="fw-semibold">Daftar Aset</div>
+                    <div class="text-secondary small">Nilai buku = Nilai Perolehan − Akumulasi Penyusutan.</div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr><th>#</th><th>Aset</th><th>Perolehan</th><th class="text-end">Nilai Perolehan</th><th class="text-end">Umur</th><th>Metode</th><th class="text-end">Akumulasi</th><th class="text-end">Nilai Buku</th></tr>
+                    </thead>
+                    <tbody>${assetRows || `<tr><td colspan="8" class="text-center text-secondary py-4">Belum ada aset.</td></tr>`}</tbody>
+                </table>
+            </div>
+        </div>`;
+
+        showModuleShell("aset", body);
+
+        if (!canManage) return;
+
+        const form = $("assetRegisterForm");
+        const sourceEl = $("assetSourceTx");
+        const codeEl = $("assetCode");
+        const nameEl = $("assetName");
+        const dateEl = $("assetDate");
+        const costEl = $("assetCost");
+        const categoryEl = $("assetCategory");
+        const lifeEl = $("assetLife");
+        const methodEl = $("assetMethod");
+        const depStartEl = $("assetDepStart");
+        const unitNameEl = $("assetUnitName");
+        const assetAccountLabel = $("assetAccountLabel");
+        const accumLabel = $("assetAccumLabel");
+        const expenseLabel = $("assetExpenseLabel");
+        const warningEl = $("assetAccountWarning");
+        const saveBtn = $("assetSaveBtn");
+
+        function refreshAccountPreview() {
+            const cfg = standardMap[categoryEl.value] || null;
+            const assetAccount = cfg?.asset ? accountMap.get(cfg.asset) : null;
+            const accumAccount = cfg?.accum ? accountMap.get(cfg.accum) : null;
+            const expenseAccount = cfg?.expense ? accountMap.get(cfg.expense) : null;
+
+            assetAccountLabel.textContent = assetAccount ? `${assetAccount.kode} — ${assetAccount.nama}` : "Belum diatur";
+            accumLabel.textContent = accumAccount ? `${accumAccount.kode} — ${accumAccount.nama}` : "Tidak digunakan";
+            expenseLabel.textContent = expenseAccount ? `${expenseAccount.kode} — ${expenseAccount.nama}` : "Tidak digunakan";
+
+            if (categoryEl.value === "lainnya") {
+                warningEl.textContent = "Aset Tetap Lainnya belum memiliki mapping akun penyusutan otomatis. Mapping akun manual akan ditambahkan pada tahap berikutnya.";
+                warningEl.classList.remove("d-none");
+            } else if (cfg && !assetAccount) {
+                warningEl.textContent = `COA ${cfg.asset} tidak ditemukan pada BUMDes. Pastikan COA Pedoman sudah di-seed.`;
+                warningEl.classList.remove("d-none");
+            } else if (cfg?.method === "garis_lurus" && (!accumAccount || !expenseAccount)) {
+                warningEl.textContent = "Akun akumulasi/beban penyusutan belum ditemukan.";
+                warningEl.classList.remove("d-none");
+            } else {
+                warningEl.textContent = "";
+                warningEl.classList.add("d-none");
+            }
+
+            if (cfg) {
+                methodEl.value = cfg.method;
+                if (cfg.life > 0 && !lifeEl.value) lifeEl.value = cfg.life;
+                if (cfg.method !== "garis_lurus") lifeEl.removeAttribute("required");
+                else lifeEl.setAttribute("required","required");
+            }
+        }
+
+        sourceEl.addEventListener("change", () => {
+            const opt = sourceEl.selectedOptions[0];
+            if (!opt?.value) {
+                dateEl.value = "";
+                costEl.value = "";
+                unitNameEl.value = "";
+                return;
+            }
+            const date = opt.dataset.date || "";
+            const amount = Number(opt.dataset.amount || 0);
+            const unitId = opt.dataset.unit || "";
+            const desc = opt.dataset.description || "";
+            dateEl.value = date;
+            costEl.value = rupiah(amount);
+            unitNameEl.value = scopeName(unitId);
+            if (!nameEl.value) nameEl.value = desc;
+            if (!depStartEl.value) depStartEl.value = date;
+        });
+
+        categoryEl.addEventListener("change", refreshAccountPreview);
+        refreshAccountPreview();
+
+        form.addEventListener("submit", async e => {
+            e.preventDefault();
+            const txId = sourceEl.value;
+            const cfg = standardMap[categoryEl.value];
+            if (!txId || !cfg) {
+                showAppToast("error","Data aset belum lengkap","Pilih transaksi sumber dan kategori aset.");
+                return;
+            }
+
+            const selected = sourceEl.selectedOptions[0];
+            const cost = Number(selected?.dataset.amount || 0);
+            const life = Number(lifeEl.value || 0);
+
+            if (!cost || cost <= 0) return showAppToast("error","Nilai perolehan","Transaksi sumber tidak memiliki nilai yang valid.");
+            if (cfg.method === "garis_lurus" && life <= 0) return showAppToast("error","Umur manfaat","Isi umur manfaat dalam bulan.");
+            if (!codeEl.value.trim() || !nameEl.value.trim()) return showAppToast("error","Data aset","Kode dan nama aset wajib diisi.");
+
+            const assetAccount = cfg.asset ? accountMap.get(cfg.asset) : null;
+            const accumAccount = cfg.accum ? accountMap.get(cfg.accum) : null;
+            const expenseAccount = cfg.expense ? accountMap.get(cfg.expense) : null;
+
+            if (!assetAccount) return showAppToast("error","COA aset tidak ditemukan",`Akun ${cfg.asset} belum tersedia.`);
+            if (cfg.method === "garis_lurus" && (!accumAccount || !expenseAccount)) {
+                return showAppToast("error","COA penyusutan tidak lengkap","Pastikan akun akumulasi dan beban penyusutan tersedia.");
+            }
+
+            const original = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+
+            try {
+                const {data,error} = await supabaseClient.rpc("register_fixed_asset_from_transaction",{
+                    p_transaction_id: txId,
+                    p_asset_code: codeEl.value.trim(),
+                    p_asset_name: nameEl.value.trim(),
+                    p_useful_life_months: cfg.method === "garis_lurus" ? life : 0,
+                    p_depreciation_method: methodEl.value,
+                    p_depreciation_start_date: depStartEl.value || dateEl.value || null,
+                    p_acquisition_cost: cost,
+                    p_asset_account_id: assetAccount.id,
+                    p_accumulated_depreciation_account_id: accumAccount?.id || null,
+                    p_depreciation_expense_account_id: expenseAccount?.id || null
+                });
+                if (error) throw error;
+
+                showAppToast("success","Aset berhasil didaftarkan","Data transaksi menjadi sumber nilai dan tanggal aset.");
+                await renderAssetsModule();
+            } catch (err) {
+                console.error(err);
+                showAppToast("error","Gagal menyimpan aset",err.message || String(err));
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = original;
+            }
+        });
+    }
+
+    // =========================================================
+    // MODUL PENYESUAIAN
+    // Terpisah dari Transaksi: Otomatis + Manual.
+    // =========================================================
+    async function renderAdjustmentsModule() {
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) return;
+
+        const role = activeAppProfile.role;
+        const canManage = role === "admin_pusat" || role === "admin_unit";
+        const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
+
+        const [periodRes, accountRes, unitRes, txRes, assetRes] = await Promise.all([
+            supabaseClient.from("account_periods")
+                .select("id,period_type,start_date,end_date,status")
+                .eq("bumdes_id", bumdesId)
+                .order("start_date", { ascending:false }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
+                .eq("is_active", true)
+                .eq("level", 4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .order("kode", { ascending:true }),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", { ascending:true }),
+            supabaseClient.from("transactions")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
+                .eq("bumdes_id", bumdesId)
+                .eq("transaction_type", "penyesuaian")
+                .order("transaction_date", { ascending:false })
+                .order("created_at", { ascending:false })
+                .limit(500),
+            supabaseClient.from("fixed_assets")
+                .select("id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status,unit_id,asset_account_id,accumulated_depreciation_account_id,depreciation_expense_account_id")
+                .eq("bumdes_id", bumdesId)
+                .eq("status", "aktif")
+                .order("acquisition_date", { ascending:true })
+        ]);
+
+        if (periodRes.error) throw periodRes.error;
+        if (accountRes.error) throw accountRes.error;
+        if (unitRes.error) throw unitRes.error;
+        if (txRes.error) throw txRes.error;
+        // fixed_assets belum tentu sudah dipakai pada BUMDes. Error tabel/kolom ditampilkan
+        // pada tab otomatis, sementara tab manual tetap dapat digunakan.
+
+        const periods = periodRes.data || [];
+        const accounts = accountRes.data || [];
+        const units = (unitRes.data || []).filter(u => u.status === "aktif");
+        let adjustments = txRes.data || [];
+        let assets = assetRes.error ? [] : (assetRes.data || []);
+
+        if (ownUnitId) {
+            adjustments = adjustments.filter(t => t.unit_id === ownUnitId);
+            assets = assets.filter(a => a.unit_id === ownUnitId);
+        }
+
+        const unitMap = new Map(units.map(u => [u.id, u]));
+        const periodMap = new Map(periods.map(p => [p.id, p]));
+        const openPeriods = periods.filter(p => p.status === "open");
+        const today = new Date().toISOString().slice(0,10);
+        const accountOptions = accounts.map(a =>
+            `<option value="${escapeHtml(a.id)}">${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`
+        ).join("");
+
+        let unitOptions = "";
+        if (role === "admin_pusat") {
+            unitOptions = `<option value="">Pusat / Kantor Pusat</option>` + units.map(u =>
+                `<option value="${escapeHtml(u.id)}">${escapeHtml(u.kode_unit)} — ${escapeHtml(u.nama_unit)}</option>`
+            ).join("");
+        } else {
+            const own = units.find(u => u.id === ownUnitId);
+            if (own) unitOptions = `<option value="${escapeHtml(own.id)}">${escapeHtml(own.kode_unit)} — ${escapeHtml(own.nama_unit)}</option>`;
+        }
+
+        const scopeName = unitId => {
+            const u = unitId ? unitMap.get(unitId) : null;
+            return u ? `${u.kode_unit || ""} — ${u.nama_unit}` : "Pusat / Kantor Pusat";
+        };
+
+        const rows = adjustments.map((t, i) => {
+            const p = periodMap.get(t.period_id);
+            return `<tr>
+                <td>${i+1}</td>
+                <td>${fmtDate(t.transaction_date)}</td>
+                <td class="fw-semibold">${escapeHtml(t.transaction_number || "-")}</td>
+                <td>${escapeHtml(t.description || "-")}</td>
+                <td>${escapeHtml(scopeName(t.unit_id))}</td>
+                <td>${p ? `${fmtDate(p.start_date)} s.d. ${fmtDate(p.end_date)}` : "-"}</td>
+                <td class="text-end">${rupiah(t.amount || 0)}</td>
+            </tr>`;
+        }).join("");
+
+        const body = `
+        <div class="panel mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                <div>
+                    <div class="fw-semibold">Penyesuaian</div>
+                    <div class="text-secondary small">Jurnal penyesuaian dibuat di modul khusus dan tidak melalui menu Transaksi.</div>
+                </div>
+                ${canManage ? `<span class="badge text-bg-primary">${role === "admin_pusat" ? "Admin Pusat" : "Admin Unit"}</span>` : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+            </div>
+            <div class="row g-2">
+                <div class="col-md-3"><div class="small text-secondary">Pusat</div><div class="fs-5 fw-bold">${adjustments.filter(x => !x.unit_id).length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Unit</div><div class="fs-5 fw-bold">${adjustments.filter(x => !!x.unit_id).length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Periode Terbuka</div><div class="fs-5 fw-bold">${openPeriods.length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Total Penyesuaian</div><div class="fs-5 fw-bold">${rupiah(adjustments.reduce((s,x)=>s+Number(x.amount||0),0))}</div></div>
+            </div>
+        </div>
+
+        <div class="panel mb-3">
+            <ul class="nav nav-pills gap-2" id="adjustmentTabs">
+                <li class="nav-item"><button class="nav-link active" type="button" data-adj-tab="auto"><i class="bi bi-magic me-1"></i>Penyesuaian Otomatis</button></li>
+                <li class="nav-item"><button class="nav-link" type="button" data-adj-tab="manual"><i class="bi bi-pencil-square me-1"></i>Penyesuaian Manual</button></li>
+            </ul>
+        </div>
+
+        <div id="adjustmentAutoPanel" class="panel mb-3">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                <div>
+                    <div class="fw-semibold">Penyusutan Aset Tetap Otomatis</div>
+                    <div class="text-secondary small">Sistem menghitung penyusutan garis lurus berdasarkan data Aset. Jurnal dibuat per aset agar riwayat dan pencegahan duplikasi lebih jelas.</div>
+                </div>
+                ${canManage ? `<button id="adjAutoCreateBtn" class="btn btn-primary btn-sm" type="button"><i class="bi bi-journal-check me-1"></i>Buat Jurnal Penyusutan</button>` : ""}
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-3"><label class="form-label small fw-semibold">Periode</label><select id="adjAutoPeriod" class="form-select form-select-sm">${openPeriods.map(p => `<option value="${p.id}">${fmtDate(p.start_date)} s.d. ${fmtDate(p.end_date)} — ${escapeHtml(p.period_type)}</option>`).join("")}</select></div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Entitas</label><select id="adjAutoUnit" class="form-select form-select-sm">${unitOptions}</select></div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Tanggal Jurnal</label><input id="adjAutoDate" type="date" class="form-control form-control-sm" value="${today}"></div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Kelompok Aset</label><select id="adjAutoGroup" class="form-select form-select-sm"><option value="">Semua kelompok</option><option value="kendaraan">Kendaraan</option><option value="peralatan">Peralatan dan Mesin</option><option value="meubelair">Meubelair</option><option value="gedung">Gedung dan Bangunan</option></select></div>
+            </div>
+            ${assetRes.error ? `<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Data Aset belum dapat dibaca. Tab manual tetap dapat digunakan. Detail: ${escapeHtml(assetRes.error.message || "struktur fixed_assets belum tersedia")}</div>` : ""}
+            <div id="adjAutoStatus" class="small text-secondary mb-2">${assets.length ? `${assets.length} aset aktif tersedia.` : "Belum ada aset aktif yang dapat dihitung."}</div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th style="width:40px"><input id="adjAutoAll" type="checkbox"></th><th>Aset</th><th>Perolehan</th><th class="text-end">Harga Perolehan</th><th class="text-end">Umur (bln)</th><th class="text-end">Akumulasi</th><th class="text-end">Penyusutan Periode</th><th>Akun Beban</th><th>Akun Akumulasi</th></tr></thead>
+                    <tbody id="adjAutoRows">${assets.length ? assets.map((a,idx)=>`
+                        <tr class="adj-auto-row" data-asset-id="${escapeHtml(a.id)}">
+                            <td><input type="checkbox" class="adj-auto-check"></td>
+                            <td><div class="fw-semibold">${escapeHtml(a.asset_code || "-")} — ${escapeHtml(a.asset_name || "-")}</div><div class="small text-secondary">${escapeHtml(a.depreciation_method || "garis_lurus")}</div></td>
+                            <td>${fmtDate(a.acquisition_date)}</td>
+                            <td class="text-end">${rupiah(a.acquisition_cost || 0)}</td>
+                            <td class="text-end">${Number(a.useful_life_months || 0)}</td>
+                            <td class="text-end">${rupiah(a.accumulated_depreciation || 0)}</td>
+                            <td class="text-end adj-auto-amount">Rp 0</td>
+                            <td class="small adj-auto-expense-label">${escapeHtml((accounts.find(x=>x.id===a.depreciation_expense_account_id)?.kode || "Belum diatur"))}</td>
+                            <td class="small adj-auto-accum-label">${escapeHtml((accounts.find(x=>x.id===a.accumulated_depreciation_account_id)?.kode || "Belum diatur"))}</td>
+                        </tr>`).join("") : `<tr><td colspan="9" class="text-center text-secondary py-4">Belum ada aset aktif.</td></tr>`}</tbody>
+                </table>
+            </div>
+            <div class="small text-secondary mt-3"><i class="bi bi-info-circle me-1"></i>Akun penyusutan mengikuti mapping yang tersimpan pada master Aset. Sistem mencegah jurnal penyusutan ganda untuk aset dan periode yang sama.</div>
+        </div>
+
+        <div id="adjustmentManualPanel" class="panel mb-3 d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div><div class="fw-semibold">Jurnal Penyesuaian Manual</div><div class="text-secondary small">Digunakan untuk penyisihan piutang, beban terutang, dan penyesuaian lain yang memerlukan input pengguna.</div></div>
+            </div>
+            ${canManage ? `<form id="adjustmentForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Tanggal</label><input id="adjDate" type="date" class="form-control" value="${today}" required></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Entitas</label><select id="adjUnit" class="form-select">${unitOptions}</select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Jenis Penyesuaian</label><select id="adjType" class="form-select"><option value="">Penyesuaian Umum</option><option value="Penyisihan Piutang Tak Tertagih">Penyisihan Piutang Tak Tertagih</option><option value="Beban Terutang">Beban Terutang</option><option value="Penyesuaian Persediaan/Perlengkapan">Penyesuaian Persediaan/Perlengkapan</option></select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Periode</label><div id="adjPeriodInfo" class="form-control bg-light">Otomatis berdasarkan tanggal</div></div>
+                </div>
+                <div class="mb-3"><label class="form-label small fw-semibold">Uraian</label><input id="adjDescription" class="form-control" placeholder="Contoh: Beban telepon/internet terutang September 2026" required></div>
+                <div class="table-responsive"><table class="table table-sm align-middle mb-2"><thead><tr><th style="min-width:300px">Akun</th><th style="width:180px" class="text-end">Debit</th><th style="width:180px" class="text-end">Kredit</th><th style="width:50px"></th></tr></thead><tbody id="adjRows"></tbody><tfoot><tr><th>Total</th><th class="text-end" id="adjTotalDebit">Rp 0</th><th class="text-end" id="adjTotalCredit">Rp 0</th><th></th></tr></tfoot></table></div>
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><div id="adjStatus" class="small fw-semibold text-secondary">Tambahkan minimal 2 baris jurnal.</div><div class="d-flex gap-2"><button type="button" id="adjAddRow" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tambah Baris</button><button id="adjSaveBtn" class="btn btn-primary btn-sm" type="submit" disabled>Simpan Penyesuaian</button></div></div>
+            </form>` : `<div class="alert alert-secondary mb-0">Akun Anda tidak memiliki hak untuk membuat jurnal penyesuaian.</div>`}
+        </div>
+
+        <div class="panel">
+            <div class="d-flex justify-content-between align-items-center mb-3"><div><div class="fw-semibold">Riwayat Jurnal Penyesuaian</div><div class="text-secondary small">Jurnal tetap masuk ke Buku Besar dan Laporan, tetapi sumbernya dibedakan sebagai penyesuaian.</div></div></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Entitas</th><th>Periode</th><th class="text-end">Jumlah</th></tr></thead><tbody>${rows || `<tr><td colspan="7" class="text-center text-secondary py-4">Belum ada jurnal penyesuaian.</td></tr>`}</tbody></table></div>
+        </div>`;
+
+        showModuleShell("penyesuaian", body);
+
+        // Tab switch
+        document.querySelectorAll("[data-adj-tab]").forEach(btn => btn.addEventListener("click", () => {
+            document.querySelectorAll("[data-adj-tab]").forEach(x => x.classList.remove("active"));
+            btn.classList.add("active");
+            $("adjustmentAutoPanel").classList.toggle("d-none", btn.dataset.adjTab !== "auto");
+            $("adjustmentManualPanel").classList.toggle("d-none", btn.dataset.adjTab !== "manual");
+        }));
+
+        if (!canManage) return;
+
+        // -------------------------
+        // PENYESUAIAN OTOMATIS
+        // -------------------------
+        const autoPeriod = $("adjAutoPeriod");
+        const autoUnit = $("adjAutoUnit");
+        const autoDate = $("adjAutoDate");
+        const autoGroup = $("adjAutoGroup");
+        const autoAll = $("adjAutoAll");
+        const autoStatus = $("adjAutoStatus");
+
+        function monthsOverlap(start, end, pStart, pEnd) {
+            const s = new Date(start + "T00:00:00");
+            const e = new Date(end + "T00:00:00");
+            const ps = new Date(pStart + "T00:00:00");
+            const pe = new Date(pEnd + "T00:00:00");
+            const from = s > ps ? s : ps;
+            const to = e < pe ? e : pe;
+            if (from > to) return 0;
+            return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1;
+        }
+
+        function groupMatch(asset, group) {
+            if (!group) return true;
+            const text = `${asset.asset_name || ""} ${asset.asset_code || ""}`.toLowerCase();
+            if (group === "kendaraan") return /kendaraan|mobil|motor|sepeda/.test(text);
+            if (group === "peralatan") return /peralatan|mesin|alat/.test(text);
+            if (group === "meubelair") return /meubel|meja|kursi|lemari/.test(text);
+            if (group === "gedung") return /gedung|bangunan/.test(text);
+            return true;
+        }
+
+        function updateAutoRows() {
+            const period = periods.find(p => p.id === autoPeriod?.value);
+            const selectedUnit = autoUnit?.value || null;
+            let shown = 0, total = 0;
+            document.querySelectorAll(".adj-auto-row").forEach(row => {
+                const asset = assets.find(a => a.id === row.dataset.assetId);
+                if (!asset) return;
+                const visible = ((selectedUnit === null || selectedUnit === "") ? !asset.unit_id : asset.unit_id === selectedUnit) && groupMatch(asset, autoGroup?.value || "");
+                row.classList.toggle("d-none", !visible);
+                if (!visible) return;
+                shown++;
+                const method = String(asset.depreciation_method || "garis_lurus").toLowerCase();
+                const cost = Number(asset.acquisition_cost || 0);
+                const life = Number(asset.useful_life_months || 0);
+                const accumulated = Number(asset.accumulated_depreciation || 0);
+                const eligibleMonths = period && asset.acquisition_date ? monthsOverlap(asset.acquisition_date, period.end_date, period.start_date, period.end_date) : 0;
+                const totalMonthsToDate = period && asset.acquisition_date ? monthsOverlap(asset.acquisition_date, period.end_date, asset.acquisition_date, period.end_date) : 0;
+                const alreadyPosted = adjustments
+                    .filter(t => String(t.adjustment_key || "").startsWith(`AUTO-PENYUSUTAN:${asset.id}:`))
+                    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const baseAccumulated = Math.max(accumulated, alreadyPosted);
+                let amount = 0;
+                if (method.includes("garis") && life > 0 && cost > 0 && eligibleMonths > 0) {
+                    const targetAccumulated = Math.min(cost, (cost / life) * totalMonthsToDate);
+                    const periodFromHistory = Math.max(0, targetAccumulated - baseAccumulated);
+                    amount = Math.min(cost - baseAccumulated, periodFromHistory);
+                    if (amount < 0) amount = 0;
+                }
+                const amountEl = row.querySelector(".adj-auto-amount");
+                amountEl.textContent = rupiah(amount);
+                row.dataset.amount = String(amount);
+                row.dataset.method = method;
+                row.dataset.eligibleMonths = String(eligibleMonths);
+                row.dataset.already = adjustments.some(t => String(t.adjustment_key || "") === `AUTO-PENYUSUTAN:${asset.id}:${period?.id || ""}`) ? "1" : "0";
+                const check = row.querySelector(".adj-auto-check");
+                check.disabled = amount <= 0 || !method.includes("garis") || row.dataset.already === "1";
+                if (row.dataset.already === "1") row.querySelector(".adj-auto-amount").innerHTML = `${rupiah(amount)} <span class="badge text-bg-success ms-1">Sudah dibuat</span>`;
+                if (amount > 0 && !check.disabled) total += amount;
+            });
+            autoStatus.textContent = shown ? `${shown} aset tampil. Total kandidat penyusutan: ${rupiah(total)}.` : "Tidak ada aset yang sesuai filter.";
+            autoAll.checked = false;
+        }
+
+        [autoPeriod, autoUnit, autoGroup].forEach(el => el?.addEventListener("change", updateAutoRows));
+        autoAll?.addEventListener("change", () => document.querySelectorAll(".adj-auto-row:not(.d-none) .adj-auto-check:not(:disabled)").forEach(c => c.checked = autoAll.checked));
+        updateAutoRows();
+
+        $("adjAutoCreateBtn")?.addEventListener("click", async () => {
+            const period = periods.find(p => p.id === autoPeriod?.value);
+            if (!period) return showAppToast("error", "Periode", "Pilih periode terbuka terlebih dahulu.");
+            const date = autoDate?.value || period.end_date;
+            if (date < period.start_date || date > period.end_date) return showAppToast("error", "Tanggal jurnal", "Tanggal harus berada di dalam periode yang dipilih.");
+            const selected = [...document.querySelectorAll(".adj-auto-row:not(.d-none) .adj-auto-check:checked")];
+            if (!selected.length) return showAppToast("info", "Belum ada aset", "Centang aset yang akan dibuatkan jurnal penyusutannya.");
+
+            const {data:sessionData}=await supabaseClient.auth.getSession();
+            const userId=sessionData?.session?.user?.id;
+            if(!userId) return showAppToast("error","Sesi login tidak ditemukan","Silakan login kembali.");
+
+            const original = $("adjAutoCreateBtn").innerHTML;
+            $("adjAutoCreateBtn").disabled = true;
+            $("adjAutoCreateBtn").innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Membuat jurnal...';
+            let made = 0;
+            try {
+                const selectedAssetIds = selected
+                    .map(c => c.closest(".adj-auto-row")?.dataset.assetId)
+                    .filter(Boolean);
+                if (!selectedAssetIds.length) return;
+
+                const {data:created,error:rpcErr}=await supabaseClient.rpc("generate_depreciation_adjustment",{
+                    p_bumdes_id: bumdesId,
+                    p_unit_id: autoUnit?.value || null,
+                    p_period_id: period.id,
+                    p_adjustment_date: date,
+                    p_asset_ids: selectedAssetIds
+                });
+                if (rpcErr) throw rpcErr;
+                made = Array.isArray(created) ? created.length : 0;
+                showAppToast("success","Penyusutan selesai",`${made} jurnal penyusutan berhasil dibuat.`);
+                await renderAdjustmentsModule();
+            } catch(err) {
+                console.error(err);
+                showAppToast("error","Gagal membuat penyusutan",err.message||String(err));
+                $("adjAutoCreateBtn").disabled = false;
+                $("adjAutoCreateBtn").innerHTML = original;
+            }
+        });
+
+        // -------------------------
+        // PENYESUAIAN MANUAL
+        // -------------------------
+        const form = $("adjustmentForm");
+        if (!form) return;
+        const rowsEl = $("adjRows");
+        const dateEl = $("adjDate");
+        const unitEl = $("adjUnit");
+        const typeEl = $("adjType");
+        const descEl = $("adjDescription");
+        const saveBtn = $("adjSaveBtn");
+        const statusEl = $("adjStatus");
+        const periodInfo = $("adjPeriodInfo");
+
+        function addRow() {
+            const row = document.createElement("tr");
+            row.className = "adj-input-row";
+            row.innerHTML = `<td><select class="form-select form-select-sm adj-account"><option value="">Pilih akun detail</option>${accountOptions}</select></td><td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end adj-debit" value="0"></td><td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end adj-credit" value="0"></td><td><button type="button" class="btn btn-sm btn-outline-danger adj-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>`;
+            rowsEl.appendChild(row);
+            row.querySelectorAll("input,select").forEach(el => { el.addEventListener("input", updateTotals); el.addEventListener("change", updateTotals); });
+            row.querySelector(".adj-remove").addEventListener("click", () => { if (rowsEl.querySelectorAll(".adj-input-row").length > 2) { row.remove(); updateTotals(); } else showAppToast("info", "Baris jurnal", "Minimal harus ada 2 baris jurnal."); });
+            updateTotals();
+        }
+
+        function updatePeriod() {
+            const date = dateEl.value;
+            const found = openPeriods.filter(p => date && date >= p.start_date && date <= p.end_date);
+            if (found.length === 1) {
+                periodInfo.textContent = `${fmtDate(found[0].start_date)} s.d. ${fmtDate(found[0].end_date)} • Terbuka`;
+                periodInfo.className = "form-control bg-light text-success";
+            } else {
+                periodInfo.textContent = found.length === 0 ? "Tidak ada periode terbuka" : "Lebih dari satu periode terbuka";
+                periodInfo.className = "form-control bg-light text-danger";
+            }
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let debit=0, credit=0, invalid=false;
+            rowsEl.querySelectorAll(".adj-input-row").forEach(row => {
+                const d=Number(row.querySelector(".adj-debit")?.value||0), c=Number(row.querySelector(".adj-credit")?.value||0);
+                debit += Number.isFinite(d)?d:0; credit += Number.isFinite(c)?c:0;
+                if (d>0 && c>0) invalid=true;
+            });
+            $("adjTotalDebit").textContent=rupiah(debit); $("adjTotalCredit").textContent=rupiah(credit);
+            const periodOk=openPeriods.some(p=>dateEl.value>=p.start_date&&dateEl.value<=p.end_date);
+            const balanced=!invalid && debit>0 && credit>0 && Math.abs(debit-credit)<0.005;
+            saveBtn.disabled=!(periodOk && balanced && descEl.value.trim() && rowsEl.querySelectorAll(".adj-input-row").length>=2);
+            if(!periodOk) { statusEl.textContent="Tanggal tidak berada dalam periode terbuka."; statusEl.className="small fw-semibold text-danger"; }
+            else if(invalid) { statusEl.textContent="Satu baris tidak boleh berisi Debit dan Kredit sekaligus."; statusEl.className="small fw-semibold text-danger"; }
+            else if(balanced) { statusEl.textContent="✓ Jurnal penyesuaian seimbang."; statusEl.className="small fw-semibold text-success"; }
+            else { statusEl.textContent=`Belum seimbang — selisih ${rupiah(Math.abs(debit-credit))}`; statusEl.className="small fw-semibold text-danger"; }
+        }
+
+        for(let i=0;i<2;i++) addRow();
+        dateEl.addEventListener("change", updatePeriod); descEl.addEventListener("input", updateTotals); unitEl.addEventListener("change", updateTotals);
+        $("adjAddRow").addEventListener("click", addRow);
+        updatePeriod();
+
+        form.addEventListener("submit", async e => {
+            e.preventDefault();
+            if(saveBtn.disabled) return;
+            const date=dateEl.value, unitId=unitEl.value||null;
+            const period=openPeriods.find(p=>date>=p.start_date&&date<=p.end_date);
+            const lines=[...rowsEl.querySelectorAll(".adj-input-row")].map(r=>({accountId:r.querySelector(".adj-account")?.value||"",debit:Number(r.querySelector(".adj-debit")?.value||0),credit:Number(r.querySelector(".adj-credit")?.value||0)}));
+            if(!period) return;
+            if(lines.some(x=>!x.accountId || (x.debit>0&&x.credit>0) || (x.debit===0&&x.credit===0))) { showAppToast("error","Jurnal tidak valid","Periksa akun dan nominal setiap baris."); return; }
+            const debit=lines.reduce((s,x)=>s+x.debit,0), credit=lines.reduce((s,x)=>s+x.credit,0);
+            if(Math.abs(debit-credit)>0.005) { showAppToast("error","Jurnal belum seimbang","Total Debit dan Kredit harus sama."); return; }
+            const {data:sessionData}=await supabaseClient.auth.getSession(); const userId=sessionData?.session?.user?.id;
+            if(!userId){showAppToast("error","Sesi login tidak ditemukan","Silakan login kembali.");return;}
+            const original=saveBtn.innerHTML; saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+            try {
+                const kind=typeEl.value;
+                const description=descEl.value.trim();
+                const {data:result,error:rpcErr}=await supabaseClient.rpc("create_adjustment",{
+                    p_bumdes_id: bumdesId,
+                    p_unit_id: unitId,
+                    p_period_id: period.id,
+                    p_transaction_date: date,
+                    p_description: description,
+                    p_adjustment_type: kind || null,
+                    p_lines: lines.map(x=>({
+                        account_id:x.accountId,
+                        debit:x.debit,
+                        credit:x.credit,
+                        description:description
+                    }))
+                });
+                if(rpcErr) throw rpcErr;
+                const row=Array.isArray(result) ? result[0] : result;
+                const transactionNumber=row?.transaction_number || "-";
+                showAppToast("success","Penyesuaian berhasil disimpan",`No. Bukti ${transactionNumber}`);
+                await renderAdjustmentsModule();
+            } catch(err) {
+                console.error(err); showAppToast("error","Gagal menyimpan penyesuaian",err.message||String(err)); saveBtn.disabled=false; saveBtn.innerHTML=original;
+            }
+        });
+    }
+
+
+    // =========================================================
+    // MODUL LAPORAN KEUANGAN — FORMAT PEDOMAN 42–55
+    // =========================================================
+    function reportPeriodPreset(type){
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth()+1;
+        const d = now.getDate();
+        if(type === 'bulanan'){
+            const last = new Date(y,m,0).getDate();
+            return {start:`${y}-${String(m).padStart(2,'0')}-01`, end:`${y}-${String(m).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`, label:'Bulan Berjalan'};
+        }
+        if(type === 'semester'){
+            const s = m <= 6 ? 1 : 7;
+            const e = s === 1 ? 6 : 12;
+            const last = new Date(y,e,0).getDate();
+            return {start:`${y}-${String(s).padStart(2,'0')}-01`, end:`${y}-${String(e).padStart(2,'0')}-${String(last).padStart(2,'0')}`, label:s===1?'Semester I':'Semester II'};
+        }
+        return {start:`${y}-01-01`, end:`${y}-12-31`, label:'Tahunan'};
+    }
+
+    function reportScopeOptions(profile, units){
+        const unitUsers = ['admin_unit','operator_unit'].includes(profile?.role);
+        if(unitUsers){
+            const u=(units||[]).find(x=>x.id===profile.unit_id);
+            return u ? `<option value="unit:${escapeHtml(u.id)}">Unit Usaha — ${escapeHtml(u.nama_unit)}</option>` : '';
+        }
+        return `<option value="pusat">Kantor Pusat</option><option value="gabungan">Gabungan / Konsolidasian</option>`+
+            (units||[]).filter(u=>u.status!=='nonaktif').map(u=>`<option value="unit:${escapeHtml(u.id)}">Unit Usaha — ${escapeHtml(u.nama_unit)}</option>`).join('');
+    }
+
+    async function fetchReportRows(queryBuilder){
+        const pageSize=1000; let from=0; const out=[];
+        while(true){
+            const {data,error}=await queryBuilder.range(from,from+pageSize-1);
+            if(error) throw error;
+            const rows=data||[]; out.push(...rows);
+            if(rows.length<pageSize) break; from+=pageSize;
+        }
+        return out;
+    }
+
+    function reportNormalBalance(account, debit, credit){
+        const nb=String(account?.normal_balance||'').toUpperCase();
+        if(nb==='K' || nb==='CREDIT') return Number(credit||0)-Number(debit||0);
+        if(nb==='D' || nb==='DEBIT') return Number(debit||0)-Number(credit||0);
+        const code=String(account?.kode||'');
+        const t=String(account?.account_type||'').toLowerCase();
+        if(t==='kewajiban'||t==='ekuitas'||t==='pendapatan'||(t==='lain_lain'&&code.startsWith('7.1'))) return Number(credit||0)-Number(debit||0);
+        return Number(debit||0)-Number(credit||0);
+    }
+
+    function reportIsIncome(account){
+        const t=String(account?.account_type||'').toLowerCase(), code=String(account?.kode||'');
+        return t==='pendapatan' || (t==='lain_lain' && code.startsWith('7.1'));
+    }
+    function reportIsExpense(account){
+        const t=String(account?.account_type||'').toLowerCase(), code=String(account?.kode||'');
+        return t==='hpp' || t==='beban' || (t==='lain_lain' && (code.startsWith('7.2')||code.startsWith('7.3')));
+    }
+    function reportCodePrefix(code, level){
+        const p=String(code||'').split('.');
+        if(level===1) return p[0]+'.0.00.00';
+        if(level===2) return p.slice(0,2).join('.')+'.00.00';
+        if(level===3) return p.slice(0,3).join('.')+'.00';
+        return code;
+    }
+    function reportDisplayValue(v){
+        const n=Number(v||0); return n===0?'–':rupiah(n);
+    }
+    function reportSigned(v){
+        const n=Number(v||0); return n<0?`(${rupiah(Math.abs(n))})`:rupiah(n);
+    }
+
+    async function loadFinancialReportData({module,startDate,endDate,scope}){
+        const bumdesId=activeAppProfile.bumdes_id;
+        const startYear=Number(String(startDate).slice(0,4));
+        const endYear=Number(String(endDate).slice(0,4));
+        const scopeUnit=scope.startsWith('unit:')?scope.slice(5):null;
+        const isPusat=scope==='pusat';
+        const isConsolidated=scope==='gabungan';
+
+        const {data:accounts,error:accErr}=await supabaseClient.from('chart_of_accounts')
+            .select('id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_active')
+            .eq('is_active',true).or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`).order('kode',{ascending:true});
+        if(accErr) throw accErr;
+        const accountMap=new Map(); (accounts||[]).forEach(a=>accountMap.set(a.id,a));
+        const leafAccounts=(accounts||[]).filter(a=>a.level===4);
+        const groupAccounts=(accounts||[]).filter(a=>a.level===3);
+
+        // Lingkup laporan harus benar-benar memisahkan Pusat, Unit, dan Gabungan.
+        // Pusat = unit_id NULL, Unit = unit_id tertentu, Gabungan = seluruh lokasi.
+        let jQuery=supabaseClient.from('journals').select('id,transaction_id,account_id,unit_id,journal_date,debit,credit,journal_number,description')
+            .eq('bumdes_id',bumdesId).gte('journal_date',`${startYear}-01-01`).lte('journal_date',endDate).order('journal_date',{ascending:true});
+        if(scopeUnit) jQuery=jQuery.eq('unit_id',scopeUnit);
+        else if(isPusat) jQuery=jQuery.is('unit_id',null);
+        const journals=await fetchReportRows(jQuery);
+
+        // Saldo awal tahun untuk posisi keuangan.
+        const {data:period}=await supabaseClient.from('account_periods').select('id,start_date,end_date')
+            .eq('bumdes_id',bumdesId).eq('period_type','tahunan').eq('start_date',`${startYear}-01-01`).eq('end_date',`${startYear}-12-31`).limit(1).maybeSingle();
+        let openings=[];
+        if(period?.id){
+            let oQuery=supabaseClient.from('opening_balances').select('account_id,unit_id,debit,credit').eq('bumdes_id',bumdesId).eq('period_id',period.id);
+            if(scopeUnit) oQuery=oQuery.eq('unit_id',scopeUnit);
+            else if(isPusat) oQuery=oQuery.is('unit_id',null);
+            openings=await fetchReportRows(oQuery);
+        }
+
+        const balanceMap=new Map();
+        const moveMap=new Map();
+        const add=(map,id,val)=>map.set(id,(map.get(id)||0)+Number(val||0));
+        openings.forEach(o=>{const a=accountMap.get(o.account_id);if(a)add(balanceMap,o.account_id,reportNormalBalance(a,o.debit,o.credit));});
+        journals.forEach(j=>{const a=accountMap.get(j.account_id);if(!a)return; add(balanceMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
+            if(j.journal_date>=startDate && j.journal_date<=endDate) add(moveMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
+        });
+
+        // Saldo pembanding = posisi akhir hari sebelum periode laporan.
+        // Untuk 1 Januari, saldo awal tahun menjadi saldo pembanding. Untuk bulan/semester/custom,
+        // saldo pembanding dibentuk dari saldo awal + seluruh jurnal sejak awal tahun sampai sehari sebelum periode.
+        const priorMap=new Map();
+        openings.forEach(o=>{const a=accountMap.get(o.account_id);if(a)add(priorMap,o.account_id,reportNormalBalance(a,o.debit,o.credit));});
+        const priorEndDate=new Date(`${startDate}T00:00:00`);
+        priorEndDate.setDate(priorEndDate.getDate()-1);
+        const priorEndStr=`${priorEndDate.getFullYear()}-${String(priorEndDate.getMonth()+1).padStart(2,'0')}-${String(priorEndDate.getDate()).padStart(2,'0')}`;
+        if(priorEndStr >= `${startYear}-01-01`){
+            let pQuery=supabaseClient.from('journals').select('account_id,unit_id,journal_date,debit,credit').eq('bumdes_id',bumdesId)
+                .gte('journal_date',`${startYear}-01-01`).lte('journal_date',priorEndStr);
+            if(scopeUnit) pQuery=pQuery.eq('unit_id',scopeUnit);
+            else if(isPusat) pQuery=pQuery.is('unit_id',null);
+            const prev=await fetchReportRows(pQuery);
+            prev.forEach(j=>{const a=accountMap.get(j.account_id);if(a)add(priorMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));});
+        }
+
+        const balances={}; const movements={}; const priors={};
+        leafAccounts.forEach(a=>{balances[a.id]=balanceMap.get(a.id)||0;movements[a.id]=moveMap.get(a.id)||0;priors[a.id]=priorMap.get(a.id)||0;});
+        if(isConsolidated){
+            // Sesuai pedoman, akun resiprokal RK Unit Usaha/RK Pusat dieliminasi pada konsolidasi.
+            leafAccounts.forEach(a=>{
+                const code=String(a.kode||'');
+                if(code.startsWith('1.1.99.')||code.startsWith('3.8.')){
+                    balances[a.id]=0; priors[a.id]=0;
+                }
+            });
+        }
+        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,startDate,endDate,scope,isConsolidated};
+    }
+
+    function reportGroupTotal(data, prefix, mapName='balances'){
+        return data.leafAccounts.filter(a=>String(a.kode).startsWith(prefix)).reduce((s,a)=>s+Number((data[mapName]||{})[a.id]||0),0);
+    }
+    function reportRowsForGroup(data,prefix, mapName='balances', indent=1){
+        return data.leafAccounts.filter(a=>String(a.kode).startsWith(prefix)).map(a=>({name:a.nama,code:a.kode,value:Number((data[mapName]||{})[a.id]||0),indent}));
+    }
+    function reportGroupByLevel3(data,prefix,mapName='balances'){
+        return data.groupAccounts.filter(a=>String(a.kode).startsWith(prefix)).map(g=>({group:g, value:reportGroupTotal(data,g.kode.replace(/\.00$/,''),mapName)}));
+    }
+
+    function buildProfitLossReport(data){
+        const grossRevenue=reportGroupTotal(data,'4.','movements');
+        const hppGoods=reportGroupTotal(data,'5.1.','movements');
+        const hppFinished=reportGroupTotal(data,'5.2.','movements');
+        // 5.3 Harga Pokok Produksi tidak ditampilkan sebagai baris tersendiri
+        // pada contoh format halaman 42–43; akun tersebut tetap berada di COA aplikasi.
+        const hpp=hppGoods+hppFinished;
+        const opExpense=reportGroupTotal(data,'6.','movements');
+        const otherIncome=reportGroupTotal(data,'7.1.','movements');
+        const otherExpense=reportGroupTotal(data,'7.2.','movements');
+        const taxExpense=reportGroupTotal(data,'7.3.','movements');
+        const service=reportGroupTotal(data,'4.1.','movements');
+        const goods=reportGroupTotal(data,'4.2.','movements');
+        const finished=reportGroupTotal(data,'4.3.','movements');
+        const gross=service+goods+finished-hpp;
+        const op=gross-opExpense;
+        const otherNet=otherIncome-otherExpense-taxExpense;
+        const beforeBagiHasil=op+otherNet;
+        // Bagi hasil mengikuti akun 3.2 pada COA aplikasi dan bersifat pengurang laba.
+        const bagiDesa=Math.max(0,reportGroupTotal(data,'3.2.01.','movements'));
+        const bagiMasyarakat=Math.max(0,reportGroupTotal(data,'3.2.02.','movements'));
+        const net=beforeBagiHasil-bagiDesa-bagiMasyarakat;
+
+        const rows=[];
+        rows.push({type:'section',name:'PENDAPATAN USAHA'});
+        ['4.1.','4.2.','4.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push(r));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Total Pendapatan',value:grossRevenue});
+
+        rows.push({type:'section',name:'HARGA POKOK PENJUALAN'});
+        ['5.1.','5.2.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:-rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Laba (Rugi) Kotor',value:gross});
+
+        rows.push({type:'section',name:'BEBAN-BEBAN USAHA'});
+        ['6.1.','6.2.','6.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:-rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Laba (Rugi) Operasi',value:op});
+
+        rows.push({type:'section',name:'PENDAPATAN DAN BEBAN LAIN-LAIN'});
+        rows.push({type:'group',name:'Pendapatan Lain-lain'});
+        data.groupAccounts.filter(g=>g.kode.startsWith('7.1.')).forEach(g=>{
+            reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push(r));
+        });
+        rows.push({type:'subtotal',name:'Total Pendapatan Lain-lain',value:otherIncome});
+        rows.push({type:'group',name:'Beban Lain-lain'});
+        data.groupAccounts.filter(g=>g.kode.startsWith('7.2.')).forEach(g=>{
+            reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+        });
+        rows.push({type:'subtotal',name:'Total Beban Lain-lain',value:-otherExpense});
+        rows.push({type:'group',name:'Beban Pajak'});
+        data.groupAccounts.filter(g=>g.kode.startsWith('7.3.')).forEach(g=>{
+            reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+        });
+        rows.push({type:'subtotal',name:'Total Beban Pajak',value:-taxExpense});
+        rows.push({type:'grand',name:'Total Pendapatan dan Beban Lain-lain',value:otherNet});
+
+        rows.push({type:'grand',name:'LABA (RUGI) SEBELUM BAGI HASIL',value:beforeBagiHasil});
+        rows.push({name:'BAGI HASIL PENYERTAAN MODAL DESA',value:-bagiDesa,indent:1});
+        rows.push({name:'BAGI HASIL PENYERTAAN MODAL MASYARAKAT',value:-bagiMasyarakat,indent:1});
+        rows.push({type:'grand',name:'LABA (RUGI) BERSIH SETELAH BAGI HASIL KE PEMILIK',value:net});
+        return {rows,net,beforeBagiHasil,bagiDesa,bagiMasyarakat,grossRevenue,hpp,opExpense,otherIncome,otherExpense,taxExpense,otherNet};
+    }
+    function rptGroup(data,prefix,mapName){return reportGroupTotal(data,prefix,mapName);}
+
+    function buildBalanceSheetReport(data){
+        const sections=[
+            {title:'ASET LANCAR',sub:['1.1.01.','1.1.02.','1.1.03.','1.1.04.','1.1.05.','1.1.06.','1.1.07.','1.1.98.'],includeRK:data.scope==='pusat'},
+            {title:'INVESTASI',sub:['1.2.01.']},
+            {title:'ASET TETAP',sub:['1.3.01.','1.3.02.','1.3.03.','1.3.04.','1.3.05.','1.3.06.','1.3.07.','1.3.99.']},
+            {title:'ASET TAKBERWUJUD',sub:['1.4.01.','1.4.02.']},
+            {title:'ASET LAIN-LAIN',sub:['1.9.01.','1.9.02.']}
+        ];
+        const rows=[]; let totalAssets=0, priorTotalAssets=0;
+        sections.forEach(sec=>{
+            rows.push({type:'section',name:sec.title}); let secTotal=0, secPrior=0;
+            const prefs=[...sec.sub];
+            if(sec.includeRK) prefs.push('1.1.99.');
+            prefs.forEach(pref=>{
+                const g=data.groupAccounts.find(a=>a.kode.startsWith(pref)); if(!g)return;
+                const val=reportGroupTotal(data,pref,'balances');
+                const pv=reportGroupTotal(data,pref,'priors');
+                secTotal+=val; secPrior+=pv;
+                rows.push({type:'group',name:g.nama,value:val,priorValue:pv});
+                reportRowsForGroup(data,pref,'balances',2).forEach(r=>{
+                    const a=data.leafAccounts.find(x=>x.kode===r.code);
+                    rows.push({...r,priorValue:a?Number((data.priors||{})[a.id]||0):0});
+                });
+            });
+            rows.push({type:'subtotal',name:`Total ${sec.title.replace(/^ASET /,'Aset ')}`,value:secTotal,priorValue:secPrior});
+            totalAssets+=secTotal; priorTotalAssets+=secPrior;
+        });
+        rows.push({type:'grand',name:'TOTAL ASET',value:totalAssets,priorValue:priorTotalAssets});
+
+        rows.push({type:'section',name:'KEWAJIBAN'}); let totalLiab=0, priorTotalLiab=0;
+        [['2.1.','KEWAJIBAN JANGKA PENDEK'],['2.2.','KEWAJIBAN JANGKA PANJANG']].forEach(([pref,title])=>{
+            const val=reportGroupTotal(data,pref,'balances'); const pv=reportGroupTotal(data,pref,'priors');
+            totalLiab+=val; priorTotalLiab+=pv;
+            rows.push({type:'group',name:title,value:val,priorValue:pv});
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                const gp=g.kode.replace(/\.00$/,'');
+                rows.push({type:'group',name:g.nama,value:reportGroupTotal(data,gp,'balances'),priorValue:reportGroupTotal(data,gp,'priors')});
+                reportRowsForGroup(data,gp,'balances',2).forEach(r=>{
+                    const a=data.leafAccounts.find(x=>x.kode===r.code);
+                    rows.push({...r,priorValue:a?Number((data.priors||{})[a.id]||0):0});
+                });
+            });
+            rows.push({type:'subtotal',name:`Total ${title}`,value:val,priorValue:pv});
+        });
+        rows.push({type:'grand',name:'TOTAL KEWAJIBAN',value:totalLiab,priorValue:priorTotalLiab});
+
+        rows.push({type:'section',name:'EKUITAS'});
+        // 3.2 adalah pengambilan/bagi hasil pemilik (saldo normal debit), sehingga
+        // mengurangi ekuitas. 3.8 RK Pusat hanya disajikan pada laporan Unit Usaha;
+        // pada Kantor Pusat akun RK Unit Usaha berada di Aset Lancar. Pada konsolidasi
+        // kedua akun resiprokal sudah dieliminasi.
+        const equityBase=(reportGroupTotal(data,'3.1.','balances')+
+            reportGroupTotal(data,'3.3.','balances')+
+            reportGroupTotal(data,'3.4.','balances')+
+            (data.scope==='unit' ? reportGroupTotal(data,'3.8.','balances') : 0));
+        const priorEquityBase=(reportGroupTotal(data,'3.1.','priors')+
+            reportGroupTotal(data,'3.3.','priors')+
+            reportGroupTotal(data,'3.4.','priors')+
+            (data.scope==='unit' ? reportGroupTotal(data,'3.8.','priors') : 0));
+        const p=buildProfitLossReport(data);
+        // Jika laporan belum melalui jurnal penutup, laba/rugi bersih periode berjalan
+        // menambah ekuitas. Jika sudah ditutup dan laba telah masuk saldo laba, current
+        // P&L pada akun pendapatan/beban tidak lagi muncul; dalam kondisi itu gunakan
+        // saldo ekuitas yang sudah tercatat.
+        const pNetAlreadyClosed=Math.abs(p.net)<0.000001;
+        const equity=equityBase + (pNetAlreadyClosed ? 0 : p.net);
+        const priorEquity=priorEquityBase;
+        rows.push({type:'group',name:'Ekuitas Akhir',value:equity,priorValue:priorEquity});
+        rows.push({type:'grand',name:'TOTAL EKUITAS',value:equity,priorValue:priorEquity});
+        rows.push({type:'grand',name:'TOTAL KEWAJIBAN DAN EKUITAS',value:totalLiab+equity,priorValue:priorTotalLiab+priorEquity});
+        return {rows,totalAssets,totalLiab,equity,priorTotalAssets,priorTotalLiab,priorEquity};
+    }
+
+    function buildEquityReport(data,profitReport){
+        const modalDesaAwal=reportGroupTotal(data,'3.1.01.','priors');
+        const modalMasyAwal=reportGroupTotal(data,'3.1.02.','priors');
+        const modalDesaTambah=reportGroupTotal(data,'3.1.01.','movements');
+        const modalMasyTambah=reportGroupTotal(data,'3.1.02.','movements');
+        const modalDesaAkhir=modalDesaAwal+modalDesaTambah;
+        const modalMasyAkhir=modalMasyAwal+modalMasyTambah;
+        const saldoTidak=reportGroupTotal(data,'3.3.01.01','priors');
+        const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
+        const bagiDesa=profitReport.bagiDesa;
+        const bagiMasyarakat=profitReport.bagiMasyarakat;
+        const profitBersih=profitReport.net;
+        const donasi=reportGroupTotal(data,'3.4.01.','balances');
+        const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
+        const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
+        const rows=[
+            {type:'section',name:'PENYERTAAN MODAL'},
+            {type:'group',name:'Penyertaan modal awal:'},
+            {name:'Penyertaan Modal Desa',value:modalDesaAwal,indent:2},
+            {name:'Penyertaan Modal Masyarakat',value:modalMasyAwal,indent:2},
+            {type:'group',name:'Penambahan Investasi periode berjalan:'},
+            {name:'Penyertaan Modal Desa',value:modalDesaTambah,indent:2},
+            {name:'Penyertaan Modal Masyarakat',value:modalMasyTambah,indent:2},
+            {type:'subtotal',name:'Penyertaan Modal Akhir',value:modalDesaAkhir+modalMasyAkhir},
+            {type:'section',name:'SALDO LABA'},
+            {name:'Saldo Laba Awal — Tidak Dicadangkan',value:saldoTidak,indent:1},
+            {name:'Saldo Laba Awal — Dicadangkan',value:saldoCad,indent:1},
+            {name:'Laba (Rugi) periode berjalan',value:profitBersih,indent:1},
+            {type:'group',name:'Bagi Hasil Penyertaan:'},
+            {name:'Bagi Hasil Penyertaan Modal Desa',value:-bagiDesa,indent:2},
+            {name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-bagiMasyarakat,indent:2},
+            {type:'subtotal',name:'Saldo Laba Akhir',value:saldoLabaAkhir},
+            {type:'section',name:'MODAL DONASI/SUMBANGAN'},
+            {name:'Modal Donasi/Sumbangan',value:donasi,indent:1},
+            {type:'grand',name:'EKUITAS AKHIR',value:equityEnd}
+        ];
+        return {rows,equityEnd};
+    }
+
+    function buildCashFlowReport(data,profitReport){
+        const cashAccounts=data.leafAccounts.filter(a=>a.kode.startsWith('1.1.01.')||a.kode.startsWith('1.1.02.'));
+        const cashIds=new Set(cashAccounts.map(a=>a.id));
+        const byTx=new Map();
+        data.journals.filter(j=>j.journal_date>=data.startDate&&j.journal_date<=data.endDate).forEach(j=>{
+            if(!byTx.has(j.transaction_id))byTx.set(j.transaction_id,[]);
+            byTx.get(j.transaction_id).push(j);
+        });
+        const flow={
+            operasi:{penjualan:0,bungaDividen:0,pemasok:0,gaji:0,pajak:0,bunga:0,lain:0},
+            investasi:{penjualanAset:0,penjualanInvestasi:0,pembelianAset:0,pembelianInvestasi:0},
+            pendanaan:{modalDesa:0,modalMasyarakat:0,donasi:0,utangJangkaPanjang:0,bagiDesa:0,bagiMasyarakat:0,pokokUtangJangkaPanjang:0}
+        };
+        const classify=(a)=>{
+            const c=String(a?.kode||'');
+            if(c.startsWith('1.2.')||c.startsWith('1.3.')||c.startsWith('1.4.')||c.startsWith('1.9.')||c.startsWith('7.1.05.')||c.startsWith('7.2.04.')) return 'investasi';
+            if(c.startsWith('3.1.01.')) return 'modalDesa';
+            if(c.startsWith('3.1.02.')) return 'modalMasyarakat';
+            if(c.startsWith('3.4.')) return 'donasi';
+            if(c.startsWith('3.2.01.')) return 'bagiDesa';
+            if(c.startsWith('3.2.02.')) return 'bagiMasyarakat';
+            if(c.startsWith('2.2.')) return 'utangJangkaPanjang';
+            if(c.startsWith('1.1.03.')||c.startsWith('1.1.04.')||c.startsWith('2.1.')||c.startsWith('4.')||c.startsWith('5.')||c.startsWith('6.')||c.startsWith('7.1.')||c.startsWith('7.2.')||c.startsWith('7.3.')) return 'operasi';
+            return 'operasi';
+        };
+        const addFlow=(kind,incoming,v)=>{
+            if(kind==='operasi') return;
+            if(kind==='investasi') return;
+        };
+        byTx.forEach(lines=>{
+            const cash=lines.filter(j=>cashIds.has(j.account_id));
+            const others=lines.filter(j=>!cashIds.has(j.account_id));
+            if(!cash.length||!others.length)return;
+            const totalOtherAbs=others.reduce((s,j)=>s+Math.abs(Number(j.debit||0)-Number(j.credit||0)),0)||1;
+            cash.forEach(c=>{
+                const cashDelta=Number(c.debit||0)-Number(c.credit||0);
+                if(!cashDelta)return;
+                const incoming=cashDelta>0;
+                others.forEach(o=>{
+                    const a=data.accountMap.get(o.account_id); if(!a)return;
+                    const weight=Math.abs(Number(o.debit||0)-Number(o.credit||0))/totalOtherAbs;
+                    const amount=Math.abs(cashDelta)*weight;
+                    const code=String(a.kode||'');
+                    if(code.startsWith('1.3.')||code.startsWith('7.1.05.')||code.startsWith('7.2.04.')){
+                        if(incoming) flow.investasi.penjualanAset+=amount; else flow.investasi.pembelianAset+=amount;
+                    } else if(code.startsWith('1.2.')){
+                        if(incoming) flow.investasi.penjualanInvestasi+=amount; else flow.investasi.pembelianInvestasi+=amount;
+                    } else if(code.startsWith('1.4.')||code.startsWith('1.9.')){
+                        if(incoming) flow.investasi.penjualanInvestasi+=amount; else flow.investasi.pembelianInvestasi+=amount;
+                    } else if(code.startsWith('3.1.01.')){
+                        if(incoming) flow.pendanaan.modalDesa+=amount;
+                    } else if(code.startsWith('3.1.02.')){
+                        if(incoming) flow.pendanaan.modalMasyarakat+=amount;
+                    } else if(code.startsWith('3.4.')){
+                        if(incoming) flow.pendanaan.donasi+=amount;
+                    } else if(code.startsWith('2.2.')){
+                        if(incoming) flow.pendanaan.utangJangkaPanjang+=amount; else flow.pendanaan.pokokUtangJangkaPanjang+=amount;
+                    } else if(code.startsWith('3.2.01.')){
+                        if(!incoming) flow.pendanaan.bagiDesa+=amount;
+                    } else if(code.startsWith('3.2.02.')){
+                        if(!incoming) flow.pendanaan.bagiMasyarakat+=amount;
+                    } else if(code.startsWith('4.')){
+                        if(incoming) flow.operasi.penjualan+=amount; else flow.operasi.lain+=amount;
+                    } else if(code.startsWith('7.1.01.')||code.startsWith('7.1.02.')){
+                        if(incoming) flow.operasi.bungaDividen+=amount;
+                    } else if(code.startsWith('5.')||code.startsWith('2.1.01.')||code.startsWith('2.1.03.')||code.startsWith('2.1.04.')||code.startsWith('2.1.05.')||code.startsWith('2.1.99.')){
+                        if(!incoming) flow.operasi.pemasok+=amount;
+                    } else if(code.startsWith('6.1.01.')||code.startsWith('6.2.01.')||code.startsWith('6.3.01.')){
+                        if(!incoming) flow.operasi.gaji+=amount;
+                    } else if(code.startsWith('7.3.')||code.startsWith('2.1.02.')){
+                        if(!incoming) flow.operasi.pajak+=amount;
+                    } else if(code.startsWith('7.2.02.')){
+                        if(!incoming) flow.operasi.bunga+=amount;
+                    } else {
+                        if(incoming) flow.operasi.penjualan+=amount; else flow.operasi.lain+=amount;
+                    }
+                });
+            });
+        });
+        const opIn=flow.operasi.penjualan+flow.operasi.bungaDividen;
+        const opOut=flow.operasi.pemasok+flow.operasi.gaji+flow.operasi.pajak+flow.operasi.bunga+flow.operasi.lain;
+        const invIn=flow.investasi.penjualanAset+flow.investasi.penjualanInvestasi;
+        const invOut=flow.investasi.pembelianAset+flow.investasi.pembelianInvestasi;
+        const finIn=flow.pendanaan.modalDesa+flow.pendanaan.modalMasyarakat+flow.pendanaan.donasi+flow.pendanaan.utangJangkaPanjang;
+        const finOut=flow.pendanaan.bagiDesa+flow.pendanaan.bagiMasyarakat+flow.pendanaan.pokokUtangJangkaPanjang;
+        const netOp=opIn-opOut, netInv=invIn-invOut, netFin=finIn-finOut, increase=netOp+netInv+netFin;
+        const cashEnd=cashAccounts.reduce((s,a)=>s+Number(data.balances[a.id]||0),0);
+        // Saldo kas awal harus berasal dari posisi sebelum periode, bukan dihitung balik
+        // dari kenaikan kas. Untuk laporan konsolidasian, kas awal juga sudah mengikuti
+        // eliminasi akun resiprokal.
+        const cashOpen=cashAccounts.reduce((s,a)=>s+Number(data.priors[a.id]||0),0);
+        const rows=[
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS OPERASI'},
+            {type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan kas dari penjualan barang dan jasa',value:flow.operasi.penjualan,indent:2},{name:'Penerimaan kas dari bunga dan dividen',value:flow.operasi.bungaDividen,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas operasi',value:opIn},
+            {type:'group',name:'Arus Kas Keluar'},{name:'Pengeluaran kas untuk pembayaran ke pemasok barang dan jasa',value:-flow.operasi.pemasok,indent:2},{name:'Pengeluaran kas untuk pembayaran gaji/upah pegawai/karyawan',value:-flow.operasi.gaji,indent:2},{name:'Pengeluaran kas untuk pembayaran pajak',value:-flow.operasi.pajak,indent:2},{name:'Pengeluaran kas untuk pembayaran bunga',value:-flow.operasi.bunga,indent:2},{name:'Pengeluaran kas untuk pembayaran beban-beban yang lain',value:-flow.operasi.lain,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas operasi',value:-opOut},{type:'grand',name:'Arus kas bersih dari aktivitas operasi',value:netOp},
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS INVESTASI'},{type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan Kas dari Penjualan Aset Tetap',value:flow.investasi.penjualanAset,indent:2},{name:'Penerimaan Kas dari Penjualan Investasi',value:flow.investasi.penjualanInvestasi,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas Investasi',value:invIn},{type:'group',name:'Arus Kas Keluar'},{name:'Pengeluaran Kas untuk Pembelian Aset Tetap',value:-flow.investasi.pembelianAset,indent:2},{name:'Pengeluaran Kas untuk Pembelian Investasi',value:-flow.investasi.pembelianInvestasi,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas Investasi',value:-invOut},{type:'grand',name:'Arus kas bersih dari aktivitas Investasi',value:netInv},
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS PENDANAAN'},{type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan kas dari penyertaan modal desa',value:flow.pendanaan.modalDesa,indent:2},{name:'Penerimaan kas dari penyertaan modal masyarakat',value:flow.pendanaan.modalMasyarakat,indent:2},{name:'Penerimaan kas dari modal donasi/sumbangan',value:flow.pendanaan.donasi,indent:2},{name:'Penerimaan kas dari utang jangka panjang',value:flow.pendanaan.utangJangkaPanjang,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas Pendanaan',value:finIn},{type:'group',name:'Arus Kas Keluar'},{name:'Pembayaran bagi hasil penyertaan modal desa',value:-flow.pendanaan.bagiDesa,indent:2},{name:'Pembayaran bagi hasil penyertaan modal masyarakat',value:-flow.pendanaan.bagiMasyarakat,indent:2},{name:'Pembayaran pokok utang jangka panjang',value:-flow.pendanaan.pokokUtangJangkaPanjang,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas Pendanaan',value:-finOut},{type:'grand',name:'Arus kas bersih dari aktivitas Pendanaan',value:netFin},
+            {type:'grand',name:'Kenaikan (penurunan) Kas',value:increase},{name:(data.startDate.endsWith('-01-01')?'Saldo kas awal tahun':'Saldo kas awal periode'),value:cashOpen,indent:1},{type:'grand',name:(data.endDate.endsWith('-12-31')?'Saldo kas akhir tahun':'Saldo kas akhir periode'),value:cashEnd}
+        ];
+        return {rows,netOp,netInv,netFin,increase,cashOpen,cashEnd};
+    }
+
+    function renderReportRows(rows, comparative=false){
+        let n=0;
+        return rows.map(r=>{
+            const cls=r.type||''; const indent=r.indent?`indent-${Math.min(2,r.indent)}`:'';
+            const value=r.value;
+            const valCell=typeof value==='number'?`<td class="num ${value<0?'report-negative':value>0?'report-positive':''}">${reportSigned(value)}</td>`:'<td class="num">–</td>';
+            if(r.type==='section') return `<tr class="section"><td colspan="2">${escapeHtml(r.name)}</td>${comparative?'<td></td>':''}</tr>`;
+            if(r.type==='group') return `<tr class="group"><td></td><td class="${indent}">${escapeHtml(r.name)}</td>${valCell}${comparative?'<td class="num">–</td>':''}</tr>`;
+            n++; return `<tr class="${cls}"><td class="no">${n}</td><td class="${indent}">${escapeHtml(r.name||'')}</td>${valCell}</tr>`;
+        }).join('');
+    }
+
+    function renderBalanceRows(rows, data, comparative=false){
+        let n=0;
+        return rows.map(r=>{
+            const cls=r.type||''; const indent=r.indent?`indent-${Math.min(2,r.indent)}`:''; const v=Number(r.value||0); const pv=Number(r.priorValue||0);
+            if(r.type==='section') return `<tr class="section"><td colspan="${comparative?4:3}">${escapeHtml(r.name)}</td></tr>`;
+            n++;
+            // Mengikuti format pedoman: tahun sebelumnya di kiri, tahun berjalan di kolom paling kanan.
+            return `<tr class="${cls}"><td class="no">${n}</td><td class="${indent}">${escapeHtml(r.name||'')}</td>${comparative?`<td class="num ${pv<0?'report-negative':''}">${reportSigned(pv)}</td><td class="num current-year ${v<0?'report-negative':''}">${reportSigned(v)}</td>`:`<td class="num ${v<0?'report-negative':''}">${reportSigned(v)}</td>`}</tr>`;
+        }).join('');
+    }
+
+    function reportHeaderHtml(data,title,scopeLabel){
+        const bumdesName=activeAppBumdes?.nama||'BUM Desa';
+        return `<div class="report-card-head"><div class="report-brand">${escapeHtml(bumdesName)}</div><div class="report-title">${escapeHtml(title)}</div><div class="report-period">Periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} · ${escapeHtml(scopeLabel)}</div></div>`;
+    }
+
+    async function renderFinancialReportModule(module){
+        const bumdesId=activeAppProfile.bumdes_id;
+        const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
+        if(uErr) throw uErr;
+        const preset=reportPeriodPreset('tahunan');
+        const scopeOptions=reportScopeOptions(activeAppProfile,units||[]);
+        const reportNames={labarugi:'Laporan Laba Rugi',neraca:'Laporan Posisi Keuangan (Neraca)',aruskas:'Laporan Arus Kas',ekuitas:'Laporan Perubahan Ekuitas',calk:'Catatan atas Laporan Keuangan (CALK)'};
+        showModuleShell(module,`<div class="report-page">
+            <div class="report-control-card no-print">
+                <div class="report-tabs">
+                    ${Object.entries(reportNames).map(([k,v])=>`<button class="report-tab ${k===module?'active':''}" data-report-tab="${k}">${escapeHtml(v.replace('Laporan ',''))}</button>`).join('')}
+                </div>
+                <div class="report-control-grid">
+                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" selected>Tahunan</option><option value="custom">Custom</option></select></div>
+                    <div><div class="report-control-label">Dari</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
+                    <div><div class="report-control-label">Sampai</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
+                    <div><div class="report-control-label">Lingkup Laporan</div><select id="reportScope" class="form-select">${scopeOptions}</select></div>
+                    <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>Cetak / Simpan PDF</button></div>
+                </div>
+                <div class="report-toolbar-note mt-2"><i class="bi bi-info-circle me-1"></i>Format dan susunan mengikuti contoh halaman 42–55 Pedoman Aplikasi. Akun diambil dari COA e-BUMDesa.</div>
+            </div>
+            <div id="financialReportOutput" class="report-card"><div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menyiapkan laporan...</div></div>
+        </div>`);
+
+        const presetEl=$('reportPreset'), startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
+        presetEl.addEventListener('change',()=>{if(presetEl.value!=='custom'){const p=reportPeriodPreset(presetEl.value);startEl.value=p.start;endEl.value=p.end;}});
+        document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab)));
+        $('btnPrintReport').addEventListener('click',()=>{ window.setTimeout(()=>window.print(),120); });
+        $('btnGenerateReport').addEventListener('click',()=>refreshFinancialReport(module));
+        await refreshFinancialReport(module);
+    }
+
+    function presetIsAnnualReport(){ const s=$('reportStart')?.value||'', e=$('reportEnd')?.value||''; return /-01-01$/.test(s) && /-12-31$/.test(e) && s.slice(0,4)===e.slice(0,4); }
+
+    async function refreshFinancialReport(module){
+        const out=$('financialReportOutput'); if(!out)return;
+        const start=$('reportStart').value, end=$('reportEnd').value, scope=$('reportScope').value;
+        if(!start||!end||start>end){out.innerHTML='<div class="report-empty"><i class="bi bi-exclamation-circle"></i><div class="mt-2 fw-semibold">Periode laporan tidak valid.</div></div>';return;}
+        out.innerHTML='<div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menghitung laporan dari jurnal dan saldo awal...</div>';
+        try{
+            const data=await loadFinancialReportData({module,startDate:start,endDate:end,scope});
+            const scopeLabel=scope==='pusat'?'Kantor Pusat':scope==='gabungan'?'Gabungan / Konsolidasian':`Unit Usaha`;
+            let html=reportHeaderHtml(data,{labarugi:'LAPORAN LABA RUGI',neraca:'LAPORAN POSISI KEUANGAN (NERACA)',aruskas:'LAPORAN ARUS KAS',ekuitas:'LAPORAN PERUBAHAN EKUITAS',calk:'CATATAN ATAS LAPORAN KEUANGAN (CALK)'}[module],scopeLabel);
+            if(module==='labarugi'){
+                const p=buildProfitLossReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Pendapatan</div><div class="report-mini-value">${reportSigned(p.grossRevenue)}</div></div><div class="report-mini-card"><div class="report-mini-label">HPP</div><div class="report-mini-value">${reportSigned(p.hpp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Sebelum Bagi Hasil</div><div class="report-mini-value ${p.beforeBagiHasil<0?'report-negative':'report-positive'}">${reportSigned(p.beforeBagiHasil)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Bersih Setelah Bagi Hasil</div><div class="report-mini-value ${p.net<0?'report-negative':'report-positive'}">${reportSigned(p.net)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(p.rows)}</tbody></table></div>`;
+            } else if(module==='neraca'){
+                const b=buildBalanceSheetReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Total Aset</div><div class="report-mini-value">${reportSigned(b.totalAssets)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban</div><div class="report-mini-value">${reportSigned(b.totalLiab)}</div></div><div class="report-mini-card"><div class="report-mini-label">Ekuitas</div><div class="report-mini-value">${reportSigned(b.equity)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban + Ekuitas</div><div class="report-mini-value">${reportSigned(b.totalLiab+b.equity)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">${escapeHtml(String(Number(start.slice(0,4))-1))}</th><th class="num current-year">${escapeHtml(start.slice(0,4))}</th></tr></thead><tbody>${renderBalanceRows(b.rows,data,true)}</tbody></table></div>`;
+            } else if(module==='ekuitas'){
+                const p=buildProfitLossReport(data), e=buildEquityReport(data,p); html+=`<div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(e.rows)}</tbody></table></div>`;
+            } else if(module==='aruskas'){
+                const p=buildProfitLossReport(data), c=buildCashFlowReport(data,p.net); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Kas Awal</div><div class="report-mini-value">${reportSigned(c.cashOpen)}</div></div><div class="report-mini-card"><div class="report-mini-label">Operasi</div><div class="report-mini-value">${reportSigned(c.netOp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Investasi</div><div class="report-mini-value">${reportSigned(c.netInv)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kas Akhir</div><div class="report-mini-value">${reportSigned(c.cashEnd)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(c.rows)}</tbody></table></div>`;
+            } else {
+                const b=buildBalanceSheetReport(data);
+                const p=buildProfitLossReport(data);
+                const e=buildEquityReport(data,p);
+                const cash=reportGroupTotal(data,'1.1.01.','balances')+reportGroupTotal(data,'1.1.02.','balances');
+                const receivable=reportGroupTotal(data,'1.1.03.','balances')+reportGroupTotal(data,'1.1.04.','balances');
+                const inventory=reportGroupTotal(data,'1.1.05.','balances');
+                const fixedAssets=reportGroupTotal(data,'1.3.','balances');
+                const intangible=reportGroupTotal(data,'1.4.','balances');
+                const otherAssets=reportGroupTotal(data,'1.9.','balances');
+                const shortLiab=reportGroupTotal(data,'2.1.','balances');
+                const longLiab=reportGroupTotal(data,'2.2.','balances');
+                const calkMoney=(v)=>reportSigned(v);
+                const scopeText=scope==='pusat'?'Kantor Pusat':scope==='gabungan'?'Gabungan/Konsolidasian':(data.scope||'').startsWith('unit:')?'Unit Usaha':'';
+                const balanceCheck=b.totalAssets-(b.totalLiab+b.equity);
+                html+=`<div class="calk-wrap">
+                    <div class="calk-section"><div class="calk-heading">A. PERNYATAAN LAPORAN KEUANGAN</div><div class="calk-note">Laporan keuangan ${escapeHtml(scopeText)} untuk periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} disusun dengan mengacu pada Panduan Penyusunan Laporan Keuangan BUM Desa sebagaimana Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi Republik Indonesia Nomor 136 Tahun 2022, dengan akun yang bersumber dari COA e-BUMDesa.</div></div>
+                    <div class="calk-section"><div class="calk-heading">B. DASAR PENYUSUNAN LAPORAN KEUANGAN</div><ol class="calk-list"><li>Laporan menggunakan data transaksi, jurnal, dan saldo awal yang tersedia pada sistem e-BUMDesa.</li><li>Laporan keuangan disusun berdasarkan basis akrual, sedangkan laporan arus kas disusun berbasis kas.</li><li>Periode akuntansi tahunan adalah 1 Januari sampai dengan 31 Desember; untuk laporan selain tahunan, tanggal mengikuti periode yang dipilih pengguna.</li><li>Nilai disajikan dalam Rupiah.</li></ol></div>
+                    <div class="calk-section"><div class="calk-heading">C. RINGKASAN KEBIJAKAN AKUNTANSI SIGNIFIKAN</div><div class="calk-note"><strong>Kas dan setara kas.</strong> Kas dan setara kas mencakup akun Kas dan Setara Kas sesuai COA.<br><strong>Piutang.</strong> Piutang disajikan berdasarkan saldo piutang dan penyisihan piutang tak tertagih yang tercatat.<br><strong>Aset tetap.</strong> Aset tetap disajikan berdasarkan akun aset tetap dan akumulasi penyusutan yang tercatat dalam sistem.<br><strong>Kewajiban.</strong> Kewajiban diklasifikasikan menjadi jangka pendek dan jangka panjang sesuai kelompok akun COA.<br><strong>Ekuitas.</strong> Ekuitas terdiri dari penyertaan modal, saldo laba, modal donasi/sumbangan, dan unsur ekuitas lain yang relevan sesuai COA.<br><strong>Pendapatan dan beban.</strong> Pendapatan, HPP, beban usaha, serta pendapatan/beban lain-lain diakui berdasarkan jurnal periode yang dilaporkan.</div></div>
+                    <div class="calk-section"><div class="calk-heading">D. RINCIAN POS-POS LAPORAN KEUANGAN</div><table class="report-table calk-value-table"><thead><tr><th>Pos</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>
+                        <tr class="group"><td>Kas dan Setara Kas</td><td class="num">${calkMoney(cash)}</td></tr>
+                        <tr><td>Piutang Bersih</td><td class="num">${calkMoney(receivable)}</td></tr>
+                        <tr><td>Persediaan</td><td class="num">${calkMoney(inventory)}</td></tr>
+                        <tr><td>Aset Tetap Bersih</td><td class="num">${calkMoney(fixedAssets)}</td></tr>
+                        <tr><td>Aset Takberwujud</td><td class="num">${calkMoney(intangible)}</td></tr>
+                        <tr><td>Aset Lain-lain</td><td class="num">${calkMoney(otherAssets)}</td></tr>
+                        <tr class="grand"><td>Total Aset</td><td class="num">${calkMoney(b.totalAssets)}</td></tr>
+                        <tr><td>Kewajiban Jangka Pendek</td><td class="num">${calkMoney(shortLiab)}</td></tr>
+                        <tr><td>Kewajiban Jangka Panjang</td><td class="num">${calkMoney(longLiab)}</td></tr>
+                        <tr class="subtotal"><td>Total Kewajiban</td><td class="num">${calkMoney(b.totalLiab)}</td></tr>
+                        <tr><td>Ekuitas</td><td class="num">${calkMoney(b.equity)}</td></tr>
+                        <tr class="grand"><td>Total Kewajiban dan Ekuitas</td><td class="num">${calkMoney(b.totalLiab+b.equity)}</td></tr>
+                        <tr><td>Pendapatan Usaha</td><td class="num">${calkMoney(p.grossRevenue)}</td></tr>
+                        <tr><td>Harga Pokok Penjualan</td><td class="num">${calkMoney(-p.hpp)}</td></tr>
+                        <tr><td>Beban Usaha</td><td class="num">${calkMoney(-p.opExpense)}</td></tr>
+                        <tr><td>Pendapatan Lain-lain</td><td class="num">${calkMoney(p.otherIncome)}</td></tr>
+                        <tr><td>Beban Lain-lain dan Pajak</td><td class="num">${calkMoney(-(p.otherExpense+p.taxExpense))}</td></tr>
+                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-p.bagiDesa)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-p.bagiMasyarakat)}</td></tr>
+                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(p.net)}</td></tr>
+                    </tbody></table></div>
+                    <div class="calk-section"><div class="calk-heading">E. PENGUNGKAPAN LAIN</div><div class="calk-note">Lingkup laporan: <strong>${escapeHtml(scopeText)}</strong>. Sistem menghasilkan laporan berdasarkan jurnal dan saldo awal yang tersedia. Untuk laporan gabungan/konsolidasian, akun resiprokal Kantor Pusat dan Unit Usaha diperlakukan sebagai akun eliminasi sesuai mekanisme penggabungan yang digunakan sistem.</div><div class="calk-check ${Math.abs(balanceCheck)<0.01?'ok':'warn'}"><span>Selisih pemeriksaan Total Aset − (Total Kewajiban + Ekuitas)</span><strong>${calkMoney(balanceCheck)}</strong></div></div>
+                </div>`;
+            }
+            html+=`<div class="report-footer"><span>e-BUMDesa · Laporan Keuangan</span><span>Dicetak: ${fmtDateTime(new Date())}</span></div>`;
+            out.innerHTML=html;
+        }catch(err){console.error(err);out.innerHTML=`<div class="report-empty"><i class="bi bi-exclamation-triangle"></i><div class="mt-2 fw-semibold">Gagal membuat laporan</div><div class="small mt-1">${escapeHtml(err.message||String(err))}</div></div>`;}
+    }
 
     // =========================================================
     // MODUL SALDO AWAL
@@ -4100,7 +5836,7 @@
             { data: units, error: unitError }
         ] = await Promise.all([
             supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
                 .eq("bumdes_id", bumdesId)
                 .order("transaction_date", { ascending:false })
                 .order("created_at", { ascending:false })
@@ -4195,7 +5931,7 @@
                                 <option value="penerimaan">Penerimaan</option>
                                 <option value="pengeluaran">Pengeluaran</option>
                                 <option value="penjualan">Penjualan</option>
-                                <option value="pembelian">Pembelian</option>
+                                <option value="aset_pembelian">Aset / Pembelian Aset</option>
                                 <option value="lainnya">Lainnya</option>
                             </select>
                         </div>
@@ -4282,7 +6018,7 @@
                 <td><strong>${escapeHtml(t.transaction_number || "-")}</strong></td>
                 <td>${escapeHtml(t.description || "-")}</td>
                 <td>${escapeHtml(unitName)}</td>
-                <td>${escapeHtml(t.transaction_type || "-")}</td>
+                <td>${escapeHtml((({umum:"Umum",penerimaan:"Penerimaan",pengeluaran:"Pengeluaran",penjualan:"Penjualan",aset_pembelian:"Aset / Pembelian Aset",pembelian:"Pembelian",lainnya:"Lainnya",penyesuaian:"Penyesuaian"})[t.transaction_type] || t.transaction_type || "-"))}</td>
                 <td>${statusBadge}</td>
                 <td class="text-end">${rupiah(t.amount)}</td>
                 <td class="text-center">${actions}</td>
@@ -4626,7 +6362,7 @@
                         <label class="form-label small fw-semibold">Jenis Transaksi</label>
                         <select id="editTxType" class="form-select">
                             <option value="umum">Umum</option><option value="penerimaan">Penerimaan</option><option value="pengeluaran">Pengeluaran</option>
-                            <option value="penjualan">Penjualan</option><option value="pembelian">Pembelian</option><option value="lainnya">Lainnya</option>
+                            <option value="penjualan">Penjualan</option><option value="aset_pembelian">Aset / Pembelian Aset</option><option value="lainnya">Lainnya</option>
                         </select>
                     </div>
                     <div class="col-md-9">
@@ -4918,7 +6654,7 @@
                     // Jurnal mengambil identitas dari transaksi yang sama.
                     const { data: latestTx, error: latestTxError } = await supabaseClient
                         .from("transactions")
-                        .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                        .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
                         .eq("id", transactionId)
                         .eq("bumdes_id", bumdesId)
                         .maybeSingle();
@@ -5256,6 +6992,7 @@
         if (error) throw error;
 
         const rows = accounts || [];
+        const systemRows = rows.filter(a => a.is_system && !a.bumdes_id);
         const byParent = new Map();
 
         rows.forEach(a => {
@@ -5303,26 +7040,24 @@
 
         const htmlRows = result.map(a => {
             const level = Number(a.level || 1);
+            const rawNormal = String(a.normal_balance || "").toLowerCase();
             const isHeader = level < 4;
-            const normalRaw = String(a.normal_balance || "").toUpperCase();
-            const normal = (normalRaw === "K" || normalRaw === "KREDIT") ? "Kredit" : "Debit";
-            const normalLabel = isHeader
-                ? '<span class="badge text-bg-light border">Header</span>'
-                : `<span class="${normal === "Debit" ? "coa-normal debit" : "coa-normal credit"}">${normal}</span>`;
-            const searchText = `${a.kode || ""} ${a.nama || ""} ${typeLabel[a.account_type] || a.account_type || ""} ${isHeader ? "header" : normal}`.toLowerCase();
+            const normalCode = isHeader ? "H" : rawNormal.startsWith("k") ? "K" : "D";
+            const normal = isHeader ? "Header" : normalCode === "K" ? "Kredit" : "Debit";
+            const searchText = `${a.kode || ""} ${a.nama || ""} ${typeLabel[a.account_type] || a.account_type || ""}`.toLowerCase();
 
             return `
                 <tr class="coa-row level-${level}" data-coa-search="${escapeHtml(searchText)}">
                     <td><span class="coa-code">${escapeHtml(a.kode)}</span></td>
                     <td class="coa-name-cell">
                         <span class="coa-indent level-${level}">
-                            <i class="bi ${isHeader ? "bi-folder2-open" : "bi-dot"} text-secondary"></i>
+                            <i class="bi ${level < 4 ? "bi-folder2-open" : "bi-dot"} text-secondary"></i>
                             <span>${escapeHtml(a.nama)}</span>
                         </span>
                     </td>
                     <td><span class="coa-level-badge">L${level}</span></td>
                     <td>${escapeHtml(typeLabel[a.account_type] || a.account_type || "-")}</td>
-                    <td>${normalLabel}</td>
+                    <td class="${isHeader ? "coa-normal" : normalCode === "D" ? "coa-normal debit" : "coa-normal credit"}">${normal}</td>
                     <td>${a.is_system ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>' : '<span class="badge text-bg-light border">Custom</span>'}</td>
                 </tr>`;
         }).join("");
@@ -5333,11 +7068,16 @@
                     <div>
                         <h5 class="mb-1">Bagan Akun (COA)</h5>
                         <div class="text-secondary small">
-                            Struktur COA berdasarkan kode dan hubungan parent. Level 1–3 adalah Header; Level 4 adalah akun posting.
+                            Struktur COA standar BUM Desa berdasarkan Pedoman dan hubungan parent.
                         </div>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="coa-count">${rows.length} akun aktif</span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                        <span class="coa-count">${systemRows.length} akun sistem • ${rows.length} akun aktif</span>
+                        ${activeAppProfile?.role === "admin_pusat" ? `
+                            <button id="coaAddBtn" type="button" class="btn btn-primary btn-sm coa-add-btn">
+                                <i class="bi bi-plus-circle me-1"></i> Tambah COA
+                            </button>
+                        ` : ""}
                         <input id="coaSearch" class="form-control form-control-sm coa-search"
                                type="search" placeholder="Cari kode atau nama akun...">
                     </div>
@@ -5369,18 +7109,481 @@
                 row.classList.toggle("d-none", !!q && !row.dataset.coaSearch.includes(q));
             });
         });
+
+        $("coaAddBtn")?.addEventListener("click", openAddCustomCOAModal);
     }
 
+
+    // =========================================================
+    // TAMBAH COA CUSTOM — ADMIN PUSAT
+    // =========================================================
+    let addCustomCOAModalOpen = false;
+
+    function closeAddCustomCOAModal() {
+        const el = $("addCustomCOAModal");
+        if (el) el.classList.add("hidden");
+        addCustomCOAModalOpen = false;
+        resetCustomCOAForm();
+    }
+
+    function openAddCustomCOAModal() {
+        if (!activeAppProfile || activeAppProfile.role !== "admin_pusat") {
+            showAppToast("error", "Akses ditolak", "Hanya Admin Pusat yang dapat menambahkan COA custom.");
+            return;
+        }
+
+        resetCustomCOAForm();
+        const el = $("addCustomCOAModal");
+        if (el) {
+            el.classList.remove("hidden");
+            addCustomCOAModalOpen = true;
+            loadCustomCOAParents().catch(error => {
+                console.error(error);
+                showAppToast("error", "Gagal memuat COA", error?.message || "Kelompok akun tidak dapat dimuat.");
+                closeAddCustomCOAModal();
+            });
+        }
+    }
+
+    function resetCustomCOAForm() {
+        $("addCustomCOAForm")?.reset();
+
+        const parentSelect = $("coaCustomParent");
+        if (parentSelect) parentSelect.innerHTML = '<option value="">Memuat kelompok akun...</option>';
+
+        const parentInfo = $("coaCustomParentInfo");
+        if (parentInfo) {
+            parentInfo.classList.add("hidden");
+            parentInfo.innerHTML = "";
+        }
+
+        setCustomCOAValidation("");
+
+        const saveBtn = $("coaCustomSaveBtn");
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Simpan Akun';
+        }
+    }
+
+    function validateCustomCOACodeFormat(code, parentCode) {
+        const value = String(code || "").trim();
+        const parent = String(parentCode || "").trim();
+
+        if (!/^\d\.\d\.\d{2}\.\d{2}$/.test(value)) {
+            return "Format kode harus X.X.XX.XX.";
+        }
+
+        if (value.endsWith(".00")) {
+            return "Dua digit terakhir tidak boleh 00 karena akun custom harus Level 4.";
+        }
+
+        if (!/^\d\.\d\.\d{2}\.00$/.test(parent)) {
+            return "Parent yang dipilih tidak valid.";
+        }
+
+        if (!value.startsWith(parent.slice(0, -2))) {
+            return `Kode harus berada di bawah parent ${parent}.`;
+        }
+
+        return "";
+    }
+
+    function setCustomCOAValidation(message) {
+        const box = $("coaCustomValidation");
+        if (!box) return;
+        box.textContent = message || "";
+        box.classList.toggle("hidden", !message);
+    }
+
+    async function loadCustomCOAParents() {
+        const select = $("coaCustomParent");
+        if (!select) return;
+
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) throw new Error("BUMDes belum teridentifikasi.");
+
+        const { data, error } = await supabaseClient
+            .from("chart_of_accounts")
+            .select("id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_system,is_active")
+            .eq("is_active", true)
+            .eq("level", 3)
+            .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+            .order("kode", { ascending: true });
+
+        if (error) throw error;
+
+        const parents = data || [];
+        select.innerHTML = '<option value="">Pilih kelompok akun...</option>' +
+            parents.map(a => `
+                <option value="${escapeHtml(a.id)}"
+                        data-kode="${escapeHtml(a.kode)}"
+                        data-nama="${escapeHtml(a.nama)}"
+                        data-account-type="${escapeHtml(a.account_type || "")}"
+                        data-report-group="${escapeHtml(a.report_group || "")}"
+                        data-normal="${escapeHtml(a.normal_balance || "")}">
+                    ${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}
+                </option>
+            `).join("");
+
+        select.onchange = () => {
+            const option = select.options[select.selectedIndex];
+            const box = $("coaCustomParentInfo");
+            if (!box) return;
+
+            if (!option?.value) {
+                box.classList.add("hidden");
+                box.innerHTML = "";
+                return;
+            }
+
+            const normal = String(option.dataset.normal || "").toLowerCase();
+            const normalText = normal === "kredit" ? "Kredit" : "Debit";
+
+            box.classList.remove("hidden");
+            box.innerHTML = `
+                <strong>${escapeHtml(option.dataset.kode || "")}</strong>
+                — ${escapeHtml(option.dataset.nama || "")}
+                <div class="mt-1 text-secondary">
+                    Kelompok laporan: ${escapeHtml(option.dataset.reportGroup || "-")}
+                    · Saldo normal bawaan: ${escapeHtml(normalText)}
+                </div>
+            `;
+
+            if ($("coaCustomNormal") && (normal === "debit" || normal === "kredit")) {
+                $("coaCustomNormal").value = normal;
+            }
+
+            if ($("coaCustomCode") && !String($("coaCustomCode").value || "").trim()) {
+                $("coaCustomCode").focus();
+            }
+        };
+    }
+
+    async function submitAddCustomCOA(event) {
+        event.preventDefault();
+
+        if (!activeAppProfile || activeAppProfile.role !== "admin_pusat") {
+            showAppToast("error", "Akses ditolak", "Hanya Admin Pusat yang dapat menambahkan COA custom.");
+            return;
+        }
+
+        const parentId = $("coaCustomParent")?.value || "";
+        const code = String($("coaCustomCode")?.value || "").trim();
+        const name = String($("coaCustomName")?.value || "").trim();
+        const normal = String($("coaCustomNormal")?.value || "").trim().toLowerCase();
+
+        const parentSelect = $("coaCustomParent");
+        const option = parentSelect?.options[parentSelect.selectedIndex];
+        const parentCode = option?.dataset.kode || "";
+
+        const validation = validateCustomCOACodeFormat(code, parentCode);
+        if (validation) {
+            setCustomCOAValidation(validation);
+            return;
+        }
+
+        if (!parentId || !name) {
+            setCustomCOAValidation("Parent dan nama akun wajib diisi.");
+            return;
+        }
+
+        if (!["debit", "kredit"].includes(normal)) {
+            setCustomCOAValidation("Saldo normal harus Debit atau Kredit.");
+            return;
+        }
+
+        setCustomCOAValidation("");
+
+        const saveBtn = $("coaCustomSaveBtn");
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+        }
+
+        try {
+            const { data, error } = await supabaseClient.rpc("create_custom_coa", {
+                p_bumdes_id: activeAppProfile.bumdes_id,
+                p_parent_id: parentId,
+                p_kode: code,
+                p_nama: name,
+                p_normal_balance: normal
+            });
+
+            if (error) throw error;
+
+            const created = Array.isArray(data) ? data[0] : data;
+            closeAddCustomCOAModal();
+
+            showAppToast(
+                "success",
+                "COA berhasil ditambahkan",
+                `${created?.kode || code} — ${created?.nama || name} berhasil ditambahkan sebagai akun custom.`
+            );
+
+            await renderCOAModule();
+        } catch (error) {
+            console.error(error);
+            const message = error?.message || "Akun COA gagal ditambahkan.";
+            setCustomCOAValidation(message);
+            showAppToast("error", "Gagal menambahkan COA", message);
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Simpan Akun';
+            }
+        }
+    }
+
+    $("addCustomCOAForm")?.addEventListener("submit", submitAddCustomCOA);
+    $("coaModalCloseBtn")?.addEventListener("click", closeAddCustomCOAModal);
+    $("coaModalCancelBtn")?.addEventListener("click", closeAddCustomCOAModal);
+    $("addCustomCOAModal")?.addEventListener("click", (event) => {
+        if (event.target.id === "addCustomCOAModal") closeAddCustomCOAModal();
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && addCustomCOAModalOpen) closeAddCustomCOAModal();
+    });
+
     async function renderCashBankModule() {
-        const { data, error } = await supabaseClient.from("journals").select("account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id);
-        if(error) throw error;
-        if(!data?.length) return showModuleShell("kasbank", moduleEmpty("Belum ada transaksi kas/bank."));
-        const ids=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
-        if(ids.length){const r=await supabaseClient.from("chart_of_accounts").select("id,kode,nama,account_type").in("id",ids);acc=r.data||[];}
-        const cashAcc=acc.filter(a=>a.account_type==="aset" && /kas|bank/i.test(a.nama)); const map=new Map(data.map(x=>[x.account_id,x]));
-        const rows=cashAcc.map((a,i)=>{const ds=data.filter(j=>j.account_id===a.id).reduce((n,j)=>n+Number(j.debit||0),0);const cs=data.filter(j=>j.account_id===a.id).reduce((n,j)=>n+Number(j.credit||0),0);return `<tr><td>${i+1}</td><td>${escapeHtml(a.kode)}</td><td>${escapeHtml(a.nama)}</td><td class="text-end">${rupiah(ds)}</td><td class="text-end">${rupiah(cs)}</td><td class="text-end"><strong>${rupiah(ds-cs)}</strong></td></tr>`;}).join("");
-        if(!rows) return showModuleShell("kasbank", moduleEmpty("Belum ada akun Kas/Bank yang memiliki mutasi."));
-        showModuleShell("kasbank", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Kode</th><th>Akun</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) return showModuleShell("kasbank", moduleEmpty("BUMDes belum terhubung dengan akun."));
+
+        const now = new Date();
+        const defaultYear = now.getFullYear();
+        const years = [defaultYear, defaultYear - 1, defaultYear - 2, defaultYear - 3];
+
+        // Rekening Kas/Bank mengikuti COA sumber: Kas 1.1.01.xx dan Setara Kas 1.1.02.xx.
+        const { data: accounts, error: accountError } = await supabaseClient
+            .from("chart_of_accounts")
+            .select("id,kode,nama,level,account_type,normal_balance,is_active")
+            .eq("is_active", true)
+            .eq("level", 4)
+            .eq("account_type", "aset")
+            .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+            .order("kode", { ascending: true });
+        if (accountError) throw accountError;
+
+        const cashAccounts = (accounts || []).filter(a => /^1\.1\.01\.|^1\.1\.02\./.test(String(a.kode || "")));
+        if (!cashAccounts.length) return showModuleShell("kasbank", moduleEmpty("Akun Kas/Bank belum tersedia pada COA."));
+
+        showModuleShell("kasbank", `
+            <div class="cashbank-head panel mb-3">
+                <div>
+                    <div class="cashbank-kicker"><i class="bi bi-wallet2"></i> KEUANGAN</div>
+                    <h4 class="mb-1">Kas & Bank</h4>
+                    <div class="text-secondary small">Daftar rekening, saldo, dan mutasi berdasarkan jurnal serta saldo awal.</div>
+                </div>
+                <div class="cashbank-filters">
+                    <select id="cashBankYear" class="form-select form-select-sm">
+                        ${years.map(y => `<option value="${y}" ${y === defaultYear ? "selected" : ""}>Tahun ${y}</option>`).join("")}
+                    </select>
+                    <select id="cashBankUnit" class="form-select form-select-sm">
+                        <option value="all">Pusat/Kantor Pusat</option>
+                    </select>
+                </div>
+            </div>
+            <div id="cashBankContent"><div class="panel p-4 text-center text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat rekening...</div></div>
+        `);
+
+        const unitSelect = $("cashBankUnit");
+        let units = [];
+        if (unitSelect) {
+            const { data: unitData, error: unitError } = await supabaseClient
+                .from("units").select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId).order("created_at", { ascending: true });
+            if (unitError) throw unitError;
+            units = unitData || [];
+            units.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.id;
+                opt.textContent = `${u.nama_unit}${u.kode_unit ? ` (${u.kode_unit})` : ""}`;
+                unitSelect.appendChild(opt);
+            });
+            if (typeof isUnitUser !== "undefined" && isUnitUser && typeof allowedUnitId !== "undefined" && allowedUnitId) {
+                unitSelect.value = allowedUnitId;
+                unitSelect.disabled = true;
+            }
+        }
+
+        const load = async () => {
+            const year = Number($("cashBankYear")?.value || defaultYear);
+            const unitId = $("cashBankUnit")?.value || "all";
+            const start = `${year}-01-01`;
+            const end = `${year}-12-31`;
+
+            // Periode tahunan dipakai untuk saldo awal, sama seperti perhitungan posisi keuangan dashboard.
+            const { data: period } = await supabaseClient
+                .from("account_periods").select("id")
+                .eq("bumdes_id", bumdesId).eq("period_type", "tahunan")
+                .eq("start_date", start).eq("end_date", end).limit(1).maybeSingle();
+
+            let openingQuery = supabaseClient
+                .from("opening_balances")
+                .select("account_id,unit_id,debit,credit")
+                .eq("bumdes_id", bumdesId);
+            if (period?.id) openingQuery = openingQuery.eq("period_id", period.id);
+            if (unitId !== "all") openingQuery = openingQuery.eq("unit_id", unitId);
+            const { data: openings, error: openingError } = await openingQuery;
+            if (openingError) throw openingError;
+
+            let journalQuery = supabaseClient
+                .from("journals")
+                .select("id,account_id,unit_id,journal_date,journal_number,description,debit,credit")
+                .eq("bumdes_id", bumdesId)
+                .gte("journal_date", start).lte("journal_date", end)
+                .order("journal_date", { ascending: true }).order("created_at", { ascending: true });
+            if (unitId !== "all") journalQuery = journalQuery.eq("unit_id", unitId);
+            const { data: journals, error: journalError } = await journalQuery;
+            if (journalError) throw journalError;
+
+            const accById = new Map(cashAccounts.map(a => [a.id, a]));
+            const openingByAccount = new Map();
+            (openings || []).forEach(o => {
+                if (!accById.has(o.account_id)) return;
+                const v = Number(o.debit || 0) - Number(o.credit || 0);
+                openingByAccount.set(o.account_id, (openingByAccount.get(o.account_id) || 0) + v);
+            });
+
+            const journalByAccount = new Map();
+            (journals || []).forEach(j => {
+                if (!accById.has(j.account_id)) return;
+                if (!journalByAccount.has(j.account_id)) journalByAccount.set(j.account_id, []);
+                journalByAccount.get(j.account_id).push(j);
+            });
+
+            const accountRows = cashAccounts.map(a => {
+                const js = journalByAccount.get(a.id) || [];
+                const opening = openingByAccount.get(a.id) || 0;
+                const debit = js.reduce((n, j) => n + Number(j.debit || 0), 0);
+                const credit = js.reduce((n, j) => n + Number(j.credit || 0), 0);
+                const balance = opening + debit - credit;
+                return { a, opening, debit, credit, balance, count: js.length };
+            });
+
+            const visibleRows = accountRows.filter(r => r.opening !== 0 || r.debit !== 0 || r.credit !== 0);
+            const totalBalance = visibleRows.reduce((n, r) => n + r.balance, 0);
+            const totalDebit = visibleRows.reduce((n, r) => n + r.debit, 0);
+            const totalCredit = visibleRows.reduce((n, r) => n + r.credit, 0);
+            const cashRows = visibleRows.filter(r => /^1\.1\.01\./.test(r.a.kode));
+            const cashBalance = cashRows.reduce((n, r) => n + r.balance, 0);
+            const equivalentRows = visibleRows.filter(r => /^1\.1\.02\./.test(r.a.kode));
+            const equivalentBalance = equivalentRows.reduce((n, r) => n + r.balance, 0);
+
+            const cards = visibleRows.map((r, i) => `
+                <div class="cashbank-account-card">
+                    <div class="cashbank-account-top">
+                        <div class="cashbank-account-icon"><i class="bi ${/^1\.1\.02\./.test(r.a.kode) ? "bi-safe2" : /tunai|kecil/i.test(r.a.nama) ? "bi-cash-stack" : "bi-bank"}"></i></div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="cashbank-account-name">${escapeHtml(r.a.nama)}</div>
+                            <div class="cashbank-account-code">${escapeHtml(r.a.kode)}</div>
+                        </div>
+                        <div class="cashbank-account-balance">${rupiah(r.balance)}</div>
+                    </div>
+                    <div class="cashbank-account-meta">
+                        <span>Debit ${rupiah(r.debit)}</span>
+                        <span>Kredit ${rupiah(r.credit)}</span>
+                        <span>${r.count} mutasi</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary w-100 cashbank-detail-btn" data-account-id="${r.a.id}">
+                        <i class="bi bi-list-ul me-1"></i>Lihat Mutasi Rekening
+                    </button>
+                </div>`).join("");
+
+            $("cashBankContent").innerHTML = `
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-4"><div class="cashbank-summary-card primary"><div class="cashbank-summary-label">Total Kas & Bank</div><div class="cashbank-summary-value">${rupiah(totalBalance)}</div><div class="cashbank-summary-note">Saldo seluruh rekening yang tampil</div></div></div>
+                    <div class="col-12 col-md-4"><div class="cashbank-summary-card"><div class="cashbank-summary-label">Kas & Bank Operasional</div><div class="cashbank-summary-value">${rupiah(cashBalance)}</div><div class="cashbank-summary-note">Akun 1.1.01.xx</div></div></div>
+                    <div class="col-12 col-md-4"><div class="cashbank-summary-card"><div class="cashbank-summary-label">Setara Kas</div><div class="cashbank-summary-value">${rupiah(equivalentBalance)}</div><div class="cashbank-summary-note">Akun 1.1.02.xx</div></div></div>
+                </div>
+
+                <div class="panel mb-3">
+                    <div class="panel-header-modern"><div><h5 class="mb-1">Daftar Rekening</h5><div class="text-secondary small">Saldo dihitung dari saldo awal dan jurnal tahun ${year}.</div></div><div class="cashbank-total-mini">${visibleRows.length} rekening</div></div>
+                    <div class="row g-3 p-3">${cards || `<div class="col-12">${moduleEmpty("Belum ada saldo atau mutasi pada rekening Kas/Bank untuk periode ini.")}</div>`}</div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header-modern"><div><h5 class="mb-1">Ringkasan Mutasi</h5><div class="text-secondary small">Total pergerakan debit dan kredit rekening Kas/Bank.</div></div></div>
+                    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Komponen</th><th class="text-end">Nilai</th></tr></thead>
+                        <tbody><tr><td>Saldo awal</td><td class="text-end">${rupiah(totalBalance - totalDebit + totalCredit)}</td></tr><tr><td>Total debit / kas masuk</td><td class="text-end text-success">${rupiah(totalDebit)}</td></tr><tr><td>Total kredit / kas keluar</td><td class="text-end text-danger">${rupiah(totalCredit)}</td></tr><tr class="fw-bold"><td>Saldo akhir</td><td class="text-end">${rupiah(totalBalance)}</td></tr></tbody>
+                    </table></div>
+                </div>
+
+                <div id="cashBankDetail" class="mt-3"></div>`;
+
+            document.querySelectorAll(".cashbank-detail-btn").forEach(btn => btn.addEventListener("click", () => {
+                const account = accById.get(btn.dataset.accountId);
+                const js = journalByAccount.get(btn.dataset.accountId) || [];
+                const opening = openingByAccount.get(btn.dataset.accountId) || 0;
+                const defaultFrom = `${year}-01-01`;
+                const defaultTo = `${year}-12-31`;
+
+                const renderDetail = (fromValue = defaultFrom, toValue = defaultTo) => {
+                    let from = fromValue || defaultFrom;
+                    let to = toValue || defaultTo;
+                    if (from > to) {
+                        const tmp = from; from = to; to = tmp;
+                    }
+
+                    const beforeRows = js.filter(j => String(j.journal_date || "") < from);
+                    const filtered = js.filter(j => {
+                        const d = String(j.journal_date || "");
+                        return d >= from && d <= to;
+                    });
+
+                    let running = opening + beforeRows.reduce((n, j) => n + Number(j.debit || 0) - Number(j.credit || 0), 0);
+                    const saldoSebelum = running;
+                    const totalMasuk = filtered.reduce((n, j) => n + Number(j.debit || 0), 0);
+                    const totalKeluar = filtered.reduce((n, j) => n + Number(j.credit || 0), 0);
+                    const saldoAkhir = running + totalMasuk - totalKeluar;
+
+                    const rows = filtered.map(j => {
+                        running += Number(j.debit || 0) - Number(j.credit || 0);
+                        return `<tr><td>${fmtDate(j.journal_date)}</td><td>${escapeHtml(j.journal_number || "-")}</td><td>${escapeHtml(j.description || "-")}</td><td class="text-end text-success">${j.debit ? rupiah(j.debit) : "-"}</td><td class="text-end text-danger">${j.credit ? rupiah(j.credit) : "-"}</td><td class="text-end fw-semibold">${rupiah(running)}</td></tr>`;
+                    }).join("");
+
+                    $("cashBankDetail").innerHTML = `
+                        <div class="panel cashbank-detail-panel">
+                            <div class="panel-header-modern">
+                                <div><h5 class="mb-1">Mutasi: ${escapeHtml(account?.nama || "-")}</h5><div class="text-secondary small">Periode ${fmtDate(from)} s.d. ${fmtDate(to)} • ${filtered.length} mutasi</div></div>
+                                <div class="d-flex gap-2 no-print">
+                                    <button type="button" class="btn btn-sm btn-primary" id="printCashBankMutation"><i class="bi bi-printer me-1"></i>Print</button>
+                                    <button type="button" class="btn btn-sm btn-light border" id="closeCashBankDetail"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            </div>
+                            <div class="cashbank-detail-filter no-print">
+                                <div><label class="form-label">Tanggal Mulai</label><input type="date" class="form-control form-control-sm" id="cashBankDetailFrom" value="${from}"></div>
+                                <div><label class="form-label">Tanggal Sampai</label><input type="date" class="form-control form-control-sm" id="cashBankDetailTo" value="${to}"></div>
+                                <div class="d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-primary w-100" id="applyCashBankDetailFilter"><i class="bi bi-funnel me-1"></i>Tampilkan</button></div>
+                            </div>
+                            <div class="cashbank-detail-summary">
+                                <div><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div>
+                                <div><span>Kas masuk</span><strong class="text-success">${rupiah(totalMasuk)}</strong></div>
+                                <div><span>Kas keluar</span><strong class="text-danger">${rupiah(totalKeluar)}</strong></div>
+                                <div><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div>
+                            </div>
+                            <div class="table-responsive"><table class="table table-sm align-middle mb-0" id="cashBankMutationTable"><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="text-center text-secondary py-4">Belum ada mutasi pada rentang tanggal ini.</td></tr>`}</tbody></table></div>
+                        </div>`;
+
+                    $("applyCashBankDetailFilter")?.addEventListener("click", () => {
+                        renderDetail($("cashBankDetailFrom")?.value, $("cashBankDetailTo")?.value);
+                    });
+                    $("closeCashBankDetail")?.addEventListener("click", () => { $("cashBankDetail").innerHTML = ""; });
+                    $("printCashBankMutation")?.addEventListener("click", () => {
+                        printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId });
+                    });
+                    $("cashBankDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                };
+
+                renderDetail();
+            }));
+        };
+
+        $("cashBankYear")?.addEventListener("change", load);
+        $("cashBankUnit")?.addEventListener("change", load);
+        await load();
     }
 
     document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
