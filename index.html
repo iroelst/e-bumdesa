@@ -4013,7 +4013,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             supabaseClient.from("transactions")
                 .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id")
                 .eq("bumdes_id", bumdesId)
-                .neq("transaction_type", "penyesuaian")
+                .eq("transaction_type", "aset_pembelian")
                 .order("transaction_date", { ascending:false })
                 .limit(500),
             supabaseClient.from("units")
@@ -4163,7 +4163,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         <div class="panel mb-3">
             <div class="fw-semibold mb-1">Daftarkan Aset dari Transaksi</div>
             <div class="text-secondary small mb-3">
-                Pilih transaksi yang memang merupakan perolehan aset. Sistem akan mengambil tanggal, nilai, dan Unit dari transaksi tersebut.
+                Pilih transaksi dengan jenis <strong>Aset / Pembelian Aset</strong>. Sistem akan mengambil tanggal, nilai, dan Unit dari transaksi tersebut.
                 Anda hanya melengkapi kode, kategori, dan umur manfaat.
             </div>
 
@@ -4172,7 +4172,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <div class="col-md-8">
                         <label class="form-label small fw-semibold">Transaksi Sumber *</label>
                         <select id="assetSourceTx" class="form-select" required>
-                            <option value="">Pilih transaksi perolehan aset...</option>
+                            <option value="">Pilih transaksi Aset / Pembelian Aset...</option>
                             ${sourceOptions}
                         </select>
                     </div>
@@ -5849,7 +5849,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                 <option value="penerimaan">Penerimaan</option>
                                 <option value="pengeluaran">Pengeluaran</option>
                                 <option value="penjualan">Penjualan</option>
-                                <option value="pembelian">Pembelian</option>
+                                <option value="aset_pembelian">Aset / Pembelian Aset</option>
                                 <option value="lainnya">Lainnya</option>
                             </select>
                         </div>
@@ -5936,7 +5936,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 <td><strong>${escapeHtml(t.transaction_number || "-")}</strong></td>
                 <td>${escapeHtml(t.description || "-")}</td>
                 <td>${escapeHtml(unitName)}</td>
-                <td>${escapeHtml(t.transaction_type || "-")}</td>
+                <td>${escapeHtml((({umum:"Umum",penerimaan:"Penerimaan",pengeluaran:"Pengeluaran",penjualan:"Penjualan",aset_pembelian:"Aset / Pembelian Aset",pembelian:"Pembelian",lainnya:"Lainnya",penyesuaian:"Penyesuaian"})[t.transaction_type] || t.transaction_type || "-"))}</td>
                 <td>${statusBadge}</td>
                 <td class="text-end">${rupiah(t.amount)}</td>
                 <td class="text-center">${actions}</td>
@@ -6280,7 +6280,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <label class="form-label small fw-semibold">Jenis Transaksi</label>
                         <select id="editTxType" class="form-select">
                             <option value="umum">Umum</option><option value="penerimaan">Penerimaan</option><option value="pengeluaran">Pengeluaran</option>
-                            <option value="penjualan">Penjualan</option><option value="pembelian">Pembelian</option><option value="lainnya">Lainnya</option>
+                            <option value="penjualan">Penjualan</option><option value="aset_pembelian">Aset / Pembelian Aset</option><option value="lainnya">Lainnya</option>
                         </select>
                     </div>
                     <div class="col-md-9">
