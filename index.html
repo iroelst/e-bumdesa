@@ -3967,10 +3967,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (module === "coa") return await renderCOAModule();
             if (module === "kasbank") return await renderCashBankModule();
             if (module === "saldoawal") return await renderOpeningBalancesModule();
+            if (module === "penyesuaian") return await renderAdjustmentsModule();
             if (["labarugi","neraca","aruskas","ekuitas","calk"].includes(module)) {
                 return await renderFinancialReportModule(module);
             }
-            if (["penyesuaian","aset","tambahunit","pengaturan"].includes(module)) {
+            if (["aset","tambahunit","pengaturan"].includes(module)) {
                 const [title] = appModuleTitles[module];
                 showModuleShell(module, `<div class="panel"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-1"></i><strong>${escapeHtml(title)}</strong> sudah terhubung ke navigasi. Tampilan operasional dan proses penyimpanan akan dibangun pada tahap modul berikutnya agar tetap sesuai dengan struktur akuntansi dan RLS yang sudah dibuat.</div></div>`);
                 return;
@@ -3981,6 +3982,238 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
     }
 
+
+
+    // =========================================================
+    // MODUL PENYESUAIAN
+    // Jurnal penyesuaian akhir periode — terpisah berdasarkan Pusat/Unit.
+    // =========================================================
+    async function renderAdjustmentsModule() {
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) return;
+
+        const role = activeAppProfile.role;
+        const canManage = role === "admin_pusat" || role === "admin_unit";
+        const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
+
+        const [periodRes, accountRes, unitRes, txRes] = await Promise.all([
+            supabaseClient.from("account_periods")
+                .select("id,period_type,start_date,end_date,status")
+                .eq("bumdes_id", bumdesId)
+                .order("start_date", { ascending:false }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
+                .eq("bumdes_id", bumdesId)
+                .eq("is_active", true)
+                .eq("level", 4)
+                .order("kode", { ascending:true }),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", { ascending:true }),
+            supabaseClient.from("transactions")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                .eq("bumdes_id", bumdesId)
+                .eq("transaction_type", "penyesuaian")
+                .order("transaction_date", { ascending:false })
+                .order("created_at", { ascending:false })
+                .limit(300)
+        ]);
+
+        if (periodRes.error) throw periodRes.error;
+        if (accountRes.error) throw accountRes.error;
+        if (unitRes.error) throw unitRes.error;
+        if (txRes.error) throw txRes.error;
+
+        const periods = periodRes.data || [];
+        const accounts = accountRes.data || [];
+        const units = (unitRes.data || []).filter(u => u.status === "aktif");
+        let adjustments = txRes.data || [];
+        if (ownUnitId) adjustments = adjustments.filter(t => t.unit_id === ownUnitId);
+
+        const unitMap = new Map(units.map(u => [u.id, u]));
+        const periodMap = new Map(periods.map(p => [p.id, p]));
+        const accountOptions = accounts.map(a =>
+            `<option value="${escapeHtml(a.id)}">${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`
+        ).join("");
+
+        let unitOptions = "";
+        if (role === "admin_pusat") {
+            unitOptions = `<option value="">Pusat / Kantor Pusat</option>` + units.map(u =>
+                `<option value="${escapeHtml(u.id)}">${escapeHtml(u.kode_unit)} — ${escapeHtml(u.nama_unit)}</option>`
+            ).join("");
+        } else {
+            const own = units.find(u => u.id === ownUnitId);
+            if (own) unitOptions = `<option value="${escapeHtml(own.id)}">${escapeHtml(own.kode_unit)} — ${escapeHtml(own.nama_unit)}</option>`;
+        }
+
+        const openPeriods = periods.filter(p => p.status === "open");
+        const today = new Date().toISOString().slice(0,10);
+        const canInput = canManage && openPeriods.length && accounts.length && unitOptions;
+
+        const rows = adjustments.map((t, i) => {
+            const u = t.unit_id ? unitMap.get(t.unit_id) : null;
+            const p = periodMap.get(t.period_id);
+            const scope = u ? `${u.kode_unit || ""} — ${u.nama_unit}` : "Pusat / Kantor Pusat";
+            return `<tr>
+                <td>${i+1}</td>
+                <td>${fmtDate(t.transaction_date)}</td>
+                <td class="fw-semibold">${escapeHtml(t.transaction_number || "-")}</td>
+                <td>${escapeHtml(t.description || "-")}</td>
+                <td>${escapeHtml(scope)}</td>
+                <td>${p ? `${fmtDate(p.start_date)} s.d. ${fmtDate(p.end_date)}` : "-"}</td>
+                <td class="text-end">${rupiah(t.amount || 0)}</td>
+            </tr>`;
+        }).join("");
+
+        const templateOptions = `
+            <option value="">Penyesuaian Umum</option>
+            <option value="Penyusutan Aset Tetap">Penyusutan Aset Tetap</option>
+            <option value="Penyisihan Piutang Tak Tertagih">Penyisihan Piutang Tak Tertagih</option>
+            <option value="Beban Terutang">Beban Terutang</option>
+            <option value="Penyesuaian Persediaan/Perlengkapan">Penyesuaian Persediaan/Perlengkapan</option>`;
+
+        const body = `
+        <div class="panel mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                <div>
+                    <div class="fw-semibold">Jurnal Penyesuaian</div>
+                    <div class="text-secondary small">Penyesuaian dicatat terpisah berdasarkan Kantor Pusat atau Unit Usaha.</div>
+                </div>
+                ${canInput ? `<button id="adjNewBtn" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Penyesuaian Baru</button>` : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+            </div>
+            <div class="row g-2">
+                <div class="col-md-3"><div class="small text-secondary">Pusat</div><div class="fs-5 fw-bold">${adjustments.filter(x => !x.unit_id).length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Unit</div><div class="fs-5 fw-bold">${adjustments.filter(x => !!x.unit_id).length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Periode Terbuka</div><div class="fs-5 fw-bold">${openPeriods.length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Total Penyesuaian</div><div class="fs-5 fw-bold">${rupiah(adjustments.reduce((s,x)=>s+Number(x.amount||0),0))}</div></div>
+            </div>
+        </div>
+
+        <div id="adjustmentFormPanel" class="panel mb-3 ${canInput ? "" : "d-none"}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div><div class="fw-semibold">Tambah Jurnal Penyesuaian</div><div class="text-secondary small">Debit dan Kredit harus seimbang.</div></div>
+                <button type="button" id="adjCancelBtn" class="btn btn-sm btn-outline-secondary">Tutup</button>
+            </div>
+            <form id="adjustmentForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Tanggal</label><input id="adjDate" type="date" class="form-control" value="${today}" required></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Konteks</label><select id="adjUnit" class="form-select">${unitOptions}</select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Jenis Penyesuaian</label><select id="adjType" class="form-select">${templateOptions}</select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Periode</label><div id="adjPeriodInfo" class="form-control bg-light">Otomatis berdasarkan tanggal</div></div>
+                </div>
+                <div class="mb-3"><label class="form-label small fw-semibold">Uraian</label><input id="adjDescription" class="form-control" placeholder="Contoh: Penyusutan kendaraan bulan September 2026" required></div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-2">
+                        <thead><tr><th style="min-width:300px">Akun</th><th style="width:180px" class="text-end">Debit</th><th style="width:180px" class="text-end">Kredit</th><th style="width:50px"></th></tr></thead>
+                        <tbody id="adjRows"></tbody>
+                        <tfoot><tr><th>Total</th><th class="text-end" id="adjTotalDebit">Rp 0</th><th class="text-end" id="adjTotalCredit">Rp 0</th><th></th></tr></tfoot>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div id="adjStatus" class="small fw-semibold text-secondary">Tambahkan minimal 2 baris jurnal.</div>
+                    <div class="d-flex gap-2"><button type="button" id="adjAddRow" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tambah Baris</button><button id="adjSaveBtn" class="btn btn-primary btn-sm" type="submit" disabled>Simpan Penyesuaian</button></div>
+                </div>
+            </form>
+        </div>
+
+        <div class="panel">
+            <div class="d-flex justify-content-between align-items-center mb-3"><div><div class="fw-semibold">Riwayat Jurnal Penyesuaian</div><div class="text-secondary small">Data dipisahkan berdasarkan Pusat dan Unit Usaha.</div></div></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Konteks</th><th>Periode</th><th class="text-end">Jumlah</th></tr></thead><tbody>${rows || `<tr><td colspan="7" class="text-center text-secondary py-4">Belum ada jurnal penyesuaian.</td></tr>`}</tbody></table></div>
+        </div>`;
+
+        showModuleShell("penyesuaian", body);
+
+        if (!canInput) return;
+
+        const formPanel = $("adjustmentFormPanel");
+        const rowsEl = $("adjRows");
+        const dateEl = $("adjDate");
+        const unitEl = $("adjUnit");
+        const typeEl = $("adjType");
+        const descEl = $("adjDescription");
+        const saveBtn = $("adjSaveBtn");
+        const statusEl = $("adjStatus");
+        const periodInfo = $("adjPeriodInfo");
+
+        function addRow() {
+            const row = document.createElement("tr");
+            row.className = "adj-input-row";
+            row.innerHTML = `<td><select class="form-select form-select-sm adj-account"><option value="">Pilih akun detail</option>${accountOptions}</select></td><td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end adj-debit" value="0"></td><td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end adj-credit" value="0"></td><td><button type="button" class="btn btn-sm btn-outline-danger adj-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>`;
+            rowsEl.appendChild(row);
+            row.querySelectorAll("input,select").forEach(el => el.addEventListener("input", updateTotals));
+            row.querySelectorAll("input,select").forEach(el => el.addEventListener("change", updateTotals));
+            row.querySelector(".adj-remove").addEventListener("click", () => { if (rowsEl.querySelectorAll(".adj-input-row").length > 2) { row.remove(); updateTotals(); } else showAppToast("info", "Baris jurnal", "Minimal harus ada 2 baris jurnal."); });
+            updateTotals();
+        }
+
+        function updatePeriod() {
+            const date = dateEl.value;
+            const found = openPeriods.filter(p => date && date >= p.start_date && date <= p.end_date);
+            if (found.length === 1) {
+                periodInfo.textContent = `${fmtDate(found[0].start_date)} s.d. ${fmtDate(found[0].end_date)} • Terbuka`;
+                periodInfo.className = "form-control bg-light text-success";
+            } else {
+                periodInfo.textContent = found.length === 0 ? "Tidak ada periode terbuka" : "Lebih dari satu periode terbuka";
+                periodInfo.className = "form-control bg-light text-danger";
+            }
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let debit=0, credit=0, invalid=false;
+            rowsEl.querySelectorAll(".adj-input-row").forEach(row => {
+                const d=Number(row.querySelector(".adj-debit")?.value||0), c=Number(row.querySelector(".adj-credit")?.value||0);
+                debit += Number.isFinite(d)?d:0; credit += Number.isFinite(c)?c:0;
+                if (d>0 && c>0) invalid=true;
+            });
+            $("adjTotalDebit").textContent=rupiah(debit); $("adjTotalCredit").textContent=rupiah(credit);
+            const periodOk=openPeriods.some(p=>dateEl.value>=p.start_date&&dateEl.value<=p.end_date);
+            const balanced=!invalid && debit>0 && credit>0 && Math.abs(debit-credit)<0.005;
+            saveBtn.disabled=!(periodOk && balanced && descEl.value.trim() && rowsEl.querySelectorAll(".adj-input-row").length>=2);
+            if(!periodOk) { statusEl.textContent="Tanggal tidak berada dalam periode terbuka."; statusEl.className="small fw-semibold text-danger"; }
+            else if(invalid) { statusEl.textContent="Satu baris tidak boleh berisi Debit dan Kredit sekaligus."; statusEl.className="small fw-semibold text-danger"; }
+            else if(balanced) { statusEl.textContent="✓ Jurnal penyesuaian seimbang."; statusEl.className="small fw-semibold text-success"; }
+            else { statusEl.textContent=`Belum seimbang — selisih ${rupiah(Math.abs(debit-credit))}`; statusEl.className="small fw-semibold text-danger"; }
+        }
+
+        for(let i=0;i<2;i++) addRow();
+        dateEl.addEventListener("change", updatePeriod); descEl.addEventListener("input", updateTotals); unitEl.addEventListener("change", updateTotals);
+        $("adjAddRow").addEventListener("click", addRow);
+        $("adjNewBtn")?.addEventListener("click",()=>{ formPanel.classList.remove("d-none"); dateEl.focus(); });
+        $("adjCancelBtn").addEventListener("click",()=>formPanel.classList.add("d-none"));
+        updatePeriod();
+
+        $("adjustmentForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            if(saveBtn.disabled) return;
+            const date=dateEl.value, unitId=unitEl.value||null;
+            const period=openPeriods.find(p=>date>=p.start_date&&date<=p.end_date);
+            const lines=[...rowsEl.querySelectorAll(".adj-input-row")].map(r=>({accountId:r.querySelector(".adj-account")?.value||"",debit:Number(r.querySelector(".adj-debit")?.value||0),credit:Number(r.querySelector(".adj-credit")?.value||0)}));
+            if(!period) return;
+            if(lines.some(x=>!x.accountId || (x.debit>0&&x.credit>0) || (x.debit===0&&x.credit===0))) { showAppToast("error","Jurnal tidak valid","Periksa akun dan nominal setiap baris."); return; }
+            const debit=lines.reduce((s,x)=>s+x.debit,0), credit=lines.reduce((s,x)=>s+x.credit,0);
+            if(Math.abs(debit-credit)>0.005) { showAppToast("error","Jurnal belum seimbang","Total Debit dan Kredit harus sama."); return; }
+            const {data:sessionData}=await supabaseClient.auth.getSession(); const userId=sessionData?.session?.user?.id;
+            if(!userId){showAppToast("error","Sesi login tidak ditemukan","Silakan login kembali.");return;}
+            const original=saveBtn.innerHTML; saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+            try {
+                const {data:num,error:numErr}=await supabaseClient.rpc("allocate_transaction_number",{p_bumdes_id:bumdesId,p_unit_id:unitId,p_transaction_date:date});
+                if(numErr) throw numErr;
+                const transactionNumber=String(Array.isArray(num)?num[0]:num).trim();
+                if(!transactionNumber) throw new Error("Nomor bukti tidak tersedia.");
+                const kind=typeEl.value; const description=(kind?kind+" — ":"")+descEl.value.trim();
+                const {data:tx,error:txErr}=await supabaseClient.from("transactions").insert({bumdes_id:bumdesId,unit_id:unitId,period_id:period.id,transaction_date:date,transaction_number:transactionNumber,description,transaction_type:"penyesuaian",amount:debit,created_by:userId}).select("id").single();
+                if(txErr) throw txErr;
+                const journalRows=lines.map(x=>({transaction_id:tx.id,bumdes_id:bumdesId,unit_id:unitId,period_id:period.id,journal_date:date,journal_number:transactionNumber,account_id:x.accountId,description,debit:x.debit,credit:x.credit}));
+                const {error:jErr}=await supabaseClient.from("journals").insert(journalRows); if(jErr) throw jErr;
+                showAppToast("success","Penyesuaian berhasil disimpan",`No. Bukti ${transactionNumber}`);
+                await renderAdjustmentsModule();
+            } catch(err) {
+                console.error(err); showAppToast("error","Gagal menyimpan penyesuaian",err.message||String(err)); saveBtn.disabled=false; saveBtn.innerHTML=original;
+            }
+        });
+    }
 
 
     // =========================================================
