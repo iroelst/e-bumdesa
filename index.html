@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <!-- TRANSACTION NUMBER: SERVER-SIDE YEARLY SEQUENCE -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>e-BUMDesa — Sistem Keuangan BUM Desa</title>
@@ -3260,7 +3261,7 @@
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="text-secondary small">
-                            Periode akuntansi ditentukan otomatis dari tanggal transaksi. Nomor bukti mengikuti pola <strong>No. Urut/No. Bulan/Kode Unit/Tahun</strong>.
+                            Periode akuntansi ditentukan otomatis dari tanggal transaksi. Nomor bukti mengikuti pola <strong>No. Urut/No. Bulan/Kode Unit/Tahun</strong>; nomor urut berjalan per lokasi dan direset setiap tahun.
                         </div>
                         <button id="txSaveBtn" class="btn btn-primary px-4" type="submit" ${formDisabled ? "disabled" : ""}>
                             <i class="bi bi-check2-circle me-1"></i>Simpan Transaksi
@@ -3466,32 +3467,38 @@
                 return;
             }
 
-            const year = date.slice(0,4);
-            const month = date.slice(5,7);
-            const selectedUnit = (units || []).find(u => u.id === unitId);
-            const unitCode = selectedUnit?.kode_unit || "PST";
-            const prefix = `%/${month}/${unitCode}/${year}`;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyiapkan nomor...`;
 
-            const { data: existingTx, error: seqError } = await supabaseClient
-                .from("transactions")
-                .select("transaction_number")
-                .eq("bumdes_id", bumdesId)
-                .like("transaction_number", prefix);
+            // Nomor transaksi dibuat oleh database agar aman terhadap transaksi
+            // bersamaan dan mengikuti sequence per BUMDes + lokasi + tahun.
+            const { data: allocatedNumber, error: numberError } = await supabaseClient
+                .rpc("allocate_transaction_number", {
+                    p_bumdes_id: bumdesId,
+                    p_unit_id: unitId,
+                    p_transaction_date: date
+                });
 
-            if (seqError) {
-                showAppToast("error", "Gagal menyiapkan nomor bukti", seqError.message);
+            if (numberError) {
+                showAppToast("error", "Gagal menyiapkan nomor bukti", numberError.message);
+                btn.disabled = false;
+                btn.innerHTML = original;
                 return;
             }
 
-            const existingNumbers = (existingTx || [])
-                .map(x => String(x.transaction_number || "").split("/")[0])
-                .map(x => parseInt(x,10))
-                .filter(Number.isFinite);
+            const transactionNumber = String(
+                Array.isArray(allocatedNumber) ? allocatedNumber[0] : allocatedNumber
+            ).trim();
 
-            const nextNumber = String((existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1).padStart(3,"0");
-            const transactionNumber = `${nextNumber}/${month}/${unitCode}/${year}`;
+            if (!transactionNumber) {
+                showAppToast("error", "Nomor bukti tidak tersedia", "Database tidak mengembalikan nomor transaksi.");
+                btn.disabled = false;
+                btn.innerHTML = original;
+                return;
+            }
 
-            const original = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...`;
 
@@ -3615,7 +3622,7 @@
                 <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                     <div>
                         <h5 class="mb-1">Edit Transaksi</h5>
-                        <div class="text-secondary small">No. Bukti saat ini <strong>${escapeHtml(tx.transaction_number || "-")}</strong> • Jika tanggal atau unit berubah, nomor bukti akan dibuat ulang mengikuti periode dan unit baru.</div>
+                        <div class="text-secondary small">No. Bukti saat ini <strong>${escapeHtml(tx.transaction_number || "-")}</strong> • Jika tahun atau unit berubah, nomor bukti akan dibuat ulang. Perubahan bulan dalam tahun dan unit yang sama tidak mengubah nomor bukti.</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="txEditClose"><i class="bi bi-x-lg"></i></button>
                 </div>
@@ -3810,37 +3817,38 @@
                     return;
                 }
 
-                // Nomor bukti mengikuti pola: No Urut / Bulan / Kode Unit / Tahun.
-                // Jika tanggal atau unit berubah, nomor bukti juga dibuat ulang sesuai prefix baru.
+                // Aturan nomor bukti:
+                // - Tahun dan lokasi tetap -> nomor lama dipertahankan.
+                // - Tahun berubah -> database mengalokasikan nomor baru untuk tahun tujuan.
+                // - Lokasi/unit berubah -> database mengalokasikan nomor baru untuk lokasi tujuan.
+                // Perubahan bulan saja dalam tahun/lokasi yang sama TIDAK mengganti nomor.
                 let newTransactionNumber = tx.transaction_number;
-                const identityChanged = String(date) !== String(tx.transaction_date || "") || String(unitId || "") !== String(tx.unit_id || "");
+                const oldYear = String(tx.transaction_date || "").slice(0,4);
+                const newYear = String(date || "").slice(0,4);
+                const unitChanged = String(unitId || "") !== String(tx.unit_id || "");
+                const yearChanged = newYear !== oldYear;
 
-                if (identityChanged) {
-                    const newYear = date.slice(0,4);
-                    const newMonth = date.slice(5,7);
-                    const selectedUnit = (units || []).find(u => u.id === unitId);
-                    const newUnitCode = selectedUnit?.kode_unit || "PST";
-                    const newPrefix = `%/${newMonth}/${newUnitCode}/${newYear}`;
-
-                    const { data: existingForPrefix, error: seqEditError } = await supabaseClient
-                        .from("transactions")
-                        .select("id,transaction_number")
-                        .eq("bumdes_id", bumdesId)
-                        .like("transaction_number", newPrefix);
+                if (unitChanged || yearChanged) {
+                    const { data: allocatedNumber, error: seqEditError } = await supabaseClient
+                        .rpc("allocate_transaction_number", {
+                            p_bumdes_id: bumdesId,
+                            p_unit_id: unitId,
+                            p_transaction_date: date
+                        });
 
                     if (seqEditError) {
                         showAppToast("error", "Gagal menyiapkan nomor bukti baru", seqEditError.message);
                         return;
                     }
 
-                    const existingNumbers = (existingForPrefix || [])
-                        .filter(x => x.id !== transactionId)
-                        .map(x => String(x.transaction_number || "").split("/")[0])
-                        .map(x => parseInt(x,10))
-                        .filter(Number.isFinite);
+                    newTransactionNumber = String(
+                        Array.isArray(allocatedNumber) ? allocatedNumber[0] : allocatedNumber
+                    ).trim();
 
-                    const nextNumber = String((existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1).padStart(3,"0");
-                    newTransactionNumber = `${nextNumber}/${newMonth}/${newUnitCode}/${newYear}`;
+                    if (!newTransactionNumber) {
+                        showAppToast("error", "Nomor bukti baru tidak tersedia", "Database tidak mengembalikan nomor transaksi.");
+                        return;
+                    }
                 }
 
                 const oldTx = {
