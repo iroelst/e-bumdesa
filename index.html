@@ -1562,7 +1562,203 @@
         .coa-normal.credit { color:#8b5f18; font-weight:700; }
         .coa-count { color:#7b8998; font-size:11px; }
 
-</style>
+
+        /* ===== DASHBOARD CARDS MODERN ===== */
+        .dashboard-summary-grid{
+            margin-top:2px;
+        }
+        .dashboard-summary-card{
+            position:relative;
+            height:100%;
+            min-height:126px;
+            padding:18px 18px 16px;
+            background:#fff;
+            border:1px solid #dfe5ee;
+            border-radius:14px;
+            overflow:hidden;
+            box-shadow:0 5px 16px rgba(35,55,80,.055);
+            transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .dashboard-summary-card:hover{
+            transform:translateY(-2px);
+            box-shadow:0 10px 24px rgba(35,55,80,.09);
+            border-color:#cfd9e7;
+        }
+        .dashboard-summary-card::after{
+            content:"";
+            position:absolute;
+            width:92px;
+            height:92px;
+            right:-30px;
+            bottom:-38px;
+            border-radius:50%;
+            background:rgba(47,103,183,.055);
+            pointer-events:none;
+        }
+        .dashboard-summary-head{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:10px;
+        }
+        .dashboard-summary-icon{
+            width:40px;
+            height:40px;
+            flex:0 0 40px;
+            display:grid;
+            place-items:center;
+            border-radius:11px;
+            font-size:19px;
+        }
+        .dashboard-summary-card.income .dashboard-summary-icon{
+            background:#eaf7ee;
+            color:#2d7a48;
+        }
+        .dashboard-summary-card.operational .dashboard-summary-icon{
+            background:#fff4e4;
+            color:#b87500;
+        }
+        .dashboard-summary-label{
+            color:#718096;
+            font-size:11px;
+            line-height:1.35;
+            font-weight:700;
+            text-transform:uppercase;
+            letter-spacing:.35px;
+            margin-top:2px;
+        }
+        .dashboard-summary-period{
+            display:inline-flex;
+            margin-top:5px;
+            padding:3px 7px;
+            border-radius:999px;
+            background:#f5f7fa;
+            color:#8a97a7;
+            font-size:9px;
+            font-weight:650;
+        }
+        .dashboard-summary-value{
+            position:relative;
+            z-index:1;
+            margin-top:13px;
+            color:#172b45;
+            font-size:21px;
+            line-height:1.1;
+            font-weight:800;
+            letter-spacing:-.3px;
+        }
+        .dashboard-summary-accent{
+            position:absolute;
+            left:0;
+            top:0;
+            bottom:0;
+            width:4px;
+            border-radius:14px 0 0 14px;
+        }
+        .dashboard-summary-card.income .dashboard-summary-accent{
+            background:#4e9a62;
+        }
+        .dashboard-summary-card.operational .dashboard-summary-accent{
+            background:#e0a126;
+        }
+
+        /* ===== UNIT CARDS ===== */
+        .dashboard-unit-card{
+            position:relative;
+            height:100%;
+            min-height:145px;
+            padding:17px;
+            background:#fff;
+            border:1px solid #dfe5ee;
+            border-radius:14px;
+            box-shadow:0 5px 16px rgba(35,55,80,.05);
+            overflow:hidden;
+            transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .dashboard-unit-card:hover{
+            transform:translateY(-2px);
+            box-shadow:0 10px 24px rgba(35,55,80,.09);
+            border-color:#b9cbe0;
+        }
+        .dashboard-unit-top{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin-bottom:15px;
+        }
+        .dashboard-unit-title-wrap{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            min-width:0;
+        }
+        .dashboard-unit-icon{
+            width:36px;
+            height:36px;
+            flex:0 0 36px;
+            display:grid;
+            place-items:center;
+            border-radius:10px;
+            background:#eef5ff;
+            color:#2f67b7;
+            font-size:17px;
+        }
+        .dashboard-unit-title{
+            min-width:0;
+            color:#253b56;
+            font-size:14px;
+            font-weight:800;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .dashboard-unit-code{
+            margin-top:2px;
+            color:#8a97a7;
+            font-size:9px;
+        }
+        .dashboard-unit-status{
+            flex:0 0 auto;
+            padding:4px 8px;
+            border-radius:999px;
+            background:#edf8f0;
+            color:#36804d;
+            font-size:8px;
+            font-weight:800;
+        }
+        .dashboard-unit-metrics{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:9px;
+        }
+        .dashboard-unit-metric{
+            padding:10px 11px;
+            border:1px solid #edf0f4;
+            border-radius:10px;
+            background:#fafbfd;
+        }
+        .dashboard-unit-metric-label{
+            color:#8794a4;
+            font-size:8px;
+            font-weight:750;
+            text-transform:uppercase;
+            letter-spacing:.35px;
+        }
+        .dashboard-unit-metric-value{
+            margin-top:4px;
+            color:#30465f;
+            font-size:12px;
+            font-weight:800;
+        }
+        @media(max-width:576px){
+            .dashboard-summary-card{min-height:116px;padding:15px;}
+            .dashboard-summary-icon{width:36px;height:36px;flex-basis:36px;font-size:17px;}
+            .dashboard-summary-value{font-size:18px;}
+            .dashboard-unit-metrics{grid-template-columns:1fr;}
+        }
+
+    </style>
 
 
 </head>
@@ -2067,32 +2263,68 @@
         </header>
 
         <div id="dashboardContent" class="content">
-            <div class="row g-3">
+            <div class="row g-3 dashboard-summary-grid">
                 <div class="col-6 col-xl-3">
-                    <div class="summary-card">
-                        <div class="summary-title">Semua Pendapatan<br>Bulan Ini</div>
-                        <div class="summary-value">Rp 0</div>
+                    <div class="dashboard-summary-card income">
+                        <span class="dashboard-summary-accent"></span>
+                        <div class="dashboard-summary-head">
+                            <div>
+                                <div class="dashboard-summary-label">Semua Pendapatan</div>
+                                <span class="dashboard-summary-period">Bulan Ini</span>
+                            </div>
+                            <div class="dashboard-summary-icon">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="dashboard-summary-value">Rp 0</div>
                     </div>
                 </div>
 
                 <div class="col-6 col-xl-3">
-                    <div class="summary-card">
-                        <div class="summary-title">Semua Pendapatan<br>Tahun Ini</div>
-                        <div class="summary-value">Rp 0</div>
+                    <div class="dashboard-summary-card income">
+                        <span class="dashboard-summary-accent"></span>
+                        <div class="dashboard-summary-head">
+                            <div>
+                                <div class="dashboard-summary-label">Semua Pendapatan</div>
+                                <span class="dashboard-summary-period">Tahun Ini</span>
+                            </div>
+                            <div class="dashboard-summary-icon">
+                                <i class="bi bi-bar-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="dashboard-summary-value">Rp 0</div>
                     </div>
                 </div>
 
                 <div class="col-6 col-xl-3">
-                    <div class="summary-card">
-                        <div class="summary-title">Semua Operasional<br>Bulan Ini</div>
-                        <div class="summary-value">Rp 0</div>
+                    <div class="dashboard-summary-card operational">
+                        <span class="dashboard-summary-accent"></span>
+                        <div class="dashboard-summary-head">
+                            <div>
+                                <div class="dashboard-summary-label">Semua Operasional</div>
+                                <span class="dashboard-summary-period">Bulan Ini</span>
+                            </div>
+                            <div class="dashboard-summary-icon">
+                                <i class="bi bi-arrow-down-right"></i>
+                            </div>
+                        </div>
+                        <div class="dashboard-summary-value">Rp 0</div>
                     </div>
                 </div>
 
                 <div class="col-6 col-xl-3">
-                    <div class="summary-card">
-                        <div class="summary-title">Semua Operasional<br>Tahun Ini</div>
-                        <div class="summary-value">Rp 0</div>
+                    <div class="dashboard-summary-card operational">
+                        <span class="dashboard-summary-accent"></span>
+                        <div class="dashboard-summary-head">
+                            <div>
+                                <div class="dashboard-summary-label">Semua Operasional</div>
+                                <span class="dashboard-summary-period">Tahun Ini</span>
+                            </div>
+                            <div class="dashboard-summary-icon">
+                                <i class="bi bi-bar-chart"></i>
+                            </div>
+                        </div>
+                        <div class="dashboard-summary-value">Rp 0</div>
                     </div>
                 </div>
             </div>
@@ -2627,15 +2859,33 @@
 
         container.innerHTML = units.map(unit => `
             <div class="col-sm-6 col-xl-3">
-                <div class="unit-card">
-                    <div class="unit-title">
-                        ${escapeHtml(unit.nama_unit)}
+                <div class="dashboard-unit-card">
+                    <div class="dashboard-unit-top">
+                        <div class="dashboard-unit-title-wrap">
+                            <div class="dashboard-unit-icon">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div>
+                                <div class="dashboard-unit-title" title="${escapeHtml(unit.nama_unit)}">
+                                    ${escapeHtml(unit.nama_unit)}
+                                </div>
+                                <div class="dashboard-unit-code">
+                                    ${escapeHtml(unit.kode_unit || "-")}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="dashboard-unit-status">AKTIF</span>
                     </div>
-                    <div class="unit-stat">
-                        PENDAPATAN = <strong>Rp 0</strong>
-                    </div>
-                    <div class="unit-stat">
-                        OPERASIONAL = <strong>Rp 0</strong>
+
+                    <div class="dashboard-unit-metrics">
+                        <div class="dashboard-unit-metric">
+                            <div class="dashboard-unit-metric-label">Pendapatan</div>
+                            <div class="dashboard-unit-metric-value">Rp 0</div>
+                        </div>
+                        <div class="dashboard-unit-metric">
+                            <div class="dashboard-unit-metric-label">Operasional</div>
+                            <div class="dashboard-unit-metric-value">Rp 0</div>
+                        </div>
                     </div>
                 </div>
             </div>
