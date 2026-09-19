@@ -2114,22 +2114,8 @@
                 border-top:1.5px solid #111 !important;
                 border-bottom:1.5px solid #111 !important;
             }
-            /* CALK mengikuti aliran halaman normal.
-               Poin berikutnya (termasuk D) tidak dipaksa pindah ke halaman baru.
-               Jika ruang halaman tidak cukup, browser meneruskan konten ke halaman berikutnya. */
             #financialReportOutput .calk-section,
             #financialReportOutput .calk-block {
-                break-inside:auto !important;
-                page-break-inside:auto !important;
-                break-before:auto !important;
-                page-break-before:auto !important;
-            }
-            #financialReportOutput .calk-value-table {
-                break-inside:auto !important;
-                page-break-inside:auto !important;
-            }
-            #financialReportOutput .calk-value-table tbody,
-            #financialReportOutput .calk-value-table tr {
                 break-inside:avoid !important;
                 page-break-inside:avoid !important;
             }
