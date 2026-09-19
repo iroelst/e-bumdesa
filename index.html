@@ -2151,6 +2151,10 @@
 </style>
 
 
+
+<style>
+.cashbank-detail-filter{display:grid;grid-template-columns:1fr 1fr 150px;gap:10px;padding:12px 14px;border-bottom:1px solid #edf1f5;background:#fbfcfe}.cashbank-detail-filter .form-label{font-size:10px;font-weight:700;color:#68788b;margin-bottom:4px}.cashbank-detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;border-bottom:1px solid #edf1f5}.cashbank-detail-summary>div{padding:9px 10px;border:1px solid #e5eaf0;border-radius:9px;background:#fff}.cashbank-detail-summary span{display:block;font-size:9px;color:#8793a1;margin-bottom:4px}.cashbank-detail-summary strong{font-size:12px;color:#26374c}@media(max-width:700px){.cashbank-detail-filter{grid-template-columns:1fr 1fr}.cashbank-detail-filter>div:last-child{grid-column:1/-1}.cashbank-detail-summary{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 
 <body>
@@ -3873,7 +3877,26 @@
     let activeAppBumdes = null;
 
     function setActiveMenu(module) {
-        document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
+        function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
+        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Semua Unit";
+        const win = window.open("", "_blank", "width=1100,height=800");
+        if (!win) { alert("Jendela cetak diblokir browser. Izinkan pop-up untuk e-BUMDesa."); return; }
+        win.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
+        <style>
+        @page{size:A4 portrait;margin:12mm} body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0} h1{font-size:18px;margin:0 0 3px} h2{font-size:14px;margin:0 0 12px} .muted{color:#666;font-size:10px}.head{border-bottom:1.5px solid #222;padding-bottom:10px;margin-bottom:12px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #ccc;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px} table{width:100%;border-collapse:collapse} th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px} td{border-bottom:1px solid #ddd;padding:5px 6px} .right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
+        </style></head><body>
+        <div class="head"><h1>e-BUMDesa</h1><h2>Mutasi Rekening</h2><div class="muted">Laporan mutasi rekening berdasarkan jurnal</div></div>
+        <div class="meta"><div><strong>${escapeHtml(account?.nama || "-")}</strong><br>Kode COA: ${escapeHtml(account?.kode || "-")}</div><div class="right">Periode: ${fmtDate(from)} s.d. ${fmtDate(to)}<br>${escapeHtml(unitName)}</div></div>
+        <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
+        <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
+        <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div>
+        </body></html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); }, 250);
+    }
+
+    document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
             link.classList.toggle("active", link.dataset.module === module);
         });
     }
@@ -6334,24 +6357,92 @@
                 const account = accById.get(btn.dataset.accountId);
                 const js = journalByAccount.get(btn.dataset.accountId) || [];
                 const opening = openingByAccount.get(btn.dataset.accountId) || 0;
-                let running = opening;
-                const rows = js.map((j, idx) => {
-                    running += Number(j.debit || 0) - Number(j.credit || 0);
-                    return `<tr><td>${fmtDate(j.journal_date)}</td><td>${escapeHtml(j.journal_number || "-")}</td><td>${escapeHtml(j.description || "-")}</td><td class="text-end text-success">${j.debit ? rupiah(j.debit) : "-"}</td><td class="text-end text-danger">${j.credit ? rupiah(j.credit) : "-"}</td><td class="text-end fw-semibold">${rupiah(running)}</td></tr>`;
-                }).join("");
-                $("cashBankDetail").innerHTML = `
-                    <div class="panel cashbank-detail-panel">
-                        <div class="panel-header-modern"><div><h5 class="mb-1">Mutasi: ${escapeHtml(account?.nama || "-")}</h5><div class="text-secondary small">Saldo awal ${rupiah(opening)} • ${rows ? js.length + " mutasi" : "belum ada mutasi"}</div></div><button type="button" class="btn btn-sm btn-light border" id="closeCashBankDetail"><i class="bi bi-x-lg"></i></button></div>
-                        <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="text-center text-secondary py-4">Belum ada mutasi pada rekening ini.</td></tr>`}</tbody></table></div>
-                    </div>`;
-                $("closeCashBankDetail")?.addEventListener("click", () => { $("cashBankDetail").innerHTML = ""; });
-                $("cashBankDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                const defaultFrom = `${year}-01-01`;
+                const defaultTo = `${year}-12-31`;
+
+                const renderDetail = (fromValue = defaultFrom, toValue = defaultTo) => {
+                    let from = fromValue || defaultFrom;
+                    let to = toValue || defaultTo;
+                    if (from > to) {
+                        const tmp = from; from = to; to = tmp;
+                    }
+
+                    const beforeRows = js.filter(j => String(j.journal_date || "") < from);
+                    const filtered = js.filter(j => {
+                        const d = String(j.journal_date || "");
+                        return d >= from && d <= to;
+                    });
+
+                    let running = opening + beforeRows.reduce((n, j) => n + Number(j.debit || 0) - Number(j.credit || 0), 0);
+                    const saldoSebelum = running;
+                    const totalMasuk = filtered.reduce((n, j) => n + Number(j.debit || 0), 0);
+                    const totalKeluar = filtered.reduce((n, j) => n + Number(j.credit || 0), 0);
+                    const saldoAkhir = running + totalMasuk - totalKeluar;
+
+                    const rows = filtered.map(j => {
+                        running += Number(j.debit || 0) - Number(j.credit || 0);
+                        return `<tr><td>${fmtDate(j.journal_date)}</td><td>${escapeHtml(j.journal_number || "-")}</td><td>${escapeHtml(j.description || "-")}</td><td class="text-end text-success">${j.debit ? rupiah(j.debit) : "-"}</td><td class="text-end text-danger">${j.credit ? rupiah(j.credit) : "-"}</td><td class="text-end fw-semibold">${rupiah(running)}</td></tr>`;
+                    }).join("");
+
+                    $("cashBankDetail").innerHTML = `
+                        <div class="panel cashbank-detail-panel">
+                            <div class="panel-header-modern">
+                                <div><h5 class="mb-1">Mutasi: ${escapeHtml(account?.nama || "-")}</h5><div class="text-secondary small">Periode ${fmtDate(from)} s.d. ${fmtDate(to)} • ${filtered.length} mutasi</div></div>
+                                <div class="d-flex gap-2 no-print">
+                                    <button type="button" class="btn btn-sm btn-primary" id="printCashBankMutation"><i class="bi bi-printer me-1"></i>Print</button>
+                                    <button type="button" class="btn btn-sm btn-light border" id="closeCashBankDetail"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            </div>
+                            <div class="cashbank-detail-filter no-print">
+                                <div><label class="form-label">Tanggal Mulai</label><input type="date" class="form-control form-control-sm" id="cashBankDetailFrom" value="${from}"></div>
+                                <div><label class="form-label">Tanggal Sampai</label><input type="date" class="form-control form-control-sm" id="cashBankDetailTo" value="${to}"></div>
+                                <div class="d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-primary w-100" id="applyCashBankDetailFilter"><i class="bi bi-funnel me-1"></i>Tampilkan</button></div>
+                            </div>
+                            <div class="cashbank-detail-summary">
+                                <div><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div>
+                                <div><span>Kas masuk</span><strong class="text-success">${rupiah(totalMasuk)}</strong></div>
+                                <div><span>Kas keluar</span><strong class="text-danger">${rupiah(totalKeluar)}</strong></div>
+                                <div><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div>
+                            </div>
+                            <div class="table-responsive"><table class="table table-sm align-middle mb-0" id="cashBankMutationTable"><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="text-center text-secondary py-4">Belum ada mutasi pada rentang tanggal ini.</td></tr>`}</tbody></table></div>
+                        </div>`;
+
+                    $("applyCashBankDetailFilter")?.addEventListener("click", () => {
+                        renderDetail($("cashBankDetailFrom")?.value, $("cashBankDetailTo")?.value);
+                    });
+                    $("closeCashBankDetail")?.addEventListener("click", () => { $("cashBankDetail").innerHTML = ""; });
+                    $("printCashBankMutation")?.addEventListener("click", () => {
+                        printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId });
+                    });
+                    $("cashBankDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                };
+
+                renderDetail();
             }));
         };
 
         $("cashBankYear")?.addEventListener("change", load);
         $("cashBankUnit")?.addEventListener("change", load);
         await load();
+    }
+
+    function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
+        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Semua Unit";
+        const win = window.open("", "_blank", "width=1100,height=800");
+        if (!win) { alert("Jendela cetak diblokir browser. Izinkan pop-up untuk e-BUMDesa."); return; }
+        win.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
+        <style>
+        @page{size:A4 portrait;margin:12mm} body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0} h1{font-size:18px;margin:0 0 3px} h2{font-size:14px;margin:0 0 12px} .muted{color:#666;font-size:10px}.head{border-bottom:1.5px solid #222;padding-bottom:10px;margin-bottom:12px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #ccc;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px} table{width:100%;border-collapse:collapse} th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px} td{border-bottom:1px solid #ddd;padding:5px 6px} .right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
+        </style></head><body>
+        <div class="head"><h1>e-BUMDesa</h1><h2>Mutasi Rekening</h2><div class="muted">Laporan mutasi rekening berdasarkan jurnal</div></div>
+        <div class="meta"><div><strong>${escapeHtml(account?.nama || "-")}</strong><br>Kode COA: ${escapeHtml(account?.kode || "-")}</div><div class="right">Periode: ${fmtDate(from)} s.d. ${fmtDate(to)}<br>${escapeHtml(unitName)}</div></div>
+        <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
+        <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
+        <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div>
+        </body></html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); }, 250);
     }
 
     document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
