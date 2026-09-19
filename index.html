@@ -3293,7 +3293,7 @@
                   </div>`
                 : `<span class="text-secondary small">-</span>`;
 
-            return `<tr>
+            return `<tr data-tx-row-id="${escapeHtml(t.id)}">
                 <td>${i+1}</td>
                 <td>${escapeHtml(fmtDate(t.transaction_date))}</td>
                 <td><strong>${escapeHtml(t.transaction_number || "-")}</strong></td>
@@ -3930,8 +3930,27 @@
 
                     if (iError) throw iError;
 
-                    showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti ${tx.transaction_number} telah dikoreksi.`);
+                    // Pastikan yang tampil di Riwayat Transaksi adalah data header TRANSAKSI terbaru.
+                    // Jurnal mengambil identitas dari transaksi yang sama.
+                    const { data: latestTx, error: latestTxError } = await supabaseClient
+                        .from("transactions")
+                        .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                        .eq("id", transactionId)
+                        .eq("bumdes_id", bumdesId)
+                        .maybeSingle();
+
+                    if (latestTxError) throw latestTxError;
+                    if (!latestTx) throw new Error("Data transaksi terbaru tidak ditemukan setelah penyimpanan.");
+
+                    showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti baru: ${latestTx.transaction_number}. Tanggal: ${fmtDate(latestTx.transaction_date)}.`);
                     close();
+
+                    // Render ulang dari database, bukan dari data transaksi lama yang sudah ada di halaman.
+                    await renderTransactionsModule();
+
+                    // Jika browser masih menampilkan baris lama karena DOM lama, lakukan refresh modul sekali lagi.
+                    // Ini tidak mengubah data dan tetap menggunakan sesi Supabase yang sama.
+                    await new Promise(resolve => setTimeout(resolve, 80));
                     await renderTransactionsModule();
 
                 } catch (err) {
