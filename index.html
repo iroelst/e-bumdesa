@@ -3615,7 +3615,7 @@
                 <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                     <div>
                         <h5 class="mb-1">Edit Transaksi</h5>
-                        <div class="text-secondary small">No. Bukti <strong>${escapeHtml(tx.transaction_number || "-")}</strong> • Koreksi transaksi tanpa mengubah nomor bukti.</div>
+                        <div class="text-secondary small">No. Bukti saat ini <strong>${escapeHtml(tx.transaction_number || "-")}</strong> • Jika tanggal atau unit berubah, nomor bukti akan dibuat ulang mengikuti periode dan unit baru.</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="txEditClose"><i class="bi bi-x-lg"></i></button>
                 </div>
@@ -3810,10 +3810,44 @@
                     return;
                 }
 
+                // Nomor bukti mengikuti pola: No Urut / Bulan / Kode Unit / Tahun.
+                // Jika tanggal atau unit berubah, nomor bukti juga dibuat ulang sesuai prefix baru.
+                let newTransactionNumber = tx.transaction_number;
+                const identityChanged = String(date) !== String(tx.transaction_date || "") || String(unitId || "") !== String(tx.unit_id || "");
+
+                if (identityChanged) {
+                    const newYear = date.slice(0,4);
+                    const newMonth = date.slice(5,7);
+                    const selectedUnit = (units || []).find(u => u.id === unitId);
+                    const newUnitCode = selectedUnit?.kode_unit || "PST";
+                    const newPrefix = `%/${newMonth}/${newUnitCode}/${newYear}`;
+
+                    const { data: existingForPrefix, error: seqEditError } = await supabaseClient
+                        .from("transactions")
+                        .select("id,transaction_number")
+                        .eq("bumdes_id", bumdesId)
+                        .like("transaction_number", newPrefix);
+
+                    if (seqEditError) {
+                        showAppToast("error", "Gagal menyiapkan nomor bukti baru", seqEditError.message);
+                        return;
+                    }
+
+                    const existingNumbers = (existingForPrefix || [])
+                        .filter(x => x.id !== transactionId)
+                        .map(x => String(x.transaction_number || "").split("/")[0])
+                        .map(x => parseInt(x,10))
+                        .filter(Number.isFinite);
+
+                    const nextNumber = String((existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1).padStart(3,"0");
+                    newTransactionNumber = `${nextNumber}/${newMonth}/${newUnitCode}/${newYear}`;
+                }
+
                 const oldTx = {
                     unit_id: tx.unit_id,
                     period_id: tx.period_id,
                     transaction_date: tx.transaction_date,
+                    transaction_number: tx.transaction_number,
                     description: tx.description,
                     transaction_type: tx.transaction_type,
                     amount: tx.amount
@@ -3838,20 +3872,26 @@
                 let journalsDeleted = false;
 
                 try {
-                    const { error: uError } = await supabaseClient
+                    const { data: updatedTx, error: uError } = await supabaseClient
                         .from("transactions")
                         .update({
                             unit_id: unitId,
                             period_id: newPeriodId,
                             transaction_date: date,
+                            transaction_number: newTransactionNumber,
                             description,
                             transaction_type: type,
                             amount: totals.debit
                         })
                         .eq("id", transactionId)
-                        .eq("bumdes_id", bumdesId);
+                        .eq("bumdes_id", bumdesId)
+                        .select("id,transaction_number,transaction_date,unit_id,period_id")
+                        .single();
 
+                    // Jangan lanjut jika baris transaksi tidak benar-benar ter-update.
+                    // Ini mencegah kondisi di mana jurnal berubah tetapi Riwayat Transaksi tetap lama.
                     if (uError) throw uError;
+                    if (!updatedTx) throw new Error("Transaksi tidak berhasil diperbarui. Periksa hak akses/RLS transaksi.");
 
                     const { error: dError } = await supabaseClient
                         .from("journals")
@@ -3868,7 +3908,7 @@
                         unit_id: unitId,
                         period_id: newPeriodId,
                         journal_date: date,
-                        journal_number: tx.transaction_number,
+                        journal_number: newTransactionNumber,
                         account_id: line.accountId,
                         description: line.note ? `${description} — ${line.note}` : description,
                         debit: line.debit,
