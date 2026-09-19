@@ -1571,7 +1571,8 @@
         .coa-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px;border-bottom:1px solid #edf1f5}
         .coa-modal-body{padding:18px 20px}
         .coa-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #edf1f5}
-        .coa-modal-close{border:0;background:transparent;color:#7d8996;font-size:24px;line-height:1;cursor:pointer}
+        .coa-modal-foot button{position:relative;z-index:2;pointer-events:auto;cursor:pointer}
+        .coa-modal-close{border:0;background:transparent;color:#7d8996;font-size:24px;line-height:1;cursor:pointer;pointer-events:auto;position:relative;z-index:2}
         .coa-modal-close:hover{color:#23354a}
         @media(max-width:576px){.coa-modal-backdrop{padding:10px}.coa-modal-card{border-radius:14px}.coa-modal-head,.coa-modal-body,.coa-modal-foot{padding-left:14px;padding-right:14px}}
 
@@ -7277,15 +7278,34 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
     }
 
-    $("addCustomCOAForm")?.addEventListener("submit", submitAddCustomCOA);
-    $("coaModalCloseBtn")?.addEventListener("click", closeAddCustomCOAModal);
-    $("coaModalCancelBtn")?.addEventListener("click", closeAddCustomCOAModal);
-    $("addCustomCOAModal")?.addEventListener("click", (event) => {
-        if (event.target.id === "addCustomCOAModal") closeAddCustomCOAModal();
+    // Modal dibuat di akhir <body>, setelah script utama.
+    // Karena itu seluruh event modal memakai delegation agar selalu terpasang.
+    document.addEventListener("submit", (event) => {
+        if (event.target?.id !== "addCustomCOAForm") return;
+        submitAddCustomCOA(event);
+    });
+
+    document.addEventListener("click", (event) => {
+        const closeButton = event.target.closest?.("#coaModalCloseBtn, #coaModalCancelBtn");
+        if (closeButton) {
+            event.preventDefault();
+            event.stopPropagation();
+            closeAddCustomCOAModal();
+            return;
+        }
+
+        const backdrop = event.target.closest?.("#addCustomCOAModal");
+        if (backdrop && event.target === backdrop) {
+            event.preventDefault();
+            closeAddCustomCOAModal();
+        }
     });
 
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && addCustomCOAModalOpen) closeAddCustomCOAModal();
+        if (event.key === "Escape" && addCustomCOAModalOpen) {
+            event.preventDefault();
+            closeAddCustomCOAModal();
+        }
     });
 
     async function renderCashBankModule() {
