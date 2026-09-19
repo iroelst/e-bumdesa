@@ -1804,6 +1804,13 @@
         }
         .dashboard-chart-dot.income{background:#4e9a62}
         .dashboard-chart-dot.expense{background:#e0a126}
+        .dashboard-chart-bar{
+            cursor:pointer;
+            transition:opacity .15s ease;
+        }
+        .dashboard-chart-bar:hover{
+            opacity:.78;
+        }
         .dashboard-chart-year{
             border:1px solid #dfe5ee;
             background:#fff;
@@ -2977,88 +2984,135 @@
 
         const maxValue = Math.max(
             1,
-            ...data.map(d => Math.max(Number(d.income || 0), Number(d.expense || 0)))
+            ...data.map(d => Math.max(
+                Number(d.income || 0),
+                Number(d.expense || 0)
+            ))
         );
 
-        // Gunakan grid 4 tingkat agar angka tetap mudah dibaca.
         const gridCount = 4;
-        const y = value => pad.top + plotH - (Number(value || 0) / maxValue) * plotH;
-        const x = index => pad.left + (plotW / 11) * index;
+        const y = value =>
+            pad.top + plotH - (Number(value || 0) / maxValue) * plotH;
 
         const gridLines = [];
         for (let i = 0; i <= gridCount; i++) {
             const value = maxValue * (i / gridCount);
             const yy = y(value);
+
             gridLines.push(`
-                <line x1="${pad.left}" y1="${yy}" x2="${width - pad.right}" y2="${yy}"
+                <line x1="${pad.left}" y1="${yy}"
+                      x2="${width - pad.right}" y2="${yy}"
                       stroke="#e9edf3" stroke-width="1"/>
-                <text x="${pad.left - 8}" y="${yy + 3}" text-anchor="end"
-                      fill="#8a97a7" font-size="9">${escapeHtml(dashboardRupiah(value).replace("Rp ",""))}</text>
+                <text x="${pad.left - 8}" y="${yy + 3}"
+                      text-anchor="end"
+                      fill="#8a97a7"
+                      font-size="9">
+                    ${escapeHtml(dashboardRupiah(value).replace("Rp ",""))}
+                </text>
             `);
         }
 
-        const incomePoints = data.map((d,i) => `${x(i)},${y(d.income)}`).join(" ");
-        const expensePoints = data.map((d,i) => `${x(i)},${y(d.expense)}`).join(" ");
+        const groupW = plotW / 12;
+        const barGap = 4;
+        const barW = Math.min(20, Math.max(10, (groupW - 12) / 2));
+        const baseline = y(0);
 
-        const monthLabels = data.map((d,i) => `
-            <text x="${x(i)}" y="${height - 13}" text-anchor="middle"
-                  fill="#7e8b9c" font-size="9">${escapeHtml(d.label)}</text>
-        `).join("");
+        const bars = data.map((d, i) => {
+            const center = pad.left + groupW * i + groupW / 2;
 
-        const circles = data.map((d,i) => `
-            <circle cx="${x(i)}" cy="${y(d.income)}" r="4"
-                    fill="#fff" stroke="#4e9a62" stroke-width="2"
-                    class="dashboard-chart-point"
-                    data-index="${i}" data-type="income"/>
-            <circle cx="${x(i)}" cy="${y(d.expense)}" r="4"
-                    fill="#fff" stroke="#e0a126" stroke-width="2"
-                    class="dashboard-chart-point"
-                    data-index="${i}" data-type="expense"/>
-        `).join("");
+            const income = Number(d.income || 0);
+            const expense = Number(d.expense || 0);
+
+            const incomeX = center - barW - barGap / 2;
+            const expenseX = center + barGap / 2;
+
+            const incomeY = y(income);
+            const expenseY = y(expense);
+
+            const incomeH = Math.max(0, baseline - incomeY);
+            const expenseH = Math.max(0, baseline - expenseY);
+
+            return `
+                <rect class="dashboard-chart-bar"
+                      x="${incomeX}"
+                      y="${incomeY}"
+                      width="${barW}"
+                      height="${incomeH}"
+                      rx="3"
+                      fill="#4e9a62"
+                      data-index="${i}"
+                      data-type="income"/>
+
+                <rect class="dashboard-chart-bar"
+                      x="${expenseX}"
+                      y="${expenseY}"
+                      width="${barW}"
+                      height="${expenseH}"
+                      rx="3"
+                      fill="#e0a126"
+                      data-index="${i}"
+                      data-type="expense"/>
+
+                <text x="${center}"
+                      y="${height - 13}"
+                      text-anchor="middle"
+                      fill="#7e8b9c"
+                      font-size="9">
+                    ${escapeHtml(d.label)}
+                </text>
+            `;
+        }).join("");
 
         container.innerHTML = `
             <div class="dashboard-chart-scroll">
                 <svg class="dashboard-chart-svg"
                      viewBox="0 0 ${width} ${height}"
                      preserveAspectRatio="none"
-                     aria-label="Grafik Pendapatan dan Operasional bulanan">
+                     aria-label="Grafik batang Pendapatan dan Operasional bulanan">
                     ${gridLines.join("")}
-                    <polyline points="${incomePoints}" fill="none"
-                              stroke="#4e9a62" stroke-width="3"
-                              stroke-linecap="round" stroke-linejoin="round"/>
-                    <polyline points="${expensePoints}" fill="none"
-                              stroke="#e0a126" stroke-width="3"
-                              stroke-linecap="round" stroke-linejoin="round"/>
-                    ${circles}
-                    ${monthLabels}
+                    <line x1="${pad.left}"
+                          y1="${baseline}"
+                          x2="${width - pad.right}"
+                          y2="${baseline}"
+                          stroke="#d7dee8"
+                          stroke-width="1"/>
+                    ${bars}
                 </svg>
             </div>
         `;
 
-        container.querySelectorAll(".dashboard-chart-point").forEach(point => {
-            point.addEventListener("mouseenter", event => {
+        container.querySelectorAll(".dashboard-chart-bar").forEach(bar => {
+            bar.addEventListener("mouseenter", event => {
                 const index = Number(event.currentTarget.dataset.index);
                 const type = event.currentTarget.dataset.type;
                 const item = data[index];
+
                 if (!tooltip || !item) return;
 
-                const title = type === "income" ? "Pendapatan" : "Operasional";
-                const value = type === "income" ? item.income : item.expense;
+                const title = type === "income"
+                    ? "Pendapatan"
+                    : "Operasional";
+
+                const value = type === "income"
+                    ? item.income
+                    : item.expense;
 
                 tooltip.innerHTML = `
                     <strong>${escapeHtml(item.label)} ${year}</strong>
                     ${title}: <b>${escapeHtml(dashboardRupiah(value))}</b>
                 `;
+
                 tooltip.style.display = "block";
             });
 
-            point.addEventListener("mousemove", event => {
+            bar.addEventListener("mousemove", event => {
                 if (!tooltip) return;
+
                 tooltip.style.left = `${event.clientX + 14}px`;
                 tooltip.style.top = `${event.clientY + 14}px`;
             });
 
-            point.addEventListener("mouseleave", () => {
+            bar.addEventListener("mouseleave", () => {
                 if (tooltip) tooltip.style.display = "none";
             });
         });
