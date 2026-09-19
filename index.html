@@ -3872,7 +3872,11 @@
                 let journalsDeleted = false;
 
                 try {
-                    const { data: updatedTx, error: uError } = await supabaseClient
+                    // UPDATE tidak menggunakan .single() karena PostgREST dapat mengembalikan
+                    // error "Cannot coerce the result to a single JSON object" ketika hasil
+                    // RETURNING kosong akibat kebijakan RLS. Setelah UPDATE, kita verifikasi
+                    // dengan SELECT terpisah.
+                    const { error: uError } = await supabaseClient
                         .from("transactions")
                         .update({
                             unit_id: unitId,
@@ -3884,13 +3888,18 @@
                             amount: totals.debit
                         })
                         .eq("id", transactionId)
-                        .eq("bumdes_id", bumdesId)
-                        .select("id,transaction_number,transaction_date,unit_id,period_id")
-                        .single();
+                        .eq("bumdes_id", bumdesId);
 
-                    // Jangan lanjut jika baris transaksi tidak benar-benar ter-update.
-                    // Ini mencegah kondisi di mana jurnal berubah tetapi Riwayat Transaksi tetap lama.
                     if (uError) throw uError;
+
+                    const { data: updatedTx, error: verifyError } = await supabaseClient
+                        .from("transactions")
+                        .select("id,transaction_number,transaction_date,unit_id,period_id")
+                        .eq("id", transactionId)
+                        .eq("bumdes_id", bumdesId)
+                        .maybeSingle();
+
+                    if (verifyError) throw verifyError;
                     if (!updatedTx) throw new Error("Transaksi tidak berhasil diperbarui. Periksa hak akses/RLS transaksi.");
 
                     const { error: dError } = await supabaseClient
