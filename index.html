@@ -2020,10 +2020,14 @@
 .report-mini-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8a96a5;font-weight:800}.report-mini-value{font-size:14px;font-weight:800;color:#26374c;margin-top:4px}
 @media(max-width:1100px){.report-control-grid{grid-template-columns:1fr 1fr 1fr 1fr}.report-control-grid .report-actions{grid-column:1/-1;display:flex;gap:8px}.report-control-grid .report-actions .report-btn{flex:1}.report-summary-strip{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.report-control-grid{grid-template-columns:1fr 1fr}.report-meta{align-items:flex-start;flex-direction:column}.report-card-head{padding:18px 14px 14px}.report-table{font-size:11px}.report-table td,.report-table th{padding:8px 9px}.report-summary-strip{grid-template-columns:1fr 1fr}.report-footer{flex-direction:column}}
+.calk-wrap{padding:22px 24px 26px}.calk-section{margin-bottom:20px}.calk-heading{font-size:12px;font-weight:900;color:#315fae;letter-spacing:.03em;padding-bottom:8px;margin-bottom:9px;border-bottom:1px solid #dce7f4}.calk-note{font-size:11px;line-height:1.7;color:#526274}.calk-list{margin:0;padding-left:20px;color:#526274;font-size:11px;line-height:1.7}.calk-list li{margin-bottom:4px}.calk-value-table{border:1px solid #e5eaf0;border-radius:10px;overflow:hidden}.calk-check{display:flex;justify-content:space-between;gap:15px;margin-top:12px;padding:10px 12px;border-radius:10px;font-size:10px}.calk-check.ok{background:#eef9f2;border:1px solid #cfead8;color:#28734a}.calk-check.warn{background:#fff5f5;border:1px solid #f0cccc;color:#a63d3d}.calk-check strong{white-space:nowrap}.calk-wrap .report-table{font-size:11px}
 @media print{
- body{background:#fff!important}.sidebar,.topbar,.module-toolbar,.report-control-card,.report-meta,.report-tabs,.no-print{display:none!important}
- .main{margin:0!important;padding:0!important}.content,.report-page,.report-card{box-shadow:none!important;border:0!important}.report-card{border-radius:0!important}.report-card-head{padding:0 0 12px;background:#fff}.report-brand{font-size:16px}.report-title{font-size:15px}.report-period{font-size:11px}.report-print-title{display:block}
- .report-table th{position:static;background:#f2f2f2!important;color:#222!important}.report-table td{padding:5px 7px}.report-footer{padding:12px 0}.report-summary-strip{display:none}
+ body{background:#fff!important;color:#111!important}.sidebar,.topbar,.module-toolbar,.report-control-card,.report-meta,.report-tabs,.no-print{display:none!important}
+ .main{margin:0!important;padding:0!important}.content,.report-page,.report-card{box-shadow:none!important;border:0!important}.report-card{border-radius:0!important;overflow:visible!important}
+ .report-card-head{padding:0 0 10px;background:#fff;border-bottom:1.5px solid #222!important}.report-brand{font-size:16px;color:#111!important}.report-title{font-size:15px;color:#111!important}.report-period{font-size:10px;color:#333!important}
+ .report-table-wrap{overflow:visible!important}.report-table{font-size:10px!important}.report-table thead{display:table-header-group}.report-table th{position:static;background:#f2f2f2!important;color:#222!important;border-bottom:1px solid #222!important}.report-table td{padding:5px 7px;color:#111!important;border-bottom:1px solid #ddd!important}.report-table .section td{background:#eef2f6!important;color:#111!important;border-top:1px solid #777!important}.report-table .grand td{background:#f5f7f9!important;color:#111!important;border-top:1.5px solid #222!important;border-bottom:1px solid #777!important}
+ .report-footer{padding:12px 0;color:#555}.report-summary-strip{display:none}
+ .calk-section{break-inside:avoid;page-break-inside:avoid;margin-bottom:14px}.calk-note{font-size:10px!important;line-height:1.55!important;color:#222!important}.calk-value-table td{padding:5px 7px!important}
  @page{size:A4 portrait;margin:12mm}
 }
 </style>
@@ -4318,7 +4322,7 @@
                     <div><div class="report-control-label">Dari</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
                     <div><div class="report-control-label">Sampai</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
                     <div><div class="report-control-label">Lingkup Laporan</div><select id="reportScope" class="form-select">${scopeOptions}</select></div>
-                    <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>PDF / Cetak</button></div>
+                    <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>Cetak / Simpan PDF</button></div>
                 </div>
                 <div class="report-toolbar-note mt-2"><i class="bi bi-info-circle me-1"></i>Format dan susunan mengikuti contoh halaman 42–55 Pedoman Aplikasi. Akun diambil dari COA e-BUMDesa.</div>
             </div>
@@ -4328,7 +4332,7 @@
         const presetEl=$('reportPreset'), startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
         presetEl.addEventListener('change',()=>{if(presetEl.value!=='custom'){const p=reportPeriodPreset(presetEl.value);startEl.value=p.start;endEl.value=p.end;}});
         document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab)));
-        $('btnPrintReport').addEventListener('click',()=>window.print());
+        $('btnPrintReport').addEventListener('click',()=>{ window.setTimeout(()=>window.print(),120); });
         $('btnGenerateReport').addEventListener('click',()=>refreshFinancialReport(module));
         await refreshFinancialReport(module);
     }
@@ -4353,18 +4357,49 @@
             } else if(module==='aruskas'){
                 const p=buildProfitLossReport(data), c=buildCashFlowReport(data,p.net); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Kas Awal</div><div class="report-mini-value">${reportSigned(c.cashOpen)}</div></div><div class="report-mini-card"><div class="report-mini-label">Operasi</div><div class="report-mini-value">${reportSigned(c.netOp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Investasi</div><div class="report-mini-value">${reportSigned(c.netInv)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kas Akhir</div><div class="report-mini-value">${reportSigned(c.cashEnd)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(c.rows)}</tbody></table></div>`;
             } else {
-                html+=`<div class="report-table-wrap"><table class="report-table"><tbody>
-                    <tr class="section"><td colspan="2">A. PERNYATAAN LAPORAN KEUANGAN DISUSUN SESUAI KEPUTUSAN MENTERI DESA PDTT NOMOR 136 TAHUN 2022</td></tr>
-                    <tr><td class="no">1</td><td>Dasar penyusunan laporan keuangan mengacu pada pedoman laporan keuangan BUM Desa.</td></tr>
-                    <tr class="section"><td colspan="2">B. DASAR PENYUSUNAN LAPORAN KEUANGAN</td></tr>
-                    <tr><td class="no">2</td><td>Laporan disusun berdasarkan data transaksi, jurnal, dan saldo awal yang tersedia dalam sistem e-BUMDesa.</td></tr>
-                    <tr class="section"><td colspan="2">C. RINGKASAN KEBIJAKAN AKUNTANSI SIGNIFIKAN</td></tr>
-                    <tr><td class="no">3</td><td>Dasar pengukuran dan kebijakan akuntansi pokok disajikan sesuai pedoman yang digunakan BUM Desa.</td></tr>
-                    <tr class="section"><td colspan="2">D. RINCIAN POS-POS LAPORAN KEUANGAN</td></tr>
-                    <tr><td class="no">4</td><td>Aset</td></tr><tr><td class="no">5</td><td>Kewajiban</td></tr><tr><td class="no">6</td><td>Ekuitas</td></tr><tr><td class="no">7</td><td>Pendapatan</td></tr><tr><td class="no">8</td><td>Beban-Beban</td></tr><tr><td class="no">9</td><td>Pendapatan Lain-lain</td></tr><tr><td class="no">10</td><td>Beban Lain-lain</td></tr>
-                    <tr class="section"><td colspan="2">E. PENGUNGKAPAN LAIN</td></tr>
-                    <tr><td class="no">11</td><td>Informasi tambahan yang relevan terhadap pemahaman laporan keuangan.</td></tr>
-                </tbody></table></div>`;
+                const b=buildBalanceSheetReport(data);
+                const p=buildProfitLossReport(data);
+                const e=buildEquityReport(data,p);
+                const cash=reportGroupTotal(data,'1.1.01.','balances')+reportGroupTotal(data,'1.1.02.','balances');
+                const receivable=reportGroupTotal(data,'1.1.03.','balances')+reportGroupTotal(data,'1.1.04.','balances');
+                const inventory=reportGroupTotal(data,'1.1.05.','balances');
+                const fixedAssets=reportGroupTotal(data,'1.3.','balances');
+                const intangible=reportGroupTotal(data,'1.4.','balances');
+                const otherAssets=reportGroupTotal(data,'1.9.','balances');
+                const shortLiab=reportGroupTotal(data,'2.1.','balances');
+                const longLiab=reportGroupTotal(data,'2.2.','balances');
+                const calkMoney=(v)=>reportSigned(v);
+                const scopeText=scope==='pusat'?'Kantor Pusat':scope==='gabungan'?'Gabungan/Konsolidasian':(data.scope||'').startsWith('unit:')?'Unit Usaha':'';
+                const balanceCheck=b.totalAssets-(b.totalLiab+b.equity);
+                html+=`<div class="calk-wrap">
+                    <div class="calk-section"><div class="calk-heading">A. PERNYATAAN LAPORAN KEUANGAN</div><div class="calk-note">Laporan keuangan ${escapeHtml(scopeText)} untuk periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} disusun dengan mengacu pada Panduan Penyusunan Laporan Keuangan BUM Desa sebagaimana Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi Republik Indonesia Nomor 136 Tahun 2022, dengan akun yang bersumber dari COA e-BUMDesa.</div></div>
+                    <div class="calk-section"><div class="calk-heading">B. DASAR PENYUSUNAN LAPORAN KEUANGAN</div><ol class="calk-list"><li>Laporan menggunakan data transaksi, jurnal, dan saldo awal yang tersedia pada sistem e-BUMDesa.</li><li>Laporan keuangan disusun berdasarkan basis akrual, sedangkan laporan arus kas disusun berbasis kas.</li><li>Periode akuntansi tahunan adalah 1 Januari sampai dengan 31 Desember; untuk laporan selain tahunan, tanggal mengikuti periode yang dipilih pengguna.</li><li>Nilai disajikan dalam Rupiah.</li></ol></div>
+                    <div class="calk-section"><div class="calk-heading">C. RINGKASAN KEBIJAKAN AKUNTANSI SIGNIFIKAN</div><div class="calk-note"><strong>Kas dan setara kas.</strong> Kas dan setara kas mencakup akun Kas dan Setara Kas sesuai COA.<br><strong>Piutang.</strong> Piutang disajikan berdasarkan saldo piutang dan penyisihan piutang tak tertagih yang tercatat.<br><strong>Aset tetap.</strong> Aset tetap disajikan berdasarkan akun aset tetap dan akumulasi penyusutan yang tercatat dalam sistem.<br><strong>Kewajiban.</strong> Kewajiban diklasifikasikan menjadi jangka pendek dan jangka panjang sesuai kelompok akun COA.<br><strong>Ekuitas.</strong> Ekuitas terdiri dari penyertaan modal, saldo laba, modal donasi/sumbangan, dan unsur ekuitas lain yang relevan sesuai COA.<br><strong>Pendapatan dan beban.</strong> Pendapatan, HPP, beban usaha, serta pendapatan/beban lain-lain diakui berdasarkan jurnal periode yang dilaporkan.</div></div>
+                    <div class="calk-section"><div class="calk-heading">D. RINCIAN POS-POS LAPORAN KEUANGAN</div><table class="report-table calk-value-table"><thead><tr><th>Pos</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>
+                        <tr class="group"><td>Kas dan Setara Kas</td><td class="num">${calkMoney(cash)}</td></tr>
+                        <tr><td>Piutang Bersih</td><td class="num">${calkMoney(receivable)}</td></tr>
+                        <tr><td>Persediaan</td><td class="num">${calkMoney(inventory)}</td></tr>
+                        <tr><td>Aset Tetap Bersih</td><td class="num">${calkMoney(fixedAssets)}</td></tr>
+                        <tr><td>Aset Takberwujud</td><td class="num">${calkMoney(intangible)}</td></tr>
+                        <tr><td>Aset Lain-lain</td><td class="num">${calkMoney(otherAssets)}</td></tr>
+                        <tr class="grand"><td>Total Aset</td><td class="num">${calkMoney(b.totalAssets)}</td></tr>
+                        <tr><td>Kewajiban Jangka Pendek</td><td class="num">${calkMoney(shortLiab)}</td></tr>
+                        <tr><td>Kewajiban Jangka Panjang</td><td class="num">${calkMoney(longLiab)}</td></tr>
+                        <tr class="subtotal"><td>Total Kewajiban</td><td class="num">${calkMoney(b.totalLiab)}</td></tr>
+                        <tr><td>Ekuitas</td><td class="num">${calkMoney(b.equity)}</td></tr>
+                        <tr class="grand"><td>Total Kewajiban dan Ekuitas</td><td class="num">${calkMoney(b.totalLiab+b.equity)}</td></tr>
+                        <tr><td>Pendapatan Usaha</td><td class="num">${calkMoney(p.grossRevenue)}</td></tr>
+                        <tr><td>Harga Pokok Penjualan</td><td class="num">${calkMoney(-p.hpp)}</td></tr>
+                        <tr><td>Beban Usaha</td><td class="num">${calkMoney(-p.opExpense)}</td></tr>
+                        <tr><td>Pendapatan Lain-lain</td><td class="num">${calkMoney(p.otherIncome)}</td></tr>
+                        <tr><td>Beban Lain-lain dan Pajak</td><td class="num">${calkMoney(-(p.otherExpense+p.taxExpense))}</td></tr>
+                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-p.bagiDesa)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-p.bagiMasyarakat)}</td></tr>
+                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(p.net)}</td></tr>
+                    </tbody></table></div>
+                    <div class="calk-section"><div class="calk-heading">E. PENGUNGKAPAN LAIN</div><div class="calk-note">Lingkup laporan: <strong>${escapeHtml(scopeText)}</strong>. Sistem menghasilkan laporan berdasarkan jurnal dan saldo awal yang tersedia. Untuk laporan gabungan/konsolidasian, akun resiprokal Kantor Pusat dan Unit Usaha diperlakukan sebagai akun eliminasi sesuai mekanisme penggabungan yang digunakan sistem.</div><div class="calk-check ${Math.abs(balanceCheck)<0.01?'ok':'warn'}"><span>Selisih pemeriksaan Total Aset − (Total Kewajiban + Ekuitas)</span><strong>${calkMoney(balanceCheck)}</strong></div></div>
+                </div>`;
             }
             html+=`<div class="report-footer"><span>e-BUMDesa · Laporan Keuangan</span><span>Dicetak: ${fmtDateTime(new Date())}</span></div>`;
             out.innerHTML=html;
