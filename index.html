@@ -3877,43 +3877,43 @@
     let activeAppBumdes = null;
 
     function setActiveMenu(module) {
-        function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
-            const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Semua Unit";
-            const bumdesName = activeAppBumdes?.nama || "BUM Desa";
-            const alamat = [activeAppBumdes?.alamat, activeAppBumdes?.desa ? `Desa ${activeAppBumdes.desa}` : "", activeAppBumdes?.kecamatan ? `Kec. ${activeAppBumdes.kecamatan}` : "", activeAppBumdes?.kabupaten ? `Kab. ${activeAppBumdes.kabupaten}` : "", activeAppBumdes?.provinsi || ""].filter(Boolean).join(" · ");
-            const printHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
-            <style>
-            @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0;background:#fff}h1{font-size:17px;margin:0 0 3px;font-weight:800;text-transform:uppercase}h2{font-size:14px;margin:0 0 4px;font-weight:700}.kop{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px}.kop-address{font-size:9px;color:#444;line-height:1.45}.report-subtitle{font-size:11px;color:#444;margin-top:7px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px;line-height:1.55}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #bbb;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px}table{width:100%;border-collapse:collapse}th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px}td{border-bottom:1px solid #ddd;padding:5px 6px;vertical-align:top}.right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
-            </style></head><body>
-            <div class="kop"><h1>${escapeHtml(bumdesName)}</h1><div class="kop-address">${escapeHtml(alamat || "")}</div><div class="report-subtitle">MUTASI REKENING</div></div>
-            <div class="meta"><div><strong>${escapeHtml(account?.nama || "-")}</strong><br>Kode COA: ${escapeHtml(account?.kode || "-")}</div><div class="right">Periode: ${fmtDate(from)} s.d. ${fmtDate(to)}<br>${escapeHtml(unitName)}</div></div>
-            <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
-            <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
-            <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div></body></html>`;
-
-            // Gunakan iframe tersembunyi. Print dipanggil langsung dari event klik
-            // agar Chrome tetap mempertahankan user activation dan membuka Print Preview.
-            const iframe = document.createElement("iframe");
-            iframe.style.position = "fixed";
-            iframe.style.left = "-10000px";
-            iframe.style.top = "0";
-            iframe.style.width = "1px";
-            iframe.style.height = "1px";
-            iframe.style.border = "0";
-            iframe.style.opacity = "0";
-            document.body.appendChild(iframe);
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            doc.open();
-            doc.write(printHtml);
-            doc.close();
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            setTimeout(() => iframe.remove(), 2000);
-        }
-
-    document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
+        document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
             link.classList.toggle("active", link.dataset.module === module);
         });
+    }
+
+function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
+        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Semua Unit";
+        const bumdesName = activeAppBumdes?.nama || "BUM Desa";
+        const alamat = [activeAppBumdes?.alamat, activeAppBumdes?.desa ? `Desa ${activeAppBumdes.desa}` : "", activeAppBumdes?.kecamatan ? `Kec. ${activeAppBumdes.kecamatan}` : "", activeAppBumdes?.kabupaten ? `Kab. ${activeAppBumdes.kabupaten}` : "", activeAppBumdes?.provinsi || ""].filter(Boolean).join(" · ");
+        const printHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
+        <style>
+        @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0;background:#fff}h1{font-size:17px;margin:0 0 3px;font-weight:800;text-transform:uppercase}h2{font-size:14px;margin:0 0 4px;font-weight:700}.kop{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px}.kop-address{font-size:9px;color:#444;line-height:1.45}.report-subtitle{font-size:11px;color:#444;margin-top:7px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px;line-height:1.55}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #bbb;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px}table{width:100%;border-collapse:collapse}th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px}td{border-bottom:1px solid #ddd;padding:5px 6px;vertical-align:top}.right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
+        </style></head><body>
+        <div class="kop"><h1>${escapeHtml(bumdesName)}</h1><div class="kop-address">${escapeHtml(alamat || "")}</div><div class="report-subtitle">MUTASI REKENING</div></div>
+        <div class="meta"><div><strong>${escapeHtml(account?.nama || "-")}</strong><br>Kode COA: ${escapeHtml(account?.kode || "-")}</div><div class="right">Periode: ${fmtDate(from)} s.d. ${fmtDate(to)}<br>${escapeHtml(unitName)}</div></div>
+        <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
+        <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
+        <div class="footer">Dicetak dari e-BUMDesa • ${new Date().toLocaleString("id-ID")}</div></body></html>`;
+
+        // Gunakan iframe tersembunyi. Print dipanggil langsung dari event klik
+        // agar Chrome tetap mempertahankan user activation dan membuka Print Preview.
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.left = "-10000px";
+        iframe.style.top = "0";
+        iframe.style.width = "1px";
+        iframe.style.height = "1px";
+        iframe.style.border = "0";
+        iframe.style.opacity = "0";
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(printHtml);
+        doc.close();
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => iframe.remove(), 2000);
     }
 
     function showDashboardModule() {
