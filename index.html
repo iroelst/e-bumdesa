@@ -5305,7 +5305,7 @@
             const level = Number(a.level || 1);
             const isHeader = level < 4;
             const normalRaw = String(a.normal_balance || "").toUpperCase();
-            const normal = normalRaw === "K" ? "Kredit" : "Debit";
+            const normal = (normalRaw === "K" || normalRaw === "KREDIT") ? "Kredit" : "Debit";
             const normalLabel = isHeader
                 ? '<span class="badge text-bg-light border">Header</span>'
                 : `<span class="${normal === "Debit" ? "coa-normal debit" : "coa-normal credit"}">${normal}</span>`;
