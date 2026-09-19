@@ -3902,6 +3902,11 @@
                     if (verifyError) throw verifyError;
                     if (!updatedTx) throw new Error("Transaksi tidak berhasil diperbarui. Periksa hak akses/RLS transaksi.");
 
+                    // Identitas jurnal TIDAK lagi menjadi sumber kebenaran tersendiri.
+                    // Trigger database trg_sync_journals_with_transaction sudah menjamin
+                    // journal_date dan journal_number mengikuti header transaksi.
+                    // Saat baris jurnal diganti, nilai identitas diambil dari transaksi
+                    // yang baru saja diverifikasi, bukan dari data lama pada form.
                     const { error: dError } = await supabaseClient
                         .from("journals")
                         .delete()
@@ -3914,10 +3919,11 @@
                     const journalRowsToInsert = newLines.map(line => ({
                         transaction_id: transactionId,
                         bumdes_id: bumdesId,
-                        unit_id: unitId,
-                        period_id: newPeriodId,
-                        journal_date: date,
-                        journal_number: newTransactionNumber,
+                        unit_id: updatedTx.unit_id,
+                        period_id: updatedTx.period_id,
+                        // Jurnal selalu mengikuti transaksi induk.
+                        journal_date: updatedTx.transaction_date,
+                        journal_number: updatedTx.transaction_number,
                         account_id: line.accountId,
                         description: line.note ? `${description} — ${line.note}` : description,
                         debit: line.debit,
@@ -3945,13 +3951,11 @@
                     showAppToast("success", "Transaksi berhasil diperbarui", `No. Bukti baru: ${latestTx.transaction_number}. Tanggal: ${fmtDate(latestTx.transaction_date)}.`);
                     close();
 
-                    // Render ulang dari database, bukan dari data transaksi lama yang sudah ada di halaman.
-                    await renderTransactionsModule();
-
-                    // Jika browser masih menampilkan baris lama karena DOM lama, lakukan refresh modul sekali lagi.
-                    // Ini tidak mengubah data dan tetap menggunakan sesi Supabase yang sama.
-                    await new Promise(resolve => setTimeout(resolve, 80));
-                    await renderTransactionsModule();
+                    // Jangan mempertahankan DOM/data transaksi lama. Setelah perubahan header
+                    // transaksi dan jurnal selesai, muat ulang halaman aplikasi agar daftar
+                    // Riwayat Transaksi pasti membaca record terbaru dari Supabase.
+                    // Sesi login tetap dipertahankan oleh Supabase Auth.
+                    setTimeout(() => window.location.reload(), 250);
 
                 } catch (err) {
                     console.error(err);
