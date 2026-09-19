@@ -3872,41 +3872,30 @@
                 let journalsDeleted = false;
 
                 try {
-                    // UPDATE tidak menggunakan .single() karena PostgREST dapat mengembalikan
-                    // error "Cannot coerce the result to a single JSON object" ketika hasil
-                    // RETURNING kosong akibat kebijakan RLS. Setelah UPDATE, kita verifikasi
-                    // dengan SELECT terpisah.
-                    const { error: uError } = await supabaseClient
-                        .from("transactions")
-                        .update({
-                            unit_id: unitId,
-                            period_id: newPeriodId,
-                            transaction_date: date,
-                            transaction_number: newTransactionNumber,
-                            description,
-                            transaction_type: type,
-                            amount: totals.debit
-                        })
-                        .eq("id", transactionId)
-                        .eq("bumdes_id", bumdesId);
+                    // Update HEADER transaksi melalui RPC SECURITY DEFINER.
+                    // RLS frontend tidak lagi menghalangi perubahan tanggal/nomor.
+                    // Trigger database akan otomatis menyamakan tanggal & nomor jurnal.
+                    const { data: updatedTx, error: rpcError } = await supabaseClient
+                        .rpc("update_transaction_header_v2", {
+                            p_transaction_id: transactionId,
+                            p_transaction_date: date,
+                            p_transaction_number: newTransactionNumber,
+                            p_unit_id: unitId,
+                            p_period_id: newPeriodId,
+                            p_description: description,
+                            p_transaction_type: type,
+                            p_amount: totals.debit
+                        });
 
-                    if (uError) throw uError;
+                    if (rpcError) throw rpcError;
+                    if (!updatedTx) throw new Error("Transaksi tidak berhasil diperbarui.");
 
-                    const { data: updatedTx, error: verifyError } = await supabaseClient
-                        .from("transactions")
-                        .select("id,transaction_number,transaction_date,unit_id,period_id")
-                        .eq("id", transactionId)
-                        .eq("bumdes_id", bumdesId)
-                        .maybeSingle();
+                    const verifiedTx = Array.isArray(updatedTx) ? updatedTx[0] : updatedTx;
+                    if (!verifiedTx?.id) throw new Error("Database tidak mengembalikan transaksi yang diperbarui.");
 
-                    if (verifyError) throw verifyError;
-                    if (!updatedTx) throw new Error("Transaksi tidak berhasil diperbarui. Periksa hak akses/RLS transaksi.");
-
-                    // Identitas jurnal TIDAK lagi menjadi sumber kebenaran tersendiri.
-                    // Trigger database trg_sync_journals_with_transaction sudah menjamin
-                    // journal_date dan journal_number mengikuti header transaksi.
-                    // Saat baris jurnal diganti, nilai identitas diambil dari transaksi
-                    // yang baru saja diverifikasi, bukan dari data lama pada form.
+                    // Setelah header berubah, trigger database sudah menyamakan
+                    // journal_date dan journal_number.
+                    // Baris jurnal boleh diganti untuk perubahan akun/nominal/keterangan.
                     const { error: dError } = await supabaseClient
                         .from("journals")
                         .delete()
@@ -3919,11 +3908,10 @@
                     const journalRowsToInsert = newLines.map(line => ({
                         transaction_id: transactionId,
                         bumdes_id: bumdesId,
-                        unit_id: updatedTx.unit_id,
-                        period_id: updatedTx.period_id,
-                        // Jurnal selalu mengikuti transaksi induk.
-                        journal_date: updatedTx.transaction_date,
-                        journal_number: updatedTx.transaction_number,
+                        unit_id: verifiedTx.unit_id,
+                        period_id: verifiedTx.period_id,
+                        journal_date: verifiedTx.transaction_date,
+                        journal_number: verifiedTx.transaction_number,
                         account_id: line.accountId,
                         description: line.note ? `${description} — ${line.note}` : description,
                         debit: line.debit,
@@ -3960,11 +3948,22 @@
                 } catch (err) {
                     console.error(err);
 
-                    await supabaseClient
-                        .from("transactions")
-                        .update(oldTx)
-                        .eq("id", transactionId)
-                        .eq("bumdes_id", bumdesId);
+                    // Kembalikan header melalui RPC yang sama agar tetap melewati
+                    // jalur SECURITY DEFINER dan trigger sinkronisasi jurnal.
+                    try {
+                        await supabaseClient.rpc("update_transaction_header_v2", {
+                            p_transaction_id: transactionId,
+                            p_transaction_date: oldTx.transaction_date,
+                            p_transaction_number: oldTx.transaction_number,
+                            p_unit_id: oldTx.unit_id,
+                            p_period_id: oldTx.period_id,
+                            p_description: oldTx.description,
+                            p_transaction_type: oldTx.transaction_type,
+                            p_amount: Number(oldTx.amount || 0)
+                        });
+                    } catch (rollbackErr) {
+                        console.error("Rollback header gagal:", rollbackErr);
+                    }
 
                     if (journalsDeleted) {
                         await supabaseClient.from("journals").delete().eq("transaction_id", transactionId).eq("bumdes_id", bumdesId);
