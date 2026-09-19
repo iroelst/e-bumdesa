@@ -1821,14 +1821,14 @@
             font-weight:700;
         }
         .dashboard-chart-scroll{
-            overflow-x:auto;
-            overflow-y:hidden;
-            padding-bottom:4px;
+            width:100%;
+            overflow:hidden;
+            padding-bottom:0;
         }
         .dashboard-chart-svg{
             display:block;
             width:100%;
-            min-width:700px;
+            min-width:0;
             height:250px;
         }
         .dashboard-chart-empty{
@@ -1864,8 +1864,8 @@
             font-size:11px;
         }
         @media(max-width:576px){
-            .dashboard-chart-wrap{min-height:270px}
-            .dashboard-chart-svg{height:225px}
+            .dashboard-chart-wrap{min-height:250px}
+            .dashboard-chart-svg{height:215px}
         }
 
     </style>
