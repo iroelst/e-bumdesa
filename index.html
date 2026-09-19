@@ -3967,11 +3967,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (module === "coa") return await renderCOAModule();
             if (module === "kasbank") return await renderCashBankModule();
             if (module === "saldoawal") return await renderOpeningBalancesModule();
+            if (module === "aset") return await renderAssetsModule();
             if (module === "penyesuaian") return await renderAdjustmentsModule();
             if (["labarugi","neraca","aruskas","ekuitas","calk"].includes(module)) {
                 return await renderFinancialReportModule(module);
             }
-            if (["aset","tambahunit","pengaturan"].includes(module)) {
+            if (["tambahunit","pengaturan"].includes(module)) {
                 const [title] = appModuleTitles[module];
                 showModuleShell(module, `<div class="panel"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-1"></i><strong>${escapeHtml(title)}</strong> sudah terhubung ke navigasi. Tampilan operasional dan proses penyimpanan akan dibangun pada tahap modul berikutnya agar tetap sesuai dengan struktur akuntansi dan RLS yang sudah dibuat.</div></div>`);
                 return;
@@ -3983,6 +3984,414 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     }
 
 
+
+    // =========================================================
+    // MODUL ASET
+    // Sumber utama: Transaksi perolehan aset.
+    // Data transaksi tidak diketik ulang; pengguna hanya melengkapi
+    // identitas aset dan umur/manajemen penyusutan.
+    // =========================================================
+    async function renderAssetsModule() {
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId) return;
+
+        const role = activeAppProfile.role;
+        const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
+        const canManage = role === "admin_pusat" || role === "admin_unit";
+
+        const [assetRes, txRes, unitRes, accountRes] = await Promise.all([
+            supabaseClient.from("fixed_assets")
+                .select(`
+                    id,asset_code,asset_name,acquisition_date,acquisition_cost,
+                    useful_life_months,depreciation_method,accumulated_depreciation,
+                    status,unit_id,source_transaction_id,depreciation_start_date,
+                    asset_account_id,accumulated_depreciation_account_id,
+                    depreciation_expense_account_id
+                `)
+                .eq("bumdes_id", bumdesId)
+                .order("acquisition_date", { ascending:false }),
+            supabaseClient.from("transactions")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id")
+                .eq("bumdes_id", bumdesId)
+                .neq("transaction_type", "penyesuaian")
+                .order("transaction_date", { ascending:false })
+                .limit(500),
+            supabaseClient.from("units")
+                .select("id,nama_unit,kode_unit,status")
+                .eq("bumdes_id", bumdesId)
+                .order("created_at", { ascending:true }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,bumdes_id,is_active")
+                .eq("is_active",true)
+                .eq("level",4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .order("kode",{ascending:true})
+        ]);
+
+        if (assetRes.error) throw assetRes.error;
+        if (txRes.error) throw txRes.error;
+        if (unitRes.error) throw unitRes.error;
+        if (accountRes.error) throw accountRes.error;
+
+        let assets = assetRes.data || [];
+        let transactions = txRes.data || [];
+        const units = (unitRes.data || []).filter(u => u.status === "aktif");
+        const accounts = accountRes.data || [];
+
+        if (ownUnitId) {
+            assets = assets.filter(a => a.unit_id === ownUnitId);
+            transactions = transactions.filter(t => t.unit_id === ownUnitId);
+        }
+
+        const unitMap = new Map(units.map(u => [u.id,u]));
+        const accountMap = new Map(accounts.map(a => [a.kode,a]));
+        const accountIdMap = new Map(accounts.map(a => [a.id,a]));
+
+        const standardMap = {
+            kendaraan: {
+                asset: "1.3.02.01",
+                accum: "1.3.07.01",
+                expense: "6.1.07.02",
+                method: "garis_lurus",
+                life: 60
+            },
+            peralatan: {
+                asset: "1.3.03.01",
+                accum: "1.3.07.02",
+                expense: "6.1.07.03",
+                method: "garis_lurus",
+                life: 48
+            },
+            meubelair: {
+                asset: "1.3.04.01",
+                accum: "1.3.07.03",
+                expense: "6.1.07.04",
+                method: "garis_lurus",
+                life: 48
+            },
+            gedung: {
+                asset: "1.3.05.01",
+                accum: "1.3.07.04",
+                expense: "6.1.07.05",
+                method: "garis_lurus",
+                life: 240
+            },
+            tanah: {
+                asset: "1.3.01.01",
+                accum: null,
+                expense: null,
+                method: "tidak_disusutkan",
+                life: 0
+            },
+            lainnya: {
+                asset: "1.3.99.99",
+                accum: null,
+                expense: null,
+                method: "garis_lurus",
+                life: 48
+            }
+        };
+
+        const fmtAccount = id => {
+            const a = accountIdMap.get(id);
+            return a ? `${a.kode} — ${a.nama}` : "Belum diatur";
+        };
+        const scopeName = unitId => {
+            const u = unitId ? unitMap.get(unitId) : null;
+            return u ? `${u.kode_unit || ""} — ${u.nama_unit}` : "Pusat / Kantor Pusat";
+        };
+        const nextAssetCode = () => {
+            const year = new Date().getFullYear();
+            const re = new RegExp(`^AST-${year}-(\\d+)$`);
+            let max = 0;
+            assets.forEach(a => {
+                const m = String(a.asset_code || "").match(re);
+                if (m) max = Math.max(max, Number(m[1] || 0));
+            });
+            return `AST-${year}-${String(max + 1).padStart(3,"0")}`;
+        };
+
+        const sourceOptions = transactions.map(t => `
+            <option value="${escapeHtml(t.id)}"
+                    data-date="${escapeHtml(t.transaction_date || "")}"
+                    data-amount="${Number(t.amount || 0)}"
+                    data-unit="${escapeHtml(t.unit_id || "")}"
+                    data-description="${escapeHtml(t.description || "")}">
+                ${escapeHtml(fmtDate(t.transaction_date))} · ${escapeHtml(t.transaction_number || "-")} · ${escapeHtml(t.description || "-")} · ${rupiah(t.amount || 0)}
+            </option>
+        `).join("");
+
+        const assetRows = assets.map((a,i) => `
+            <tr>
+                <td>${i+1}</td>
+                <td>
+                    <div class="fw-semibold">${escapeHtml(a.asset_code || "-")}</div>
+                    <div>${escapeHtml(a.asset_name || "-")}</div>
+                    <div class="small text-secondary">${escapeHtml(scopeName(a.unit_id))}</div>
+                </td>
+                <td>${fmtDate(a.acquisition_date)}</td>
+                <td class="text-end">${rupiah(a.acquisition_cost || 0)}</td>
+                <td class="text-end">${Number(a.useful_life_months || 0) || "—"}</td>
+                <td>${escapeHtml(a.depreciation_method || "-")}</td>
+                <td class="text-end">${rupiah(a.accumulated_depreciation || 0)}</td>
+                <td class="text-end fw-semibold">${rupiah(Math.max(0,Number(a.acquisition_cost||0)-Number(a.accumulated_depreciation||0)))}</td>
+            </tr>
+        `).join("");
+
+        const body = `
+        <div class="panel mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                <div>
+                    <div class="fw-semibold">Aset Tetap</div>
+                    <div class="text-secondary small">
+                        Aset didaftarkan dari transaksi perolehan. Nilai, tanggal, dan unit mengikuti transaksi sumber.
+                        Umur manfaat ditentukan saat aset didaftarkan.
+                    </div>
+                </div>
+                <span class="badge text-bg-primary">${role === "admin_pusat" ? "Admin Pusat" : role === "admin_unit" ? "Admin Unit" : "Hanya lihat"}</span>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-md-3"><div class="small text-secondary">Aset Aktif</div><div class="fs-5 fw-bold">${assets.filter(a=>a.status==="aktif").length}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Nilai Perolehan</div><div class="fs-5 fw-bold">${rupiah(assets.reduce((s,a)=>s+Number(a.acquisition_cost||0),0))}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Akumulasi Penyusutan</div><div class="fs-5 fw-bold">${rupiah(assets.reduce((s,a)=>s+Number(a.accumulated_depreciation||0),0))}</div></div>
+                <div class="col-md-3"><div class="small text-secondary">Nilai Buku</div><div class="fs-5 fw-bold">${rupiah(assets.reduce((s,a)=>s+Math.max(0,Number(a.acquisition_cost||0)-Number(a.accumulated_depreciation||0)),0))}</div></div>
+            </div>
+        </div>
+
+        ${canManage ? `
+        <div class="panel mb-3">
+            <div class="fw-semibold mb-1">Daftarkan Aset dari Transaksi</div>
+            <div class="text-secondary small mb-3">
+                Pilih transaksi yang memang merupakan perolehan aset. Sistem akan mengambil tanggal, nilai, dan Unit dari transaksi tersebut.
+                Anda hanya melengkapi kode, kategori, dan umur manfaat.
+            </div>
+
+            <form id="assetRegisterForm">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Transaksi Sumber *</label>
+                        <select id="assetSourceTx" class="form-select" required>
+                            <option value="">Pilih transaksi perolehan aset...</option>
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Kode Aset *</label>
+                        <input id="assetCode" class="form-control" value="${escapeHtml(nextAssetCode())}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nama Aset *</label>
+                        <input id="assetName" class="form-control" placeholder="Nama aset" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Tanggal Perolehan</label>
+                        <input id="assetDate" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Nilai Perolehan</label>
+                        <input id="assetCost" class="form-control bg-light text-end" readonly>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Kategori Aset *</label>
+                        <select id="assetCategory" class="form-select" required>
+                            <option value="">Pilih kategori...</option>
+                            <option value="kendaraan">Kendaraan</option>
+                            <option value="peralatan">Peralatan dan Mesin</option>
+                            <option value="meubelair">Meubelair</option>
+                            <option value="gedung">Gedung dan Bangunan</option>
+                            <option value="tanah">Tanah</option>
+                            <option value="lainnya">Aset Tetap Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Umur Manfaat (bulan) *</label>
+                        <input id="assetLife" type="number" min="1" step="1" class="form-control" placeholder="Contoh 60">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Metode Penyusutan</label>
+                        <input id="assetMethod" class="form-control bg-light" value="garis_lurus" readonly>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Mulai Penyusutan</label>
+                        <input id="assetDepStart" type="date" class="form-control">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Unit / Entitas</label>
+                        <input id="assetUnitName" class="form-control bg-light" readonly>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="p-3 rounded border bg-light">
+                            <div class="small fw-semibold mb-2">Akun Otomatis</div>
+                            <div class="row g-2 small">
+                                <div class="col-md-4"><span class="text-secondary">Akun Aset:</span> <span id="assetAccountLabel">—</span></div>
+                                <div class="col-md-4"><span class="text-secondary">Akumulasi:</span> <span id="assetAccumLabel">—</span></div>
+                                <div class="col-md-4"><span class="text-secondary">Beban:</span> <span id="assetExpenseLabel">—</span></div>
+                            </div>
+                            <div id="assetAccountWarning" class="text-danger small mt-2 d-none"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end">
+                        <button id="assetSaveBtn" class="btn btn-primary" type="submit">
+                            <i class="bi bi-save me-1"></i>Simpan Aset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>` : ""}
+
+        <div class="panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <div class="fw-semibold">Daftar Aset</div>
+                    <div class="text-secondary small">Nilai buku = Nilai Perolehan − Akumulasi Penyusutan.</div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr><th>#</th><th>Aset</th><th>Perolehan</th><th class="text-end">Nilai Perolehan</th><th class="text-end">Umur</th><th>Metode</th><th class="text-end">Akumulasi</th><th class="text-end">Nilai Buku</th></tr>
+                    </thead>
+                    <tbody>${assetRows || `<tr><td colspan="8" class="text-center text-secondary py-4">Belum ada aset.</td></tr>`}</tbody>
+                </table>
+            </div>
+        </div>`;
+
+        showModuleShell("aset", body);
+
+        if (!canManage) return;
+
+        const form = $("assetRegisterForm");
+        const sourceEl = $("assetSourceTx");
+        const codeEl = $("assetCode");
+        const nameEl = $("assetName");
+        const dateEl = $("assetDate");
+        const costEl = $("assetCost");
+        const categoryEl = $("assetCategory");
+        const lifeEl = $("assetLife");
+        const methodEl = $("assetMethod");
+        const depStartEl = $("assetDepStart");
+        const unitNameEl = $("assetUnitName");
+        const assetAccountLabel = $("assetAccountLabel");
+        const accumLabel = $("assetAccumLabel");
+        const expenseLabel = $("assetExpenseLabel");
+        const warningEl = $("assetAccountWarning");
+        const saveBtn = $("assetSaveBtn");
+
+        function refreshAccountPreview() {
+            const cfg = standardMap[categoryEl.value] || null;
+            const assetAccount = cfg?.asset ? accountMap.get(cfg.asset) : null;
+            const accumAccount = cfg?.accum ? accountMap.get(cfg.accum) : null;
+            const expenseAccount = cfg?.expense ? accountMap.get(cfg.expense) : null;
+
+            assetAccountLabel.textContent = assetAccount ? `${assetAccount.kode} — ${assetAccount.nama}` : "Belum diatur";
+            accumLabel.textContent = accumAccount ? `${accumAccount.kode} — ${accumAccount.nama}` : "Tidak digunakan";
+            expenseLabel.textContent = expenseAccount ? `${expenseAccount.kode} — ${expenseAccount.nama}` : "Tidak digunakan";
+
+            if (categoryEl.value === "lainnya") {
+                warningEl.textContent = "Aset Tetap Lainnya belum memiliki mapping akun penyusutan otomatis. Mapping akun manual akan ditambahkan pada tahap berikutnya.";
+                warningEl.classList.remove("d-none");
+            } else if (cfg && !assetAccount) {
+                warningEl.textContent = `COA ${cfg.asset} tidak ditemukan pada BUMDes. Pastikan COA Pedoman sudah di-seed.`;
+                warningEl.classList.remove("d-none");
+            } else if (cfg?.method === "garis_lurus" && (!accumAccount || !expenseAccount)) {
+                warningEl.textContent = "Akun akumulasi/beban penyusutan belum ditemukan.";
+                warningEl.classList.remove("d-none");
+            } else {
+                warningEl.textContent = "";
+                warningEl.classList.add("d-none");
+            }
+
+            if (cfg) {
+                methodEl.value = cfg.method;
+                if (cfg.life > 0 && !lifeEl.value) lifeEl.value = cfg.life;
+                if (cfg.method !== "garis_lurus") lifeEl.removeAttribute("required");
+                else lifeEl.setAttribute("required","required");
+            }
+        }
+
+        sourceEl.addEventListener("change", () => {
+            const opt = sourceEl.selectedOptions[0];
+            if (!opt?.value) {
+                dateEl.value = "";
+                costEl.value = "";
+                unitNameEl.value = "";
+                return;
+            }
+            const date = opt.dataset.date || "";
+            const amount = Number(opt.dataset.amount || 0);
+            const unitId = opt.dataset.unit || "";
+            const desc = opt.dataset.description || "";
+            dateEl.value = date;
+            costEl.value = rupiah(amount);
+            unitNameEl.value = scopeName(unitId);
+            if (!nameEl.value) nameEl.value = desc;
+            if (!depStartEl.value) depStartEl.value = date;
+        });
+
+        categoryEl.addEventListener("change", refreshAccountPreview);
+        refreshAccountPreview();
+
+        form.addEventListener("submit", async e => {
+            e.preventDefault();
+            const txId = sourceEl.value;
+            const cfg = standardMap[categoryEl.value];
+            if (!txId || !cfg) {
+                showAppToast("error","Data aset belum lengkap","Pilih transaksi sumber dan kategori aset.");
+                return;
+            }
+
+            const selected = sourceEl.selectedOptions[0];
+            const cost = Number(selected?.dataset.amount || 0);
+            const life = Number(lifeEl.value || 0);
+
+            if (!cost || cost <= 0) return showAppToast("error","Nilai perolehan","Transaksi sumber tidak memiliki nilai yang valid.");
+            if (cfg.method === "garis_lurus" && life <= 0) return showAppToast("error","Umur manfaat","Isi umur manfaat dalam bulan.");
+            if (!codeEl.value.trim() || !nameEl.value.trim()) return showAppToast("error","Data aset","Kode dan nama aset wajib diisi.");
+
+            const assetAccount = cfg.asset ? accountMap.get(cfg.asset) : null;
+            const accumAccount = cfg.accum ? accountMap.get(cfg.accum) : null;
+            const expenseAccount = cfg.expense ? accountMap.get(cfg.expense) : null;
+
+            if (!assetAccount) return showAppToast("error","COA aset tidak ditemukan",`Akun ${cfg.asset} belum tersedia.`);
+            if (cfg.method === "garis_lurus" && (!accumAccount || !expenseAccount)) {
+                return showAppToast("error","COA penyusutan tidak lengkap","Pastikan akun akumulasi dan beban penyusutan tersedia.");
+            }
+
+            const original = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+
+            try {
+                const {data,error} = await supabaseClient.rpc("register_fixed_asset_from_transaction",{
+                    p_transaction_id: txId,
+                    p_asset_code: codeEl.value.trim(),
+                    p_asset_name: nameEl.value.trim(),
+                    p_useful_life_months: cfg.method === "garis_lurus" ? life : 0,
+                    p_depreciation_method: methodEl.value,
+                    p_depreciation_start_date: depStartEl.value || dateEl.value || null,
+                    p_acquisition_cost: cost,
+                    p_asset_account_id: assetAccount.id,
+                    p_accumulated_depreciation_account_id: accumAccount?.id || null,
+                    p_depreciation_expense_account_id: expenseAccount?.id || null
+                });
+                if (error) throw error;
+
+                showAppToast("success","Aset berhasil didaftarkan","Data transaksi menjadi sumber nilai dan tanggal aset.");
+                await renderAssetsModule();
+            } catch (err) {
+                console.error(err);
+                showAppToast("error","Gagal menyimpan aset",err.message || String(err));
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = original;
+            }
+        });
+    }
 
     // =========================================================
     // MODUL PENYESUAIAN
@@ -4003,23 +4412,23 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .order("start_date", { ascending:false }),
             supabaseClient.from("chart_of_accounts")
                 .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
-                .eq("bumdes_id", bumdesId)
                 .eq("is_active", true)
                 .eq("level", 4)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .order("kode", { ascending:true }),
             supabaseClient.from("units")
                 .select("id,nama_unit,kode_unit,status")
                 .eq("bumdes_id", bumdesId)
                 .order("created_at", { ascending:true }),
             supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
                 .eq("bumdes_id", bumdesId)
                 .eq("transaction_type", "penyesuaian")
                 .order("transaction_date", { ascending:false })
                 .order("created_at", { ascending:false })
                 .limit(500),
             supabaseClient.from("fixed_assets")
-                .select("id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status,unit_id")
+                .select("id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status,unit_id,asset_account_id,accumulated_depreciation_account_id,depreciation_expense_account_id")
                 .eq("bumdes_id", bumdesId)
                 .eq("status", "aktif")
                 .order("acquisition_date", { ascending:true })
@@ -4121,7 +4530,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             <div id="adjAutoStatus" class="small text-secondary mb-2">${assets.length ? `${assets.length} aset aktif tersedia.` : "Belum ada aset aktif yang dapat dihitung."}</div>
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
-                    <thead><tr><th style="width:40px"><input id="adjAutoAll" type="checkbox"></th><th>Aset</th><th>Perolehan</th><th class="text-end">Harga Perolehan</th><th class="text-end">Umur (bln)</th><th class="text-end">Akumulasi</th><th class="text-end">Penyusutan Periode</th><th style="min-width:220px">Akun Beban</th><th style="min-width:220px">Akun Akumulasi</th></tr></thead>
+                    <thead><tr><th style="width:40px"><input id="adjAutoAll" type="checkbox"></th><th>Aset</th><th>Perolehan</th><th class="text-end">Harga Perolehan</th><th class="text-end">Umur (bln)</th><th class="text-end">Akumulasi</th><th class="text-end">Penyusutan Periode</th><th>Akun Beban</th><th>Akun Akumulasi</th></tr></thead>
                     <tbody id="adjAutoRows">${assets.length ? assets.map((a,idx)=>`
                         <tr class="adj-auto-row" data-asset-id="${escapeHtml(a.id)}">
                             <td><input type="checkbox" class="adj-auto-check"></td>
@@ -4131,12 +4540,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                             <td class="text-end">${Number(a.useful_life_months || 0)}</td>
                             <td class="text-end">${rupiah(a.accumulated_depreciation || 0)}</td>
                             <td class="text-end adj-auto-amount">Rp 0</td>
-                            <td><select class="form-select form-select-sm adj-auto-expense"><option value="">Pilih akun beban</option>${accountOptions}</select></td>
-                            <td><select class="form-select form-select-sm adj-auto-accum"><option value="">Pilih akun akumulasi</option>${accountOptions}</select></td>
+                            <td class="small adj-auto-expense-label">${escapeHtml((accounts.find(x=>x.id===a.depreciation_expense_account_id)?.kode || "Belum diatur"))}</td>
+                            <td class="small adj-auto-accum-label">${escapeHtml((accounts.find(x=>x.id===a.accumulated_depreciation_account_id)?.kode || "Belum diatur"))}</td>
                         </tr>`).join("") : `<tr><td colspan="9" class="text-center text-secondary py-4">Belum ada aset aktif.</td></tr>`}</tbody>
                 </table>
             </div>
-            <div class="small text-secondary mt-3"><i class="bi bi-info-circle me-1"></i>Untuk penyusutan otomatis, kelompok aset dan akun penyesuaian dipilih di tabel. Aset dengan metode selain garis lurus tidak dihitung otomatis dan dapat diproses melalui Penyesuaian Manual.</div>
+            <div class="small text-secondary mt-3"><i class="bi bi-info-circle me-1"></i>Akun penyusutan mengikuti mapping yang tersimpan pada master Aset. Sistem mencegah jurnal penyusutan ganda untuk aset dan periode yang sama.</div>
         </div>
 
         <div id="adjustmentManualPanel" class="panel mb-3 d-none">
@@ -4211,7 +4620,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             document.querySelectorAll(".adj-auto-row").forEach(row => {
                 const asset = assets.find(a => a.id === row.dataset.assetId);
                 if (!asset) return;
-                const visible = (!selectedUnit || asset.unit_id === selectedUnit) && groupMatch(asset, autoGroup?.value || "");
+                const visible = ((selectedUnit === null || selectedUnit === "") ? !asset.unit_id : asset.unit_id === selectedUnit) && groupMatch(asset, autoGroup?.value || "");
                 row.classList.toggle("d-none", !visible);
                 if (!visible) return;
                 shown++;
@@ -4222,7 +4631,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const eligibleMonths = period && asset.acquisition_date ? monthsOverlap(asset.acquisition_date, period.end_date, period.start_date, period.end_date) : 0;
                 const totalMonthsToDate = period && asset.acquisition_date ? monthsOverlap(asset.acquisition_date, period.end_date, asset.acquisition_date, period.end_date) : 0;
                 const alreadyPosted = adjustments
-                    .filter(t => String(t.description || "").includes(`AUTO-PENYUSUTAN:${asset.id}:`))
+                    .filter(t => String(t.adjustment_key || "").startsWith(`AUTO-PENYUSUTAN:${asset.id}:`))
                     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
                 const baseAccumulated = Math.max(accumulated, alreadyPosted);
                 let amount = 0;
@@ -4237,7 +4646,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 row.dataset.amount = String(amount);
                 row.dataset.method = method;
                 row.dataset.eligibleMonths = String(eligibleMonths);
-                row.dataset.already = adjustments.some(t => String(t.description || "").includes(`AUTO-PENYUSUTAN:${asset.id}:${period?.id || ""}`)) ? "1" : "0";
+                row.dataset.already = adjustments.some(t => String(t.adjustment_key || "") === `AUTO-PENYUSUTAN:${asset.id}:${period?.id || ""}`) ? "1" : "0";
                 const check = row.querySelector(".adj-auto-check");
                 check.disabled = amount <= 0 || !method.includes("garis") || row.dataset.already === "1";
                 if (row.dataset.already === "1") row.querySelector(".adj-auto-amount").innerHTML = `${rupiah(amount)} <span class="badge text-bg-success ms-1">Sudah dibuat</span>`;
@@ -4268,34 +4677,20 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             $("adjAutoCreateBtn").innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Membuat jurnal...';
             let made = 0;
             try {
-                for (const check of selected) {
-                    const row = check.closest(".adj-auto-row");
-                    const asset = assets.find(a => a.id === row.dataset.assetId);
-                    const amount = Number(row.dataset.amount || 0);
-                    const expenseId = row.querySelector(".adj-auto-expense")?.value || "";
-                    const accumId = row.querySelector(".adj-auto-accum")?.value || "";
-                    if (!asset || amount <= 0 || !expenseId || !accumId) throw new Error(`Akun penyusutan belum lengkap untuk aset ${asset?.asset_name || ""}.`);
-                    if (row.dataset.method && !row.dataset.method.includes("garis")) throw new Error(`Aset ${asset.asset_name || ""} menggunakan metode ${asset.depreciation_method || "lainnya"}; gunakan Penyesuaian Manual.`);
+                const selectedAssetIds = selected
+                    .map(c => c.closest(".adj-auto-row")?.dataset.assetId)
+                    .filter(Boolean);
+                if (!selectedAssetIds.length) return;
 
-                    const marker = `AUTO-PENYUSUTAN:${asset.id}:${period.id}`;
-                    const duplicate = adjustments.some(t => String(t.description || "").includes(marker));
-                    if (duplicate) continue;
-
-                    const {data:num,error:numErr}=await supabaseClient.rpc("allocate_transaction_number",{p_bumdes_id:bumdesId,p_unit_id:asset.unit_id || null,p_transaction_date:date});
-                    if (numErr) throw numErr;
-                    const transactionNumber=String(Array.isArray(num)?num[0]:num).trim();
-                    if(!transactionNumber) throw new Error("Nomor bukti tidak tersedia.");
-                    const description=`${marker} — Penyusutan Otomatis — ${asset.asset_code || ""} ${asset.asset_name || ""}`.trim();
-                    const {data:tx,error:txErr}=await supabaseClient.from("transactions").insert({bumdes_id:bumdesId,unit_id:asset.unit_id || null,period_id:period.id,transaction_date:date,transaction_number:transactionNumber,description,transaction_type:"penyesuaian",amount:amount,created_by:userId}).select("id").single();
-                    if(txErr) throw txErr;
-                    const journalRows=[
-                        {transaction_id:tx.id,bumdes_id:bumdesId,unit_id:asset.unit_id || null,period_id:period.id,journal_date:date,journal_number:transactionNumber,account_id:expenseId,description,debit:amount,credit:0},
-                        {transaction_id:tx.id,bumdes_id:bumdesId,unit_id:asset.unit_id || null,period_id:period.id,journal_date:date,journal_number:transactionNumber,account_id:accumId,description, debit:0,credit:amount}
-                    ];
-                    const {error:jErr}=await supabaseClient.from("journals").insert(journalRows);
-                    if(jErr) throw jErr;
-                    made++;
-                }
+                const {data:created,error:rpcErr}=await supabaseClient.rpc("generate_depreciation_adjustment",{
+                    p_bumdes_id: bumdesId,
+                    p_unit_id: autoUnit?.value || null,
+                    p_period_id: period.id,
+                    p_adjustment_date: date,
+                    p_asset_ids: selectedAssetIds
+                });
+                if (rpcErr) throw rpcErr;
+                made = Array.isArray(created) ? created.length : 0;
                 showAppToast("success","Penyusutan selesai",`${made} jurnal penyusutan berhasil dibuat.`);
                 await renderAdjustmentsModule();
             } catch(err) {
@@ -4379,15 +4774,25 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if(!userId){showAppToast("error","Sesi login tidak ditemukan","Silakan login kembali.");return;}
             const original=saveBtn.innerHTML; saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
             try {
-                const {data:num,error:numErr}=await supabaseClient.rpc("allocate_transaction_number",{p_bumdes_id:bumdesId,p_unit_id:unitId,p_transaction_date:date});
-                if(numErr) throw numErr;
-                const transactionNumber=String(Array.isArray(num)?num[0]:num).trim();
-                if(!transactionNumber) throw new Error("Nomor bukti tidak tersedia.");
-                const kind=typeEl.value; const description=(kind?kind+" — ":"")+descEl.value.trim();
-                const {data:tx,error:txErr}=await supabaseClient.from("transactions").insert({bumdes_id:bumdesId,unit_id:unitId,period_id:period.id,transaction_date:date,transaction_number:transactionNumber,description,transaction_type:"penyesuaian",amount:debit,created_by:userId}).select("id").single();
-                if(txErr) throw txErr;
-                const journalRows=lines.map(x=>({transaction_id:tx.id,bumdes_id:bumdesId,unit_id:unitId,period_id:period.id,journal_date:date,journal_number:transactionNumber,account_id:x.accountId,description,debit:x.debit,credit:x.credit}));
-                const {error:jErr}=await supabaseClient.from("journals").insert(journalRows); if(jErr) throw jErr;
+                const kind=typeEl.value;
+                const description=descEl.value.trim();
+                const {data:result,error:rpcErr}=await supabaseClient.rpc("create_adjustment",{
+                    p_bumdes_id: bumdesId,
+                    p_unit_id: unitId,
+                    p_period_id: period.id,
+                    p_transaction_date: date,
+                    p_description: description,
+                    p_adjustment_type: kind || null,
+                    p_lines: lines.map(x=>({
+                        account_id:x.accountId,
+                        debit:x.debit,
+                        credit:x.credit,
+                        description:description
+                    }))
+                });
+                if(rpcErr) throw rpcErr;
+                const row=Array.isArray(result) ? result[0] : result;
+                const transactionNumber=row?.transaction_number || "-";
                 showAppToast("success","Penyesuaian berhasil disimpan",`No. Bukti ${transactionNumber}`);
                 await renderAdjustmentsModule();
             } catch(err) {
@@ -5349,7 +5754,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             { data: units, error: unitError }
         ] = await Promise.all([
             supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
                 .eq("bumdes_id", bumdesId)
                 .order("transaction_date", { ascending:false })
                 .order("created_at", { ascending:false })
@@ -6167,7 +6572,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     // Jurnal mengambil identitas dari transaksi yang sama.
                     const { data: latestTx, error: latestTxError } = await supabaseClient
                         .from("transactions")
-                        .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at")
+                        .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
                         .eq("id", transactionId)
                         .eq("bumdes_id", bumdesId)
                         .maybeSingle();
