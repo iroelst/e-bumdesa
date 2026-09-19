@@ -3986,7 +3986,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     // =========================================================
     // MODUL PENYESUAIAN
-    // Jurnal penyesuaian akhir periode — terpisah berdasarkan Pusat/Unit.
+    // Terpisah dari Transaksi: Otomatis + Manual.
     // =========================================================
     async function renderAdjustmentsModule() {
         const bumdesId = activeAppProfile?.bumdes_id;
@@ -3996,7 +3996,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const canManage = role === "admin_pusat" || role === "admin_unit";
         const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
 
-        const [periodRes, accountRes, unitRes, txRes] = await Promise.all([
+        const [periodRes, accountRes, unitRes, txRes, assetRes] = await Promise.all([
             supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
                 .eq("bumdes_id", bumdesId)
@@ -4017,22 +4017,36 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("transaction_type", "penyesuaian")
                 .order("transaction_date", { ascending:false })
                 .order("created_at", { ascending:false })
-                .limit(300)
+                .limit(500),
+            supabaseClient.from("fixed_assets")
+                .select("id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status,unit_id")
+                .eq("bumdes_id", bumdesId)
+                .eq("status", "aktif")
+                .order("acquisition_date", { ascending:true })
         ]);
 
         if (periodRes.error) throw periodRes.error;
         if (accountRes.error) throw accountRes.error;
         if (unitRes.error) throw unitRes.error;
         if (txRes.error) throw txRes.error;
+        // fixed_assets belum tentu sudah dipakai pada BUMDes. Error tabel/kolom ditampilkan
+        // pada tab otomatis, sementara tab manual tetap dapat digunakan.
 
         const periods = periodRes.data || [];
         const accounts = accountRes.data || [];
         const units = (unitRes.data || []).filter(u => u.status === "aktif");
         let adjustments = txRes.data || [];
-        if (ownUnitId) adjustments = adjustments.filter(t => t.unit_id === ownUnitId);
+        let assets = assetRes.error ? [] : (assetRes.data || []);
+
+        if (ownUnitId) {
+            adjustments = adjustments.filter(t => t.unit_id === ownUnitId);
+            assets = assets.filter(a => a.unit_id === ownUnitId);
+        }
 
         const unitMap = new Map(units.map(u => [u.id, u]));
         const periodMap = new Map(periods.map(p => [p.id, p]));
+        const openPeriods = periods.filter(p => p.status === "open");
+        const today = new Date().toISOString().slice(0,10);
         const accountOptions = accounts.map(a =>
             `<option value="${escapeHtml(a.id)}">${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`
         ).join("");
@@ -4047,40 +4061,32 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (own) unitOptions = `<option value="${escapeHtml(own.id)}">${escapeHtml(own.kode_unit)} — ${escapeHtml(own.nama_unit)}</option>`;
         }
 
-        const openPeriods = periods.filter(p => p.status === "open");
-        const today = new Date().toISOString().slice(0,10);
-        const canInput = canManage && openPeriods.length && accounts.length && unitOptions;
+        const scopeName = unitId => {
+            const u = unitId ? unitMap.get(unitId) : null;
+            return u ? `${u.kode_unit || ""} — ${u.nama_unit}` : "Pusat / Kantor Pusat";
+        };
 
         const rows = adjustments.map((t, i) => {
-            const u = t.unit_id ? unitMap.get(t.unit_id) : null;
             const p = periodMap.get(t.period_id);
-            const scope = u ? `${u.kode_unit || ""} — ${u.nama_unit}` : "Pusat / Kantor Pusat";
             return `<tr>
                 <td>${i+1}</td>
                 <td>${fmtDate(t.transaction_date)}</td>
                 <td class="fw-semibold">${escapeHtml(t.transaction_number || "-")}</td>
                 <td>${escapeHtml(t.description || "-")}</td>
-                <td>${escapeHtml(scope)}</td>
+                <td>${escapeHtml(scopeName(t.unit_id))}</td>
                 <td>${p ? `${fmtDate(p.start_date)} s.d. ${fmtDate(p.end_date)}` : "-"}</td>
                 <td class="text-end">${rupiah(t.amount || 0)}</td>
             </tr>`;
         }).join("");
 
-        const templateOptions = `
-            <option value="">Penyesuaian Umum</option>
-            <option value="Penyusutan Aset Tetap">Penyusutan Aset Tetap</option>
-            <option value="Penyisihan Piutang Tak Tertagih">Penyisihan Piutang Tak Tertagih</option>
-            <option value="Beban Terutang">Beban Terutang</option>
-            <option value="Penyesuaian Persediaan/Perlengkapan">Penyesuaian Persediaan/Perlengkapan</option>`;
-
         const body = `
         <div class="panel mb-3">
             <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                 <div>
-                    <div class="fw-semibold">Jurnal Penyesuaian</div>
-                    <div class="text-secondary small">Penyesuaian dicatat terpisah berdasarkan Kantor Pusat atau Unit Usaha.</div>
+                    <div class="fw-semibold">Penyesuaian</div>
+                    <div class="text-secondary small">Jurnal penyesuaian dibuat di modul khusus dan tidak melalui menu Transaksi.</div>
                 </div>
-                ${canInput ? `<button id="adjNewBtn" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Penyesuaian Baru</button>` : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+                ${canManage ? `<span class="badge text-bg-primary">${role === "admin_pusat" ? "Admin Pusat" : "Admin Unit"}</span>` : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
             </div>
             <div class="row g-2">
                 <div class="col-md-3"><div class="small text-secondary">Pusat</div><div class="fs-5 fw-bold">${adjustments.filter(x => !x.unit_id).length}</div></div>
@@ -4090,43 +4096,221 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             </div>
         </div>
 
-        <div id="adjustmentFormPanel" class="panel mb-3 ${canInput ? "" : "d-none"}">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div><div class="fw-semibold">Tambah Jurnal Penyesuaian</div><div class="text-secondary small">Debit dan Kredit harus seimbang.</div></div>
-                <button type="button" id="adjCancelBtn" class="btn btn-sm btn-outline-secondary">Tutup</button>
+        <div class="panel mb-3">
+            <ul class="nav nav-pills gap-2" id="adjustmentTabs">
+                <li class="nav-item"><button class="nav-link active" type="button" data-adj-tab="auto"><i class="bi bi-magic me-1"></i>Penyesuaian Otomatis</button></li>
+                <li class="nav-item"><button class="nav-link" type="button" data-adj-tab="manual"><i class="bi bi-pencil-square me-1"></i>Penyesuaian Manual</button></li>
+            </ul>
+        </div>
+
+        <div id="adjustmentAutoPanel" class="panel mb-3">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                <div>
+                    <div class="fw-semibold">Penyusutan Aset Tetap Otomatis</div>
+                    <div class="text-secondary small">Sistem menghitung penyusutan garis lurus berdasarkan data Aset. Jurnal dibuat per aset agar riwayat dan pencegahan duplikasi lebih jelas.</div>
+                </div>
+                ${canManage ? `<button id="adjAutoCreateBtn" class="btn btn-primary btn-sm" type="button"><i class="bi bi-journal-check me-1"></i>Buat Jurnal Penyusutan</button>` : ""}
             </div>
-            <form id="adjustmentForm">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3"><label class="form-label small fw-semibold">Periode</label><select id="adjAutoPeriod" class="form-select form-select-sm">${openPeriods.map(p => `<option value="${p.id}">${fmtDate(p.start_date)} s.d. ${fmtDate(p.end_date)} — ${escapeHtml(p.period_type)}</option>`).join("")}</select></div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Entitas</label><select id="adjAutoUnit" class="form-select form-select-sm">${unitOptions}</select></div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Tanggal Jurnal</label><input id="adjAutoDate" type="date" class="form-control form-control-sm" value="${today}"></div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Kelompok Aset</label><select id="adjAutoGroup" class="form-select form-select-sm"><option value="">Semua kelompok</option><option value="kendaraan">Kendaraan</option><option value="peralatan">Peralatan dan Mesin</option><option value="meubelair">Meubelair</option><option value="gedung">Gedung dan Bangunan</option></select></div>
+            </div>
+            ${assetRes.error ? `<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Data Aset belum dapat dibaca. Tab manual tetap dapat digunakan. Detail: ${escapeHtml(assetRes.error.message || "struktur fixed_assets belum tersedia")}</div>` : ""}
+            <div id="adjAutoStatus" class="small text-secondary mb-2">${assets.length ? `${assets.length} aset aktif tersedia.` : "Belum ada aset aktif yang dapat dihitung."}</div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th style="width:40px"><input id="adjAutoAll" type="checkbox"></th><th>Aset</th><th>Perolehan</th><th class="text-end">Harga Perolehan</th><th class="text-end">Umur (bln)</th><th class="text-end">Akumulasi</th><th class="text-end">Penyusutan Periode</th><th style="min-width:220px">Akun Beban</th><th style="min-width:220px">Akun Akumulasi</th></tr></thead>
+                    <tbody id="adjAutoRows">${assets.length ? assets.map((a,idx)=>`
+                        <tr class="adj-auto-row" data-asset-id="${escapeHtml(a.id)}">
+                            <td><input type="checkbox" class="adj-auto-check"></td>
+                            <td><div class="fw-semibold">${escapeHtml(a.asset_code || "-")} — ${escapeHtml(a.asset_name || "-")}</div><div class="small text-secondary">${escapeHtml(a.depreciation_method || "garis_lurus")}</div></td>
+                            <td>${fmtDate(a.acquisition_date)}</td>
+                            <td class="text-end">${rupiah(a.acquisition_cost || 0)}</td>
+                            <td class="text-end">${Number(a.useful_life_months || 0)}</td>
+                            <td class="text-end">${rupiah(a.accumulated_depreciation || 0)}</td>
+                            <td class="text-end adj-auto-amount">Rp 0</td>
+                            <td><select class="form-select form-select-sm adj-auto-expense"><option value="">Pilih akun beban</option>${accountOptions}</select></td>
+                            <td><select class="form-select form-select-sm adj-auto-accum"><option value="">Pilih akun akumulasi</option>${accountOptions}</select></td>
+                        </tr>`).join("") : `<tr><td colspan="9" class="text-center text-secondary py-4">Belum ada aset aktif.</td></tr>`}</tbody>
+                </table>
+            </div>
+            <div class="small text-secondary mt-3"><i class="bi bi-info-circle me-1"></i>Untuk penyusutan otomatis, kelompok aset dan akun penyesuaian dipilih di tabel. Aset dengan metode selain garis lurus tidak dihitung otomatis dan dapat diproses melalui Penyesuaian Manual.</div>
+        </div>
+
+        <div id="adjustmentManualPanel" class="panel mb-3 d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div><div class="fw-semibold">Jurnal Penyesuaian Manual</div><div class="text-secondary small">Digunakan untuk penyisihan piutang, beban terutang, dan penyesuaian lain yang memerlukan input pengguna.</div></div>
+            </div>
+            ${canManage ? `<form id="adjustmentForm">
                 <div class="row g-3 mb-3">
                     <div class="col-md-3"><label class="form-label small fw-semibold">Tanggal</label><input id="adjDate" type="date" class="form-control" value="${today}" required></div>
-                    <div class="col-md-3"><label class="form-label small fw-semibold">Konteks</label><select id="adjUnit" class="form-select">${unitOptions}</select></div>
-                    <div class="col-md-3"><label class="form-label small fw-semibold">Jenis Penyesuaian</label><select id="adjType" class="form-select">${templateOptions}</select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Entitas</label><select id="adjUnit" class="form-select">${unitOptions}</select></div>
+                    <div class="col-md-3"><label class="form-label small fw-semibold">Jenis Penyesuaian</label><select id="adjType" class="form-select"><option value="">Penyesuaian Umum</option><option value="Penyisihan Piutang Tak Tertagih">Penyisihan Piutang Tak Tertagih</option><option value="Beban Terutang">Beban Terutang</option><option value="Penyesuaian Persediaan/Perlengkapan">Penyesuaian Persediaan/Perlengkapan</option></select></div>
                     <div class="col-md-3"><label class="form-label small fw-semibold">Periode</label><div id="adjPeriodInfo" class="form-control bg-light">Otomatis berdasarkan tanggal</div></div>
                 </div>
-                <div class="mb-3"><label class="form-label small fw-semibold">Uraian</label><input id="adjDescription" class="form-control" placeholder="Contoh: Penyusutan kendaraan bulan September 2026" required></div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-2">
-                        <thead><tr><th style="min-width:300px">Akun</th><th style="width:180px" class="text-end">Debit</th><th style="width:180px" class="text-end">Kredit</th><th style="width:50px"></th></tr></thead>
-                        <tbody id="adjRows"></tbody>
-                        <tfoot><tr><th>Total</th><th class="text-end" id="adjTotalDebit">Rp 0</th><th class="text-end" id="adjTotalCredit">Rp 0</th><th></th></tr></tfoot>
-                    </table>
-                </div>
-                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                    <div id="adjStatus" class="small fw-semibold text-secondary">Tambahkan minimal 2 baris jurnal.</div>
-                    <div class="d-flex gap-2"><button type="button" id="adjAddRow" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tambah Baris</button><button id="adjSaveBtn" class="btn btn-primary btn-sm" type="submit" disabled>Simpan Penyesuaian</button></div>
-                </div>
-            </form>
+                <div class="mb-3"><label class="form-label small fw-semibold">Uraian</label><input id="adjDescription" class="form-control" placeholder="Contoh: Beban telepon/internet terutang September 2026" required></div>
+                <div class="table-responsive"><table class="table table-sm align-middle mb-2"><thead><tr><th style="min-width:300px">Akun</th><th style="width:180px" class="text-end">Debit</th><th style="width:180px" class="text-end">Kredit</th><th style="width:50px"></th></tr></thead><tbody id="adjRows"></tbody><tfoot><tr><th>Total</th><th class="text-end" id="adjTotalDebit">Rp 0</th><th class="text-end" id="adjTotalCredit">Rp 0</th><th></th></tr></tfoot></table></div>
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><div id="adjStatus" class="small fw-semibold text-secondary">Tambahkan minimal 2 baris jurnal.</div><div class="d-flex gap-2"><button type="button" id="adjAddRow" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tambah Baris</button><button id="adjSaveBtn" class="btn btn-primary btn-sm" type="submit" disabled>Simpan Penyesuaian</button></div></div>
+            </form>` : `<div class="alert alert-secondary mb-0">Akun Anda tidak memiliki hak untuk membuat jurnal penyesuaian.</div>`}
         </div>
 
         <div class="panel">
-            <div class="d-flex justify-content-between align-items-center mb-3"><div><div class="fw-semibold">Riwayat Jurnal Penyesuaian</div><div class="text-secondary small">Data dipisahkan berdasarkan Pusat dan Unit Usaha.</div></div></div>
-            <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Konteks</th><th>Periode</th><th class="text-end">Jumlah</th></tr></thead><tbody>${rows || `<tr><td colspan="7" class="text-center text-secondary py-4">Belum ada jurnal penyesuaian.</td></tr>`}</tbody></table></div>
+            <div class="d-flex justify-content-between align-items-center mb-3"><div><div class="fw-semibold">Riwayat Jurnal Penyesuaian</div><div class="text-secondary small">Jurnal tetap masuk ke Buku Besar dan Laporan, tetapi sumbernya dibedakan sebagai penyesuaian.</div></div></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Tanggal</th><th>No. Bukti</th><th>Uraian</th><th>Entitas</th><th>Periode</th><th class="text-end">Jumlah</th></tr></thead><tbody>${rows || `<tr><td colspan="7" class="text-center text-secondary py-4">Belum ada jurnal penyesuaian.</td></tr>`}</tbody></table></div>
         </div>`;
 
         showModuleShell("penyesuaian", body);
 
-        if (!canInput) return;
+        // Tab switch
+        document.querySelectorAll("[data-adj-tab]").forEach(btn => btn.addEventListener("click", () => {
+            document.querySelectorAll("[data-adj-tab]").forEach(x => x.classList.remove("active"));
+            btn.classList.add("active");
+            $("adjustmentAutoPanel").classList.toggle("d-none", btn.dataset.adjTab !== "auto");
+            $("adjustmentManualPanel").classList.toggle("d-none", btn.dataset.adjTab !== "manual");
+        }));
 
-        const formPanel = $("adjustmentFormPanel");
+        if (!canManage) return;
+
+        // -------------------------
+        // PENYESUAIAN OTOMATIS
+        // -------------------------
+        const autoPeriod = $("adjAutoPeriod");
+        const autoUnit = $("adjAutoUnit");
+        const autoDate = $("adjAutoDate");
+        const autoGroup = $("adjAutoGroup");
+        const autoAll = $("adjAutoAll");
+        const autoStatus = $("adjAutoStatus");
+
+        function monthsOverlap(start, end, pStart, pEnd) {
+            const s = new Date(start + "T00:00:00");
+            const e = new Date(end + "T00:00:00");
+            const ps = new Date(pStart + "T00:00:00");
+            const pe = new Date(pEnd + "T00:00:00");
+            const from = s > ps ? s : ps;
+            const to = e < pe ? e : pe;
+            if (from > to) return 0;
+            return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1;
+        }
+
+        function groupMatch(asset, group) {
+            if (!group) return true;
+            const text = `${asset.asset_name || ""} ${asset.asset_code || ""}`.toLowerCase();
+            if (group === "kendaraan") return /kendaraan|mobil|motor|sepeda/.test(text);
+            if (group === "peralatan") return /peralatan|mesin|alat/.test(text);
+            if (group === "meubelair") return /meubel|meja|kursi|lemari/.test(text);
+            if (group === "gedung") return /gedung|bangunan/.test(text);
+            return true;
+        }
+
+        function updateAutoRows() {
+            const period = periods.find(p => p.id === autoPeriod?.value);
+            const selectedUnit = autoUnit?.value || null;
+            let shown = 0, total = 0;
+            document.querySelectorAll(".adj-auto-row").forEach(row => {
+                const asset = assets.find(a => a.id === row.dataset.assetId);
+                if (!asset) return;
+                const visible = (!selectedUnit || asset.unit_id === selectedUnit) && groupMatch(asset, autoGroup?.value || "");
+                row.classList.toggle("d-none", !visible);
+                if (!visible) return;
+                shown++;
+                const method = String(asset.depreciation_method || "garis_lurus").toLowerCase();
+                const cost = Number(asset.acquisition_cost || 0);
+                const life = Number(asset.useful_life_months || 0);
+                const accumulated = Number(asset.accumulated_depreciation || 0);
+                const eligibleMonths = period && asset.acquisition_date ? monthsOverlap(asset.acquisition_date, period.end_date, period.start_date, period.end_date) : 0;
+                const totalMonthsToDate = period && asset.acquisition_date ? monthsOverlap(asset.acquisition_date, period.end_date, asset.acquisition_date, period.end_date) : 0;
+                const alreadyPosted = adjustments
+                    .filter(t => String(t.description || "").includes(`AUTO-PENYUSUTAN:${asset.id}:`))
+                    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+                const baseAccumulated = Math.max(accumulated, alreadyPosted);
+                let amount = 0;
+                if (method.includes("garis") && life > 0 && cost > 0 && eligibleMonths > 0) {
+                    const targetAccumulated = Math.min(cost, (cost / life) * totalMonthsToDate);
+                    const periodFromHistory = Math.max(0, targetAccumulated - baseAccumulated);
+                    amount = Math.min(cost - baseAccumulated, periodFromHistory);
+                    if (amount < 0) amount = 0;
+                }
+                const amountEl = row.querySelector(".adj-auto-amount");
+                amountEl.textContent = rupiah(amount);
+                row.dataset.amount = String(amount);
+                row.dataset.method = method;
+                row.dataset.eligibleMonths = String(eligibleMonths);
+                row.dataset.already = adjustments.some(t => String(t.description || "").includes(`AUTO-PENYUSUTAN:${asset.id}:${period?.id || ""}`)) ? "1" : "0";
+                const check = row.querySelector(".adj-auto-check");
+                check.disabled = amount <= 0 || !method.includes("garis") || row.dataset.already === "1";
+                if (row.dataset.already === "1") row.querySelector(".adj-auto-amount").innerHTML = `${rupiah(amount)} <span class="badge text-bg-success ms-1">Sudah dibuat</span>`;
+                if (amount > 0 && !check.disabled) total += amount;
+            });
+            autoStatus.textContent = shown ? `${shown} aset tampil. Total kandidat penyusutan: ${rupiah(total)}.` : "Tidak ada aset yang sesuai filter.";
+            autoAll.checked = false;
+        }
+
+        [autoPeriod, autoUnit, autoGroup].forEach(el => el?.addEventListener("change", updateAutoRows));
+        autoAll?.addEventListener("change", () => document.querySelectorAll(".adj-auto-row:not(.d-none) .adj-auto-check:not(:disabled)").forEach(c => c.checked = autoAll.checked));
+        updateAutoRows();
+
+        $("adjAutoCreateBtn")?.addEventListener("click", async () => {
+            const period = periods.find(p => p.id === autoPeriod?.value);
+            if (!period) return showAppToast("error", "Periode", "Pilih periode terbuka terlebih dahulu.");
+            const date = autoDate?.value || period.end_date;
+            if (date < period.start_date || date > period.end_date) return showAppToast("error", "Tanggal jurnal", "Tanggal harus berada di dalam periode yang dipilih.");
+            const selected = [...document.querySelectorAll(".adj-auto-row:not(.d-none) .adj-auto-check:checked")];
+            if (!selected.length) return showAppToast("info", "Belum ada aset", "Centang aset yang akan dibuatkan jurnal penyusutannya.");
+
+            const {data:sessionData}=await supabaseClient.auth.getSession();
+            const userId=sessionData?.session?.user?.id;
+            if(!userId) return showAppToast("error","Sesi login tidak ditemukan","Silakan login kembali.");
+
+            const original = $("adjAutoCreateBtn").innerHTML;
+            $("adjAutoCreateBtn").disabled = true;
+            $("adjAutoCreateBtn").innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Membuat jurnal...';
+            let made = 0;
+            try {
+                for (const check of selected) {
+                    const row = check.closest(".adj-auto-row");
+                    const asset = assets.find(a => a.id === row.dataset.assetId);
+                    const amount = Number(row.dataset.amount || 0);
+                    const expenseId = row.querySelector(".adj-auto-expense")?.value || "";
+                    const accumId = row.querySelector(".adj-auto-accum")?.value || "";
+                    if (!asset || amount <= 0 || !expenseId || !accumId) throw new Error(`Akun penyusutan belum lengkap untuk aset ${asset?.asset_name || ""}.`);
+                    if (row.dataset.method && !row.dataset.method.includes("garis")) throw new Error(`Aset ${asset.asset_name || ""} menggunakan metode ${asset.depreciation_method || "lainnya"}; gunakan Penyesuaian Manual.`);
+
+                    const marker = `AUTO-PENYUSUTAN:${asset.id}:${period.id}`;
+                    const duplicate = adjustments.some(t => String(t.description || "").includes(marker));
+                    if (duplicate) continue;
+
+                    const {data:num,error:numErr}=await supabaseClient.rpc("allocate_transaction_number",{p_bumdes_id:bumdesId,p_unit_id:asset.unit_id || null,p_transaction_date:date});
+                    if (numErr) throw numErr;
+                    const transactionNumber=String(Array.isArray(num)?num[0]:num).trim();
+                    if(!transactionNumber) throw new Error("Nomor bukti tidak tersedia.");
+                    const description=`${marker} — Penyusutan Otomatis — ${asset.asset_code || ""} ${asset.asset_name || ""}`.trim();
+                    const {data:tx,error:txErr}=await supabaseClient.from("transactions").insert({bumdes_id:bumdesId,unit_id:asset.unit_id || null,period_id:period.id,transaction_date:date,transaction_number:transactionNumber,description,transaction_type:"penyesuaian",amount:amount,created_by:userId}).select("id").single();
+                    if(txErr) throw txErr;
+                    const journalRows=[
+                        {transaction_id:tx.id,bumdes_id:bumdesId,unit_id:asset.unit_id || null,period_id:period.id,journal_date:date,journal_number:transactionNumber,account_id:expenseId,description,debit:amount,credit:0},
+                        {transaction_id:tx.id,bumdes_id:bumdesId,unit_id:asset.unit_id || null,period_id:period.id,journal_date:date,journal_number:transactionNumber,account_id:accumId,description, debit:0,credit:amount}
+                    ];
+                    const {error:jErr}=await supabaseClient.from("journals").insert(journalRows);
+                    if(jErr) throw jErr;
+                    made++;
+                }
+                showAppToast("success","Penyusutan selesai",`${made} jurnal penyusutan berhasil dibuat.`);
+                await renderAdjustmentsModule();
+            } catch(err) {
+                console.error(err);
+                showAppToast("error","Gagal membuat penyusutan",err.message||String(err));
+                $("adjAutoCreateBtn").disabled = false;
+                $("adjAutoCreateBtn").innerHTML = original;
+            }
+        });
+
+        // -------------------------
+        // PENYESUAIAN MANUAL
+        // -------------------------
+        const form = $("adjustmentForm");
+        if (!form) return;
         const rowsEl = $("adjRows");
         const dateEl = $("adjDate");
         const unitEl = $("adjUnit");
@@ -4141,8 +4325,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             row.className = "adj-input-row";
             row.innerHTML = `<td><select class="form-select form-select-sm adj-account"><option value="">Pilih akun detail</option>${accountOptions}</select></td><td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end adj-debit" value="0"></td><td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end adj-credit" value="0"></td><td><button type="button" class="btn btn-sm btn-outline-danger adj-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>`;
             rowsEl.appendChild(row);
-            row.querySelectorAll("input,select").forEach(el => el.addEventListener("input", updateTotals));
-            row.querySelectorAll("input,select").forEach(el => el.addEventListener("change", updateTotals));
+            row.querySelectorAll("input,select").forEach(el => { el.addEventListener("input", updateTotals); el.addEventListener("change", updateTotals); });
             row.querySelector(".adj-remove").addEventListener("click", () => { if (rowsEl.querySelectorAll(".adj-input-row").length > 2) { row.remove(); updateTotals(); } else showAppToast("info", "Baris jurnal", "Minimal harus ada 2 baris jurnal."); });
             updateTotals();
         }
@@ -4180,11 +4363,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         for(let i=0;i<2;i++) addRow();
         dateEl.addEventListener("change", updatePeriod); descEl.addEventListener("input", updateTotals); unitEl.addEventListener("change", updateTotals);
         $("adjAddRow").addEventListener("click", addRow);
-        $("adjNewBtn")?.addEventListener("click",()=>{ formPanel.classList.remove("d-none"); dateEl.focus(); });
-        $("adjCancelBtn").addEventListener("click",()=>formPanel.classList.add("d-none"));
         updatePeriod();
 
-        $("adjustmentForm").addEventListener("submit", async e => {
+        form.addEventListener("submit", async e => {
             e.preventDefault();
             if(saveBtn.disabled) return;
             const date=dateEl.value, unitId=unitEl.value||null;
