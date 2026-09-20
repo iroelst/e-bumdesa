@@ -5317,28 +5317,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const {data:period}=await supabaseClient.from('account_periods').select('id,start_date,end_date')
             .eq('bumdes_id',bumdesId).eq('period_type','tahunan').eq('start_date',`${startYear}-01-01`).eq('end_date',`${startYear}-12-31`).limit(1).maybeSingle();
         let openings=[];
-        let profitDistribution=null;
         if(period?.id){
-            const {data:distribution,error:distributionError}=await supabaseClient
-                .from('profit_distributions')
-                .select('id,total_profit,total_percentage,status,period_id')
-                .eq('bumdes_id',bumdesId)
-                .eq('period_id',period.id)
-                .maybeSingle();
-            if(distributionError) throw distributionError;
-            if(distribution?.id){
-                const {data:distributionItems,error:itemError}=await supabaseClient
-                    .from('profit_distribution_items')
-                    .select('id,account_id,nama_pos,persentase,nilai,urutan')
-                    .eq('distribution_id',distribution.id)
-                    .order('urutan',{ascending:true});
-                if(itemError) throw itemError;
-                profitDistribution={...distribution,items:(distributionItems||[]).map(item=>({
-                    ...item,
-                    account:accountMap.get(item.account_id)||null
-                }))};
-            }
-
             let oQuery=supabaseClient.from('opening_balances').select('account_id,unit_id,debit,credit').eq('bumdes_id',bumdesId).eq('period_id',period.id);
             if(scopeUnit) oQuery=oQuery.eq('unit_id',scopeUnit);
             else if(isPusat) oQuery=oQuery.is('unit_id',null);
@@ -5381,7 +5360,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 }
             });
         }
-        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,startDate,endDate,scope,isConsolidated,periodId:period?.id||null,profitDistribution};
+        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,startDate,endDate,scope,isConsolidated};
     }
 
     function reportGroupTotal(data, prefix, mapName='balances'){
@@ -5556,11 +5535,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const modalMasyAkhir=modalMasyAwal+modalMasyTambah;
         const saldoTidak=reportGroupTotal(data,'3.3.01.01','priors');
         const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
+        const bagiDesa=profitReport.bagiDesa;
+        const bagiMasyarakat=profitReport.bagiMasyarakat;
         const profitBersih=profitReport.net;
-        const shuItems=(data.profitDistribution?.items||[]).slice().sort((a,b)=>Number(a.urutan||0)-Number(b.urutan||0));
-        const shuTotal=shuItems.reduce((sum,item)=>sum+Number(item.nilai||0),0);
         const donasi=reportGroupTotal(data,'3.4.01.','balances');
-        const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-shuTotal;
+        const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
         const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
         const rows=[
             {type:'section',name:'PENYERTAAN MODAL'},
@@ -5575,14 +5554,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             {name:'Saldo Laba Awal — Tidak Dicadangkan',value:saldoTidak,indent:1},
             {name:'Saldo Laba Awal — Dicadangkan',value:saldoCad,indent:1},
             {name:'Laba (Rugi) periode berjalan',value:profitBersih,indent:1},
-            {type:'group',name:'Pembagian SHU:'},
-            ...(shuItems.length
-                ? shuItems.map(item=>({
-                    name:`${item.nama_pos||'Pos SHU'}${item.persentase!=null?` (${Number(item.persentase).toLocaleString('id-ID',{maximumFractionDigits:4})}%)`:''}`,
-                    value:-Number(item.nilai||0),
-                    indent:2
-                }))
-                : [{name:'Belum ada pembagian SHU',value:0,indent:2}]),
+            {type:'group',name:'Bagi Hasil Penyertaan:'},
+            {name:'Bagi Hasil Penyertaan Modal Desa',value:-bagiDesa,indent:2},
+            {name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-bagiMasyarakat,indent:2},
             {type:'subtotal',name:'Saldo Laba Akhir',value:saldoLabaAkhir},
             {type:'section',name:'MODAL DONASI/SUMBANGAN'},
             {name:'Modal Donasi/Sumbangan',value:donasi,indent:1},
@@ -5838,16 +5812,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const shortLiab=reportGroupTotal(data,'2.1.','balances');
                 const longLiab=reportGroupTotal(data,'2.2.','balances');
                 const calkMoney=(v)=>reportSigned(v);
-                const shuItems=(data.profitDistribution?.items||[]).slice().sort((a,b)=>Number(a.urutan||0)-Number(b.urutan||0));
-                const shuTotal=shuItems.reduce((sum,item)=>sum+Number(item.nilai||0),0);
-                const shuRows=shuItems.length
-                    ? shuItems.map(item=>{
-                        const accountLabel=item.account ? `${item.account.kode} — ${item.account.nama}` : 'Akun tujuan tidak ditemukan';
-                        const pct=item.persentase!=null ? ` (${Number(item.persentase).toLocaleString('id-ID',{maximumFractionDigits:4})}%)` : '';
-                        return `<tr><td>Pembagian SHU — ${escapeHtml(item.nama_pos||'Pos SHU')}${escapeHtml(pct)}<div class="text-secondary small">${escapeHtml(accountLabel)}</div></td><td class="num">${calkMoney(-Number(item.nilai||0))}</td></tr>`;
-                    }).join('')
-                    : `<tr><td>Pembagian SHU</td><td class="num">${calkMoney(0)}</td></tr>`;
-                const netAfterShu=p.beforeBagiHasil-shuTotal;
                 const scopeText=scope==='pusat'
                     ? 'Kantor Pusat'
                     : scope==='gabungan'
@@ -5877,8 +5841,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <tr><td>Pendapatan Lain-lain</td><td class="num">${calkMoney(p.otherIncome)}</td></tr>
                         <tr><td>Beban Lain-lain dan Pajak</td><td class="num">${calkMoney(-(p.otherExpense+p.taxExpense))}</td></tr>
                         <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
-                        ${shuRows}
-                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Pembagian SHU</td><td class="num">${calkMoney(netAfterShu)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-p.bagiDesa)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-p.bagiMasyarakat)}</td></tr>
+                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(p.net)}</td></tr>
                     </tbody></table></div>
                     <div class="calk-section"><div class="calk-heading">E. PENGUNGKAPAN LAIN</div><div class="calk-note">Lingkup laporan: <strong>${escapeHtml(scopeText)}</strong>. Sistem menghasilkan laporan berdasarkan jurnal dan saldo awal yang tersedia. Untuk laporan gabungan/konsolidasian, akun resiprokal Kantor Pusat dan Unit Usaha diperlakukan sebagai akun eliminasi sesuai mekanisme penggabungan yang digunakan sistem.</div><div class="calk-check ${Math.abs(balanceCheck)<0.01?'ok':'warn'}"><span>Selisih pemeriksaan Total Aset − (Total Kewajiban + Ekuitas)</span><strong>${calkMoney(balanceCheck)}</strong></div></div>
                 </div>`;
