@@ -6214,17 +6214,51 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const bumdesId = activeAppProfile.bumdes_id;
         const canManage = activeAppProfile.role === "admin_pusat";
 
-        const { data: periods, error } = await supabaseClient
-            .from("account_periods")
-            .select("id,period_type,start_date,end_date,status,closed_at,closed_by")
-            .eq("bumdes_id", bumdesId)
-            .eq("period_type", "tahunan")
-            .order("start_date", { ascending: false });
+        const [
+            { data: periods, error: periodError },
+            { data: closingBooks, error: closingError },
+            { data: distributions, error: distributionError }
+        ] = await Promise.all([
+            supabaseClient
+                .from("account_periods")
+                .select("id,period_type,start_date,end_date,status,closed_at,closed_by")
+                .eq("bumdes_id", bumdesId)
+                .eq("period_type", "tahunan")
+                .order("start_date", { ascending: false }),
+            supabaseClient
+                .from("closing_books")
+                .select("id,period_id,year,status,closed_at,closing_journal_id,notes")
+                .eq("bumdes_id", bumdesId)
+                .order("year", { ascending: false }),
+            supabaseClient
+                .from("profit_distributions")
+                .select("id,period_id,total_profit,total_percentage,status")
+                .eq("bumdes_id", bumdesId)
+        ]);
 
-        if (error) throw error;
+        if (periodError) throw periodError;
+        if (closingError) throw closingError;
+        if (distributionError) throw distributionError;
+
+        const closingMap = new Map((closingBooks || []).map(item => [String(item.period_id), item]));
+        const distributionMap = new Map((distributions || []).map(item => [String(item.period_id), item]));
+
+        const formatStatus = status => {
+            if (status === "posted") {
+                return `<span class="badge text-bg-success">Sudah diposting</span>`;
+            }
+            if (status === "draft") {
+                return `<span class="badge text-bg-warning">Draft</span>`;
+            }
+            return `<span class="text-secondary">-</span>`;
+        };
 
         const rows = (periods || []).map(p => {
             const isOpen = p.status === "open";
+            const closing = closingMap.get(String(p.id));
+            const distribution = distributionMap.get(String(p.id));
+            const isReopened = closing?.status === "reopened";
+
             const statusBadge = isOpen
                 ? `<span class="badge text-bg-success">Terbuka</span>`
                 : `<span class="badge text-bg-secondary">Tertutup</span>`;
@@ -6242,11 +6276,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
             const closedInfo = p.closed_at
                 ? `${fmtDateTime(p.closed_at)}`
+                : (isReopened ? "Sudah dibuka kembali" : "-");
+
+            const profitInfo = distribution?.total_profit != null
+                ? formatMoney(Number(distribution.total_profit))
                 : "-";
 
             return `<tr>
                 <td class="fw-semibold">${fmtDate(p.start_date)} s/d ${fmtDate(p.end_date)}</td>
                 <td>${statusBadge}</td>
+                <td>${escapeHtml(profitInfo)}</td>
+                <td>${formatStatus(distribution?.status)}</td>
                 <td>${escapeHtml(closedInfo)}</td>
                 <td class="text-end">${action}</td>
             </tr>`;
@@ -6256,15 +6296,28 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             <div class="panel mb-3">
                 <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                     <div>
-                        <div class="fw-semibold">Periode Tahunan</div>
+                        <div class="fw-semibold">Tutup Buku Tahunan</div>
                         <div class="text-secondary small mt-1">
-                            Periode yang ditutup tidak dapat digunakan untuk membuat, mengubah, atau menghapus transaksi.
-                            Periode dapat dibuka kembali oleh Admin Pusat.
+                            Tutup Buku menyelesaikan proses akuntansi akhir tahun: pendapatan, HPP, dan beban ditutup ke Ikhtisar Laba Rugi,
+                            kemudian laba bersih dialokasikan sesuai Pembagian SHU.
                         </div>
                     </div>
                     ${canManage
                         ? `<span class="badge text-bg-primary">Admin Pusat</span>`
                         : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+                </div>
+            </div>
+
+            <div class="panel mb-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="text-primary fs-4"><i class="bi bi-info-circle"></i></div>
+                    <div>
+                        <div class="fw-semibold">Tutup Buku tidak memotong saldo Kas/Bank</div>
+                        <div class="text-secondary small mt-1">
+                            Tutup Buku hanya melakukan pencatatan akuntansi dan alokasi laba. Pembayaran SHU merupakan transaksi terpisah;
+                            saldo Kas/Bank baru berkurang ketika pembayaran benar-benar dicatat.
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -6276,6 +6329,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                             <tr>
                                 <th>Periode</th>
                                 <th>Status</th>
+                                <th>Laba Bersih / Dasar SHU</th>
+                                <th>Status SHU</th>
                                 <th>Ditutup Pada</th>
                                 <th class="text-end">Aksi</th>
                             </tr>
@@ -6306,8 +6361,15 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const periodId = button.dataset.id;
                 if (!periodId) return;
 
+                const distribution = distributionMap.get(String(periodId));
+                const distributionReady = distribution
+                    && distribution.status === "draft"
+                    && Math.abs(Number(distribution.total_percentage || 0) - 100) < 0.0000001;
+
                 const confirmed = confirm(
-                    "Tutup buku periode ini? Setelah ditutup, transaksi pada periode tersebut tidak dapat dibuat, diubah, atau dihapus sampai periode dibuka kembali."
+                    distributionReady
+                        ? "Tutup buku periode ini? Sistem akan menutup pendapatan, HPP, dan beban, lalu memposting pembagian SHU yang sudah 100%. Proses ini tidak mengurangi saldo Kas/Bank."
+                        : "Tutup buku periode ini? Pastikan Pembagian SHU untuk periode tersebut sudah dibuat dan total persentasenya tepat 100%. Proses ini tidak mengurangi saldo Kas/Bank."
                 );
                 if (!confirmed) return;
 
@@ -6320,7 +6382,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     });
                     if (rpcError) throw rpcError;
 
-                    showAppToast("success", "Buku berhasil ditutup", "Periode tahunan telah ditutup.");
+                    showAppToast("success", "Buku berhasil ditutup", "Pendapatan, HPP, dan beban telah ditutup serta laba telah dialokasikan sesuai pembagian SHU.");
                     await renderBookClosingModule();
                 } catch (err) {
                     console.error(err);
@@ -6336,7 +6398,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 if (!periodId) return;
 
                 const confirmed = confirm(
-                    "Buka kembali periode ini? Transaksi pada periode tersebut akan dapat dikelola kembali sesuai hak akses."
+                    "Buka kembali periode ini? Sistem akan membuat jurnal reversal atas Tutup Buku dan mengembalikan pembagian SHU menjadi draft. Transaksi operasional sebelumnya tidak dihapus."
                 );
                 if (!confirmed) return;
 
@@ -6349,7 +6411,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     });
                     if (rpcError) throw rpcError;
 
-                    showAppToast("success", "Buku berhasil dibuka kembali", "Periode tahunan kembali terbuka.");
+                    showAppToast("success", "Buku berhasil dibuka kembali", "Jurnal Tutup Buku telah direversal dan pembagian SHU kembali menjadi draft.");
                     await renderBookClosingModule();
                 } catch (err) {
                     console.error(err);
