@@ -5828,6 +5828,151 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const periodMap = new Map(allPeriods.map(p => [p.id, p]));
         const unitMap = new Map((units || []).map(u => [u.id, u]));
 
+        // =====================================================
+        // VALIDASI SALDO KAS / BANK
+        // =====================================================
+        // Akun kas/bank standar dan custom berada di bawah:
+        // 1.1.01.xx (Kas & Bank Operasional)
+        // 1.1.02.xx (Setara Kas)
+        //
+        // Saldo dihitung per BUMDes + unit/lokasi + akun:
+        // saldo awal tahun + jurnal s.d. tanggal transaksi.
+        // Untuk edit transaksi, jurnal transaksi lama dikecualikan
+        // agar tidak dihitung dua kali.
+        const validateCashAccountBalance = async ({
+            date,
+            unitId,
+            lineRows,
+            excludeTransactionId = null
+        }) => {
+            const cashAccounts = (accounts || []).filter(a =>
+                /^1\.1\.01\.|^1\.1\.02\./.test(String(a.kode || ""))
+            );
+
+            const cashById = new Map(cashAccounts.map(a => [a.id, a]));
+            const cashEffects = new Map();
+
+            (lineRows || []).forEach(line => {
+                const account = cashById.get(line.accountId);
+                if (!account) return;
+
+                const debit = Number(line.debit || 0);
+                const credit = Number(line.credit || 0);
+                const delta = debit - credit;
+
+                cashEffects.set(
+                    line.accountId,
+                    Number(cashEffects.get(line.accountId) || 0) + delta
+                );
+            });
+
+            const affectedAccountIds = [...cashEffects.keys()];
+            if (!affectedAccountIds.length) {
+                return { ok: true, checked: [] };
+            }
+
+            const year = String(date || "").slice(0, 4);
+            if (!/^\d{4}$/.test(year)) {
+                throw new Error("Tahun transaksi tidak valid.");
+            }
+
+            // Gunakan saldo awal tahun dari periode tahunan bila tersedia.
+            const { data: annualPeriod, error: annualPeriodError } = await supabaseClient
+                .from("account_periods")
+                .select("id")
+                .eq("bumdes_id", bumdesId)
+                .eq("period_type", "tahunan")
+                .eq("start_date", `${year}-01-01`)
+                .eq("end_date", `${year}-12-31`)
+                .limit(1)
+                .maybeSingle();
+
+            if (annualPeriodError) throw annualPeriodError;
+
+            const balanceByAccount = new Map();
+
+            // Saldo awal tahun.
+            if (annualPeriod?.id) {
+                let openingQuery = supabaseClient
+                    .from("opening_balances")
+                    .select("account_id,unit_id,debit,credit")
+                    .eq("bumdes_id", bumdesId)
+                    .eq("period_id", annualPeriod.id)
+                    .in("account_id", affectedAccountIds);
+
+                if (unitId) {
+                    openingQuery = openingQuery.eq("unit_id", unitId);
+                } else {
+                    openingQuery = openingQuery.is("unit_id", null);
+                }
+
+                const openingRows = await fetchAllDashboardRows(openingQuery);
+
+                openingRows.forEach(row => {
+                    const value = Number(row.debit || 0) - Number(row.credit || 0);
+                    balanceByAccount.set(
+                        row.account_id,
+                        Number(balanceByAccount.get(row.account_id) || 0) + value
+                    );
+                });
+            }
+
+            // Jurnal berjalan sampai tanggal transaksi.
+            let journalQuery = supabaseClient
+                .from("journals")
+                .select("account_id,unit_id,journal_date,debit,credit,transaction_id")
+                .eq("bumdes_id", bumdesId)
+                .in("account_id", affectedAccountIds)
+                .lte("journal_date", date)
+                .order("journal_date", { ascending: true });
+
+            if (annualPeriod?.id) {
+                journalQuery = journalQuery.gte("journal_date", `${year}-01-01`);
+            }
+
+            if (unitId) {
+                journalQuery = journalQuery.eq("unit_id", unitId);
+            } else {
+                journalQuery = journalQuery.is("unit_id", null);
+            }
+
+            if (excludeTransactionId) {
+                journalQuery = journalQuery.neq("transaction_id", excludeTransactionId);
+            }
+
+            const journalRows = await fetchAllDashboardRows(journalQuery);
+
+            journalRows.forEach(row => {
+                const value = Number(row.debit || 0) - Number(row.credit || 0);
+                balanceByAccount.set(
+                    row.account_id,
+                    Number(balanceByAccount.get(row.account_id) || 0) + value
+                );
+            });
+
+            const checked = affectedAccountIds.map(accountId => {
+                const account = cashById.get(accountId);
+                const currentBalance = Number(balanceByAccount.get(accountId) || 0);
+                const transactionEffect = Number(cashEffects.get(accountId) || 0);
+                const projectedBalance = currentBalance + transactionEffect;
+
+                return {
+                    account,
+                    currentBalance,
+                    transactionEffect,
+                    projectedBalance
+                };
+            });
+
+            const invalid = checked.filter(item => item.projectedBalance < -0.0001);
+
+            return {
+                ok: invalid.length === 0,
+                checked,
+                invalid
+            };
+        };
+
         const journalRow = (index = 0) => `
             <tr class="journal-input-row">
                 <td class="text-center row-no">${index + 1}</td>
@@ -6129,6 +6274,41 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
             const original = btn.innerHTML;
             btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memeriksa saldo kas...`;
+
+            try {
+                const cashCheck = await validateCashAccountBalance({
+                    date,
+                    unitId,
+                    lineRows
+                });
+
+                if (!cashCheck.ok) {
+                    const detail = cashCheck.invalid.map(item =>
+                        `${item.account.kode} ${item.account.nama}: saldo ${rupiah(item.currentBalance)} + transaksi ${rupiah(item.transactionEffect)} = ${rupiah(item.projectedBalance)}`
+                    ).join(" • ");
+
+                    showAppToast(
+                        "error",
+                        "Transaksi tidak dapat disimpan",
+                        `Saldo kas/bank tidak mencukupi. ${detail}`
+                    );
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                    return;
+                }
+            } catch (err) {
+                console.error("Validasi saldo kas gagal:", err);
+                showAppToast(
+                    "error",
+                    "Gagal memeriksa saldo kas",
+                    err.message || "Transaksi dibatalkan untuk menjaga keamanan saldo."
+                );
+                btn.disabled = false;
+                btn.innerHTML = original;
+                return;
+            }
+
             btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyiapkan nomor...`;
 
             // Nomor transaksi dibuat oleh database agar aman terhadap transaksi
@@ -6477,6 +6657,43 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     return;
                 }
 
+                save.disabled = true;
+                save.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Memeriksa saldo kas...`;
+
+                try {
+                    const cashCheck = await validateCashAccountBalance({
+                        date,
+                        unitId,
+                        lineRows: newLines,
+                        excludeTransactionId: transactionId
+                    });
+
+                    if (!cashCheck.ok) {
+                        const detail = cashCheck.invalid.map(item =>
+                            `${item.account.kode} ${item.account.nama}: saldo ${rupiah(item.currentBalance)} + transaksi ${rupiah(item.transactionEffect)} = ${rupiah(item.projectedBalance)}`
+                        ).join(" • ");
+
+                        showAppToast(
+                            "error",
+                            "Perubahan tidak dapat disimpan",
+                            `Saldo kas/bank tidak mencukupi. ${detail}`
+                        );
+                        save.disabled = false;
+                        save.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan`;
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Validasi saldo kas saat edit gagal:", err);
+                    showAppToast(
+                        "error",
+                        "Gagal memeriksa saldo kas",
+                        err.message || "Perubahan dibatalkan untuk menjaga keamanan saldo."
+                    );
+                    save.disabled = false;
+                    save.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan`;
+                    return;
+                }
+
                 // Aturan nomor bukti:
                 // - Tahun dan lokasi tetap -> nomor lama dipertahankan.
                 // - Tahun berubah -> database mengalokasikan nomor baru untuk tahun tujuan.
@@ -6498,6 +6715,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
                     if (seqEditError) {
                         showAppToast("error", "Gagal menyiapkan nomor bukti baru", seqEditError.message);
+                        save.disabled = false;
+                        save.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan`;
                         return;
                     }
 
@@ -6507,6 +6726,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
                     if (!newTransactionNumber) {
                         showAppToast("error", "Nomor bukti baru tidak tersedia", "Database tidak mengembalikan nomor transaksi.");
+                        save.disabled = false;
+                        save.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan`;
                         return;
                     }
                 }
