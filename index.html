@@ -6009,6 +6009,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                 <th style="min-width:220px">Nama Pos</th>
                                 <th style="min-width:320px">Akun Tujuan</th>
                                 <th style="width:150px" class="text-end">Persentase</th>
+                                <th style="width:140px" class="text-center">Dapat Dibayarkan</th>
                                 <th style="width:170px" class="text-end">Nilai</th>
                                 ${canManage ? `<th style="width:70px"></th>` : ""}
                             </tr>
@@ -6088,10 +6089,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <td><input type="text" class="form-control form-control-sm shu-name" value="${escapeHtml(item.nama_pos || "")}" placeholder="Nama pos" ${!canManage ? "disabled" : ""}></td>
                     <td>${accountSelectHtml(item.account_id, index)}</td>
                     <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}" ${!canManage ? "disabled" : ""}><span class="input-group-text">%</span></div></td>
+                    <td class="text-center"><div class="form-check d-inline-flex justify-content-center"><input type="checkbox" class="form-check-input shu-payable" ${item.is_payable ? "checked" : ""} ${!canManage ? "disabled" : ""} title="Pos ini dapat dibayarkan"></div></td>
                     <td class="text-end fw-semibold shu-value">${formatMoney(item.nilai || 0)}</td>
                     ${canManage ? `<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>` : ""}
                 </tr>
-            `).join("") : `<tr><td colspan="${canManage ? 5 : 4}" class="text-center text-secondary py-4">Belum ada pos pembagian.</td></tr>`;
+            `).join("") : `<tr><td colspan="${canManage ? 6 : 5}" class="text-center text-secondary py-4">Belum ada pos pembagian.</td></tr>`;
         };
 
         const recalc = () => {
@@ -6129,7 +6131,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 nama_pos: item.nama_pos || "",
                 account_id: item.account_id || "",
                 persentase: item.persentase ?? "",
-                nilai: item.nilai || 0
+                nilai: item.nilai || 0,
+                is_payable: !!item.is_payable
             });
             renderRows();
             recalc();
@@ -6193,13 +6196,14 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     nama_pos: item.nama_pos,
                     account_id: item.account_id,
                     persentase: item.persentase,
-                    nilai: item.nilai
+                    nilai: item.nilai,
+                    is_payable: !!item.is_payable
                 }));
             }
 
             if (!itemState.length && canManage && currentPeriodStatus === "open" && currentProfit > 0) {
                 const defaultAccount = targetAccounts.find(account => String(account.kode || "") === "3.3.01.01");
-                itemState = [{ nama_pos: "Bagi Hasil SHU", account_id: defaultAccount?.id || "", persentase: 100, nilai: currentProfit }];
+                itemState = [{ nama_pos: "Bagi Hasil SHU", account_id: defaultAccount?.id || "", persentase: 100, nilai: currentProfit, is_payable: false }];
                 renderRows();
                 recalc();
             } else {
@@ -6236,6 +6240,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (!row) return;
             const index = Number(row.dataset.index);
             if (!itemState[index]) return;
+            if (event.target.classList.contains("shu-payable")) {
+                itemState[index].is_payable = !!event.target.checked;
+            }
             if (event.target.classList.contains("shu-account")) {
                 const selectedAccountId=String(event.target.value||"");
                 const duplicateIndex=itemState.findIndex((item,idx)=>idx!==index && selectedAccountId && String(item.account_id||"")===selectedAccountId);
@@ -6262,7 +6269,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const payload = itemState.map(item => ({
                 account_id: item.account_id,
                 nama_pos: String(item.nama_pos || "").trim(),
-                persentase: Number(item.persentase)
+                persentase: Number(item.persentase),
+                is_payable: !!item.is_payable
             }));
 
             const original = saveButton.innerHTML;
