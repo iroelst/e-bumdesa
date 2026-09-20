@@ -3979,6 +3979,7 @@
     let activeAppProfile = null;
     let activeAppBumdes = null;
     let activeReportUnits = [];
+    let activeReportHistory = null;
 
     function setActiveMenu(module) {
         document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
@@ -4095,8 +4096,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         return `<div class="panel text-center py-5"><i class="bi bi-inbox fs-2 text-secondary"></i><div class="mt-2 fw-semibold">${escapeHtml(text)}</div><div class="text-secondary small mt-1">Data akan tampil setelah modul mulai digunakan.</div></div>`;
     }
 
-    async function openAppModule(module) {
+    async function openHistoricalReport(period) {
+        if (!period?.start_date || !period?.end_date) return;
+        activeReportHistory = {
+            periodId: period.id,
+            startDate: period.start_date,
+            endDate: period.end_date,
+            year: String(period.start_date).slice(0, 4)
+        };
+        await openAppModule("labarugi", true);
+    }
+
+    async function openAppModule(module, preserveReportHistory = false) {
         if (!activeAppProfile?.bumdes_id) return;
+        const reportModules = ["labarugi","neraca","aruskas","ekuitas","calk"];
+        if (!reportModules.includes(module) || !preserveReportHistory) activeReportHistory = null;
         if (module === "dashboard") { showDashboardModule(); return; }
         showModuleShell(module, moduleLoading());
 
@@ -5308,6 +5322,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     async function loadFinancialReportData({module,startDate,endDate,scope}){
         const bumdesId=activeAppProfile.bumdes_id;
+        const historicalMode = Boolean(
+            activeReportHistory
+            && String(activeReportHistory.startDate) === String(startDate)
+            && String(activeReportHistory.endDate) === String(endDate)
+        );
         const startYear=Number(String(startDate).slice(0,4));
         const endYear=Number(String(endDate).slice(0,4));
         const scopeUnit=scope.startsWith('unit:')?scope.slice(5):null;
@@ -5328,25 +5347,23 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             .eq('bumdes_id',bumdesId).gte('journal_date',`${startYear}-01-01`).lte('journal_date',endDate).order('journal_date',{ascending:true});
         if(scopeUnit) jQuery=jQuery.eq('unit_id',scopeUnit);
         else if(isPusat) jQuery=jQuery.is('unit_id',null);
-        const journals=await fetchReportRows(jQuery);
 
-        // Metadata transaksi dipakai untuk membedakan jurnal operasional dari
-        // jurnal penutupan/pembukaan kembali. Jurnal penutupan tetap disimpan
-        // dan tetap masuk ke posisi neraca, tetapi tidak boleh menghapus
-        // kinerja periode pada Laporan Laba Rugi.
-        const transactionMeta=[];
-        let tQuery=supabaseClient.from('transactions')
-            .select('id,transaction_type,transaction_date')
-            .eq('bumdes_id',bumdesId)
-            .gte('transaction_date',`${startYear}-01-01`)
-            .lte('transaction_date',endDate);
-        const txRows=await fetchReportRows(tQuery);
-        const txTypeMap=new Map((txRows||[]).map(t=>[t.id,String(t.transaction_type||'').toLowerCase()]));
-        const isClosingTransaction=(j)=>{
-            const type=txTypeMap.get(j.transaction_id)||'';
-            return type==='penutupan_buku' || type==='pembukaan_kembali_buku';
-        };
-        const performanceJournals=(journals||[]).filter(j=>!isClosingTransaction(j));
+        // Riwayat laporan menggunakan kondisi periode sebelum jurnal penutupan.
+        // Jurnal penutupan dan pembukaan kembali tetap tersimpan sebagai transaksi akuntansi,
+        // tetapi tidak boleh membuat Laporan periode yang sudah ditutup menjadi Rp0.
+        if(historicalMode){
+            const {data:closingTx,error:closingTxError}=await supabaseClient
+                .from('transactions')
+                .select('id')
+                .eq('bumdes_id',bumdesId)
+                .in('transaction_type',['penutupan_buku','pembukaan_kembali_buku']);
+            if(closingTxError) throw closingTxError;
+            const excludedIds=(closingTx||[]).map(x=>x.id).filter(Boolean);
+            if(excludedIds.length){
+                jQuery=jQuery.not('transaction_id','in',`(${excludedIds.join(',')})`);
+            }
+        }
+        const journals=await fetchReportRows(jQuery);
 
         // Saldo awal tahun untuk posisi keuangan.
         const {data:period}=await supabaseClient.from('account_periods').select('id,start_date,end_date')
@@ -5364,8 +5381,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const add=(map,id,val)=>map.set(id,(map.get(id)||0)+Number(val||0));
         openings.forEach(o=>{const a=accountMap.get(o.account_id);if(a)add(balanceMap,o.account_id,reportNormalBalance(a,o.debit,o.credit));});
         journals.forEach(j=>{const a=accountMap.get(j.account_id);if(!a)return; add(balanceMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
-        });
-        performanceJournals.forEach(j=>{const a=accountMap.get(j.account_id);if(!a)return;
             if(j.journal_date>=startDate && j.journal_date<=endDate) add(moveMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
         });
 
@@ -5397,32 +5412,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 }
             });
         }
-        let periodStatus='open';
-        if(period?.id){
-            const {data:periodStatusRow,error:periodStatusErr}=await supabaseClient.from('account_periods')
-                .select('status').eq('id',period.id).maybeSingle();
-            if(periodStatusErr) throw periodStatusErr;
-            periodStatus=String(periodStatusRow?.status||'open');
-        }
-
-        // SHU yang sudah diputuskan/posted menjadi bagian dari perubahan ekuitas.
-        // Draft tidak mempunyai efek akuntansi sampai benar-benar diposting melalui Tutup Buku.
-        let shuItems=[];
-        if(period?.id){
-            const {data:dist,error:distErr}=await supabaseClient.from('profit_distributions')
-                .select('id,status,total_profit,total_percentage')
-                .eq('bumdes_id',bumdesId).eq('period_id',period.id).eq('status','posted').maybeSingle();
-            if(distErr) throw distErr;
-            if(dist?.id){
-                const {data:items,error:itemErr}=await supabaseClient.from('profit_distribution_items')
-                    .select('account_id,nama_pos,persentase,nilai,urutan')
-                    .eq('distribution_id',dist.id).order('urutan',{ascending:true});
-                if(itemErr) throw itemErr;
-                shuItems=items||[];
-            }
-        }
-
-        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,performanceJournals,shuItems,periodStatus,startDate,endDate,scope,isConsolidated};
+        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,startDate,endDate,scope,isConsolidated};
     }
 
     function reportGroupTotal(data, prefix, mapName='balances'){
@@ -5453,12 +5443,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const op=gross-opExpense;
         const otherNet=otherIncome-otherExpense-taxExpense;
         const beforeBagiHasil=op+otherNet;
-        // Alokasi SHU bukan beban dan bukan pengurang laba rugi.
-        // Keputusan SHU diperlakukan pada Perubahan Ekuitas setelah laba periode
-        // ditetapkan, sedangkan pembayaran SHU merupakan transaksi kas tersendiri.
-        const bagiDesa=0;
-        const bagiMasyarakat=0;
-        const net=beforeBagiHasil;
+        // Bagi hasil mengikuti akun 3.2 pada COA aplikasi dan bersifat pengurang laba.
+        const bagiDesa=Math.max(0,reportGroupTotal(data,'3.2.01.','movements'));
+        const bagiMasyarakat=Math.max(0,reportGroupTotal(data,'3.2.02.','movements'));
+        const net=beforeBagiHasil-bagiDesa-bagiMasyarakat;
 
         const rows=[];
         rows.push({type:'section',name:'PENDAPATAN USAHA'});
@@ -5509,8 +5497,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         rows.push({type:'subtotal',name:'Total Beban Pajak',value:-taxExpense});
         rows.push({type:'grand',name:'Total Pendapatan dan Beban Lain-lain',value:otherNet});
 
-        rows.push({type:'grand',name:'LABA (RUGI) SEBELUM ALOKASI SHU',value:beforeBagiHasil});
-        rows.push({type:'grand',name:'LABA (RUGI) BERSIH PERIODE BERJALAN',value:net});
+        rows.push({type:'grand',name:'LABA (RUGI) SEBELUM BAGI HASIL',value:beforeBagiHasil});
+        rows.push({name:'BAGI HASIL PENYERTAAN MODAL DESA',value:-bagiDesa,indent:1});
+        rows.push({name:'BAGI HASIL PENYERTAAN MODAL MASYARAKAT',value:-bagiMasyarakat,indent:1});
+        rows.push({type:'grand',name:'LABA (RUGI) BERSIH SETELAH BAGI HASIL KE PEMILIK',value:net});
         return {rows,net,beforeBagiHasil,bagiDesa,bagiMasyarakat,grossRevenue,hpp,opExpense,otherIncome,otherExpense,taxExpense,otherNet};
     }
     function rptGroup(data,prefix,mapName){return reportGroupTotal(data,prefix,mapName);}
@@ -5579,10 +5569,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // menambah ekuitas. Jika sudah ditutup dan laba telah masuk saldo laba, current
         // P&L pada akun pendapatan/beban tidak lagi muncul; dalam kondisi itu gunakan
         // saldo ekuitas yang sudah tercatat.
-        // Saat periode masih terbuka, laba periode berjalan belum masuk akun ekuitas.
-        // Saat periode sudah ditutup, jurnal penutupan sudah memindahkan laba ke akun
-        // ekuitas/SHU sehingga laba tidak boleh ditambahkan lagi ke equityBase.
-        const equity=equityBase + (data.periodStatus==='closed' ? 0 : p.net);
+        const pNetAlreadyClosed=Math.abs(p.net)<0.000001;
+        const equity=equityBase + (pNetAlreadyClosed ? 0 : p.net);
         const priorEquity=priorEquityBase;
         rows.push({type:'group',name:'Ekuitas Akhir',value:equity,priorValue:priorEquity});
         rows.push({type:'grand',name:'TOTAL EKUITAS',value:equity,priorValue:priorEquity});
@@ -5599,38 +5587,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const modalMasyAkhir=modalMasyAwal+modalMasyTambah;
         const saldoTidak=reportGroupTotal(data,'3.3.01.01','priors');
         const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
+        const bagiDesa=profitReport.bagiDesa;
+        const bagiMasyarakat=profitReport.bagiMasyarakat;
         const profitBersih=profitReport.net;
         const donasi=reportGroupTotal(data,'3.4.01.','balances');
-        // SHU yang sudah diposting tidak boleh dihitung sebagai penambahan
-        // ekuitas dua kali. Laba periode berjalan sudah menjadi sumber kenaikan
-        // ekuitas; bagian yang dibagikan kepada pihak di luar BUMDes mengurangi
-        // saldo laba, sedangkan pemupukan modal/cadangan tetap berada di dalam
-        // ekuitas. Draft tidak ikut dihitung.
-        const shuRows=(data.shuItems||[]).map(item=>{
-            const account=data.accountMap.get(item.account_id);
-            const value=Number(item.nilai||0);
-            const code=String(account?.kode||'');
-            const isExternalDistribution=code.startsWith('3.2.');
-            return {
-                ...item,
-                account,
-                isExternalDistribution,
-                accountEffect:isExternalDistribution ? -value : value
-            };
-        });
-
-        // Bagian SHU yang benar-benar dibagikan keluar dari BUMDes mengurangi
-        // saldo laba. Alokasi internal seperti pemupukan modal tetap menjadi
-        // bagian dari ekuitas dan tidak boleh ditambahkan lagi di atas laba.
-        const shuExternalDistribution=shuRows
-            .filter(item=>item.isExternalDistribution)
-            .reduce((s,item)=>s+Number(item.nilai||0),0);
-
-        const saldoLabaAkhir=
-            saldoTidak + saldoCad + profitBersih - shuExternalDistribution;
-
-        const equityEnd=
-            modalDesaAkhir + modalMasyAkhir + saldoLabaAkhir + donasi;
+        const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
+        const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
         const rows=[
             {type:'section',name:'PENYERTAAN MODAL'},
             {type:'group',name:'Penyertaan modal awal:'},
@@ -5644,7 +5606,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             {name:'Saldo Laba Awal — Tidak Dicadangkan',value:saldoTidak,indent:1},
             {name:'Saldo Laba Awal — Dicadangkan',value:saldoCad,indent:1},
             {name:'Laba (Rugi) periode berjalan',value:profitBersih,indent:1},
-            ...(shuRows.length ? [{type:'group',name:'Alokasi SHU yang telah diputuskan:'},...shuRows.map(item=>({name:item.nama_pos,value:item.accountEffect,indent:2}))] : []),
+            {type:'group',name:'Bagi Hasil Penyertaan:'},
+            {name:'Bagi Hasil Penyertaan Modal Desa',value:-bagiDesa,indent:2},
+            {name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-bagiMasyarakat,indent:2},
             {type:'subtotal',name:'Saldo Laba Akhir',value:saldoLabaAkhir},
             {type:'section',name:'MODAL DONASI/SUMBANGAN'},
             {name:'Modal Donasi/Sumbangan',value:donasi,indent:1},
@@ -5823,7 +5787,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
         if(uErr) throw uErr;
         activeReportUnits = units || [];
-        const preset=reportPeriodPreset('tahunan');
+        const defaultPreset=reportPeriodPreset('tahunan');
+        const historyPreset=activeReportHistory && activeReportHistory.startDate && activeReportHistory.endDate
+            ? {start:activeReportHistory.startDate,end:activeReportHistory.endDate}
+            : defaultPreset;
+        const preset=historyPreset;
         const scopeOptions=reportScopeOptions(activeAppProfile,units||[]);
         const reportNames={labarugi:'Laporan Laba Rugi',neraca:'Laporan Posisi Keuangan (Neraca)',aruskas:'Laporan Arus Kas',ekuitas:'Laporan Perubahan Ekuitas',calk:'Catatan atas Laporan Keuangan (CALK)'};
         showModuleShell(module,`<div class="report-page">
@@ -5832,20 +5800,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     ${Object.entries(reportNames).map(([k,v])=>`<button class="report-tab ${k===module?'active':''}" data-report-tab="${k}">${escapeHtml(v.replace('Laporan ',''))}</button>`).join('')}
                 </div>
                 <div class="report-control-grid">
-                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" selected>Tahunan</option><option value="custom">Custom</option></select></div>
+                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" ${activeReportHistory?'':'selected'}>Tahunan</option><option value="custom" ${activeReportHistory?'selected':''}>Custom</option></select></div>
                     <div><div class="report-control-label">Dari</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
                     <div><div class="report-control-label">Sampai</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
                     <div><div class="report-control-label">Lingkup Laporan</div><select id="reportScope" class="form-select">${scopeOptions}</select></div>
                     <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>Cetak / Simpan PDF</button></div>
                 </div>
                 <div class="report-toolbar-note mt-2"><i class="bi bi-info-circle me-1"></i>Format dan susunan mengikuti contoh halaman 42–55 Pedoman Aplikasi. Akun diambil dari COA e-BUMDesa.</div>
+                ${activeReportHistory ? `<div class="alert alert-info py-2 px-3 mt-2 mb-0 no-print"><i class="bi bi-clock-history me-1"></i><strong>Riwayat Laporan ${escapeHtml(activeReportHistory.year)}</strong> — laporan menampilkan kondisi periode sebelum jurnal Tutup Buku, sehingga tidak menjadi nol setelah periode berikutnya dimulai.</div>` : ''}
             </div>
             <div id="financialReportOutput" class="report-card"><div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menyiapkan laporan...</div></div>
         </div>`);
 
         const presetEl=$('reportPreset'), startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
         presetEl.addEventListener('change',()=>{if(presetEl.value!=='custom'){const p=reportPeriodPreset(presetEl.value);startEl.value=p.start;endEl.value=p.end;}});
-        document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab)));
+        document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab, true)));
         $('btnPrintReport').addEventListener('click', async ()=>{
             try{
                 const images=[...document.querySelectorAll('#financialReportOutput img')];
@@ -5880,7 +5849,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     : (selectedUnit?.nama_unit ? `Unit Usaha — ${selectedUnit.nama_unit}` : 'Unit Usaha');
             let html=reportHeaderHtml(data,{labarugi:'LAPORAN LABA RUGI',neraca:'LAPORAN POSISI KEUANGAN (NERACA)',aruskas:'LAPORAN ARUS KAS',ekuitas:'LAPORAN PERUBAHAN EKUITAS',calk:'CATATAN ATAS LAPORAN KEUANGAN (CALK)'}[module],scopeLabel);
             if(module==='labarugi'){
-                const p=buildProfitLossReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Pendapatan</div><div class="report-mini-value">${reportSigned(p.grossRevenue)}</div></div><div class="report-mini-card"><div class="report-mini-label">HPP</div><div class="report-mini-value">${reportSigned(p.hpp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Sebelum Alokasi SHU</div><div class="report-mini-value ${p.beforeBagiHasil<0?'report-negative':'report-positive'}">${reportSigned(p.beforeBagiHasil)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Bersih Periode Berjalan</div><div class="report-mini-value ${p.net<0?'report-negative':'report-positive'}">${reportSigned(p.net)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(p.rows)}</tbody></table></div>`;
+                const p=buildProfitLossReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Pendapatan</div><div class="report-mini-value">${reportSigned(p.grossRevenue)}</div></div><div class="report-mini-card"><div class="report-mini-label">HPP</div><div class="report-mini-value">${reportSigned(p.hpp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Sebelum Bagi Hasil</div><div class="report-mini-value ${p.beforeBagiHasil<0?'report-negative':'report-positive'}">${reportSigned(p.beforeBagiHasil)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Bersih Setelah Bagi Hasil</div><div class="report-mini-value ${p.net<0?'report-negative':'report-positive'}">${reportSigned(p.net)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(p.rows)}</tbody></table></div>`;
             } else if(module==='neraca'){
                 const b=buildBalanceSheetReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Total Aset</div><div class="report-mini-value">${reportSigned(b.totalAssets)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban</div><div class="report-mini-value">${reportSigned(b.totalLiab)}</div></div><div class="report-mini-card"><div class="report-mini-label">Ekuitas</div><div class="report-mini-value">${reportSigned(b.equity)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban + Ekuitas</div><div class="report-mini-value">${reportSigned(b.totalLiab+b.equity)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">${escapeHtml(String(Number(start.slice(0,4))-1))}</th><th class="num current-year">${escapeHtml(start.slice(0,4))}</th></tr></thead><tbody>${renderBalanceRows(b.rows,data,true)}</tbody></table></div>`;
             } else if(module==='ekuitas'){
@@ -5928,8 +5897,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <tr><td>Beban Usaha</td><td class="num">${calkMoney(-p.opExpense)}</td></tr>
                         <tr><td>Pendapatan Lain-lain</td><td class="num">${calkMoney(p.otherIncome)}</td></tr>
                         <tr><td>Beban Lain-lain dan Pajak</td><td class="num">${calkMoney(-(p.otherExpense+p.taxExpense))}</td></tr>
-                        <tr><td>Laba/Rugi Sebelum Alokasi SHU</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
-                        <tr class="grand"><td>Laba/Rugi Bersih Periode Berjalan</td><td class="num">${calkMoney(p.net)}</td></tr>
+                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-p.bagiDesa)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-p.bagiMasyarakat)}</td></tr>
+                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(p.net)}</td></tr>
                     </tbody></table></div>
                     <div class="calk-section"><div class="calk-heading">E. PENGUNGKAPAN LAIN</div><div class="calk-note">Lingkup laporan: <strong>${escapeHtml(scopeText)}</strong>. Sistem menghasilkan laporan berdasarkan jurnal dan saldo awal yang tersedia. Untuk laporan gabungan/konsolidasian, akun resiprokal Kantor Pusat dan Unit Usaha diperlakukan sebagai akun eliminasi sesuai mekanisme penggabungan yang digunakan sistem.</div><div class="calk-check ${Math.abs(balanceCheck)<0.01?'ok':'warn'}"><span>Selisih pemeriksaan Total Aset − (Total Kewajiban + Ekuitas)</span><strong>${calkMoney(balanceCheck)}</strong></div></div>
                 </div>`;
@@ -6430,7 +6401,65 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <div class="small mt-1">Buat periode tahunan terlebih dahulu untuk menggunakan Tutup Buku.</div>
                 </div>`}
             </div>
+
+            <div class="panel mt-3">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                    <div>
+                        <div class="fw-semibold"><i class="bi bi-clock-history me-1"></i>Riwayat Laporan</div>
+                        <div class="text-secondary small mt-1">
+                            Laporan periode yang sudah ditutup dapat dibuka kembali dari sini. Angka laporan dibaca sebagai kondisi periode sebelum jurnal Tutup Buku, sehingga laporan tidak menjadi nol setelah masuk periode berikutnya.
+                        </div>
+                    </div>
+                </div>
+                ${(() => {
+                    const history = (periods || []).map(p => {
+                        const closing = closingMap.get(String(p.id));
+                        return {p, closing};
+                    }).filter(x => x.closing?.status === 'closed');
+                    return history.length ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tahun</th>
+                                        <th>Periode</th>
+                                        <th>Ditutup Pada</th>
+                                        <th class="text-end">Laporan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${history.map(({p,closing}) => `
+                                        <tr>
+                                            <td class="fw-semibold">${escapeHtml(String(p.start_date).slice(0,4))}</td>
+                                            <td>${fmtDate(p.start_date)} s/d ${fmtDate(p.end_date)}</td>
+                                            <td>${escapeHtml(fmtDateTime(closing.closed_at || p.closed_at))}</td>
+                                            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary book-report-history" data-id="${escapeHtml(p.id)}"><i class="bi bi-file-earmark-bar-graph me-1"></i>Lihat Laporan</button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>` : `
+                        <div class="text-center text-secondary py-4">
+                            <i class="bi bi-clock-history fs-2"></i>
+                            <div class="mt-2 fw-semibold">Belum ada laporan yang masuk riwayat</div>
+                            <div class="small mt-1">Riwayat akan tersedia setelah Tutup Buku berhasil dilakukan.</div>
+                        </div>`;
+                })()}
+            </div>
         `);
+
+        document.querySelectorAll(".book-report-history").forEach(button => {
+            button.addEventListener("click", async () => {
+                const period = (periods || []).find(p => String(p.id) === String(button.dataset.id));
+                if (!period) return;
+                try {
+                    await openHistoricalReport(period);
+                } catch (err) {
+                    console.error(err);
+                    showAppToast("error", "Gagal membuka riwayat laporan", err.message || String(err));
+                }
+            });
+        });
 
         if (!canManage) return;
 
