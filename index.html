@@ -5601,17 +5601,36 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
         const profitBersih=profitReport.net;
         const donasi=reportGroupTotal(data,'3.4.01.','balances');
-        // Efek SHU diambil dinamis dari akun tujuan yang benar-benar posted.
-        // Akun kredit-normal menambah ekuitas; akun debit-normal (mis. distribusi
-        // kepada pemilik) mengurangi ekuitas. Draft tidak ikut dihitung.
+        // SHU yang sudah diposting tidak boleh dihitung sebagai penambahan
+        // ekuitas dua kali. Laba periode berjalan sudah menjadi sumber kenaikan
+        // ekuitas; bagian yang dibagikan kepada pihak di luar BUMDes mengurangi
+        // saldo laba, sedangkan pemupukan modal/cadangan tetap berada di dalam
+        // ekuitas. Draft tidak ikut dihitung.
         const shuRows=(data.shuItems||[]).map(item=>{
             const account=data.accountMap.get(item.account_id);
             const value=Number(item.nilai||0);
-            return {...item,account,accountEffect:account?reportNormalBalance(account,0,value):0};
+            const code=String(account?.kode||'');
+            const isExternalDistribution=code.startsWith('3.2.');
+            return {
+                ...item,
+                account,
+                isExternalDistribution,
+                accountEffect:isExternalDistribution ? -value : value
+            };
         });
-        const shuEquityEffect=shuRows.reduce((s,item)=>s+Number(item.accountEffect||0),0);
-        const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih+shuEquityEffect;
-        const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
+
+        // Bagian SHU yang benar-benar dibagikan keluar dari BUMDes mengurangi
+        // saldo laba. Alokasi internal seperti pemupukan modal tetap menjadi
+        // bagian dari ekuitas dan tidak boleh ditambahkan lagi di atas laba.
+        const shuExternalDistribution=shuRows
+            .filter(item=>item.isExternalDistribution)
+            .reduce((s,item)=>s+Number(item.nilai||0),0);
+
+        const saldoLabaAkhir=
+            saldoTidak + saldoCad + profitBersih - shuExternalDistribution;
+
+        const equityEnd=
+            modalDesaAkhir + modalMasyAkhir + saldoLabaAkhir + donasi;
         const rows=[
             {type:'section',name:'PENYERTAAN MODAL'},
             {type:'group',name:'Penyertaan modal awal:'},
@@ -5625,7 +5644,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             {name:'Saldo Laba Awal — Tidak Dicadangkan',value:saldoTidak,indent:1},
             {name:'Saldo Laba Awal — Dicadangkan',value:saldoCad,indent:1},
             {name:'Laba (Rugi) periode berjalan',value:profitBersih,indent:1},
-            ...(shuRows.length ? [{type:'group',name:'Alokasi SHU yang telah diputuskan:'},...shuRows.map(item=>({name:item.nama_pos,value:item.accountEffect,indent:2})),{type:'subtotal',name:'Dampak Alokasi SHU terhadap Ekuitas',value:shuEquityEffect}] : []),
+            ...(shuRows.length ? [{type:'group',name:'Alokasi SHU yang telah diputuskan:'},...shuRows.map(item=>({name:item.nama_pos,value:item.accountEffect,indent:2}))] : []),
             {type:'subtotal',name:'Saldo Laba Akhir',value:saldoLabaAkhir},
             {type:'section',name:'MODAL DONASI/SUMBANGAN'},
             {name:'Modal Donasi/Sumbangan',value:donasi,indent:1},
