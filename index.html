@@ -2696,6 +2696,7 @@
         <a class="side-link" href="#" data-module="coa"><i class="bi bi-diagram-3"></i> Bagan Akun (COA)</a>
         <a class="side-link" href="#" data-module="saldoawal"><i class="bi bi-arrow-down-left-square"></i> Saldo Awal</a>
         <a class="side-link" href="#" data-module="penyesuaian"><i class="bi bi-sliders"></i> Penyesuaian</a>
+        <a class="side-link" href="#" data-module="tutupbuku"><i class="bi bi-lock"></i> Tutup Buku</a>
         <a class="side-link" href="#" data-module="aset"><i class="bi bi-box-seam"></i> Aset</a>
 
         <div class="side-section">UNIT USAHA</div>
@@ -3943,6 +3944,7 @@
         coa: ["Bagan Akun (COA)", "Bagan akun dan struktur kode rekening BUM Desa."],
         saldoawal: ["Saldo Awal", "Pengaturan saldo awal periode akuntansi."],
         penyesuaian: ["Penyesuaian", "Jurnal penyesuaian akhir periode."],
+        tutupbuku: ["Tutup Buku", "Pengelolaan penutupan dan pembukaan kembali periode tahunan."],
         aset: ["Aset", "Daftar aset tetap dan penyusutan."],
         unit: ["Daftar Unit", "Daftar Unit Usaha dalam BUMDes."],
         tambahunit: ["Tambah Unit", "Menambahkan Unit Usaha baru."],
@@ -4090,6 +4092,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (module === "saldoawal") return await renderOpeningBalancesModule();
             if (module === "aset") return await renderAssetsModule();
             if (module === "penyesuaian") return await renderAdjustmentsModule();
+            if (module === "tutupbuku") return await renderBookClosingModule();
             if (["labarugi","neraca","aruskas","ekuitas","calk"].includes(module)) {
                 return await renderFinancialReportModule(module);
             }
@@ -5850,6 +5853,156 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     // =========================================================
     // MODUL SALDO AWAL
     // =========================================================
+    async function renderBookClosingModule() {
+        const bumdesId = activeAppProfile.bumdes_id;
+        const canManage = activeAppProfile.role === "admin_pusat";
+
+        const { data: periods, error } = await supabaseClient
+            .from("account_periods")
+            .select("id,period_type,start_date,end_date,status,closed_at,closed_by")
+            .eq("bumdes_id", bumdesId)
+            .eq("period_type", "tahunan")
+            .order("start_date", { ascending: false });
+
+        if (error) throw error;
+
+        const rows = (periods || []).map(p => {
+            const isOpen = p.status === "open";
+            const statusBadge = isOpen
+                ? `<span class="badge text-bg-success">Terbuka</span>`
+                : `<span class="badge text-bg-secondary">Tertutup</span>`;
+
+            let action = `<span class="text-secondary small">Hanya lihat</span>`;
+            if (canManage) {
+                action = isOpen
+                    ? `<button type="button" class="btn btn-sm btn-outline-danger book-close" data-id="${escapeHtml(p.id)}">
+                            <i class="bi bi-lock me-1"></i>Tutup Buku
+                       </button>`
+                    : `<button type="button" class="btn btn-sm btn-outline-success book-reopen" data-id="${escapeHtml(p.id)}">
+                            <i class="bi bi-unlock me-1"></i>Buka Kembali
+                       </button>`;
+            }
+
+            const closedInfo = p.closed_at
+                ? `${fmtDateTime(p.closed_at)}`
+                : "-";
+
+            return `<tr>
+                <td class="fw-semibold">${fmtDate(p.start_date)} s/d ${fmtDate(p.end_date)}</td>
+                <td>${statusBadge}</td>
+                <td>${escapeHtml(closedInfo)}</td>
+                <td class="text-end">${action}</td>
+            </tr>`;
+        }).join("");
+
+        showModuleShell("tutupbuku", `
+            <div class="panel mb-3">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div>
+                        <div class="fw-semibold">Periode Tahunan</div>
+                        <div class="text-secondary small mt-1">
+                            Periode yang ditutup tidak dapat digunakan untuk membuat, mengubah, atau menghapus transaksi.
+                            Periode dapat dibuka kembali oleh Admin Pusat.
+                        </div>
+                    </div>
+                    ${canManage
+                        ? `<span class="badge text-bg-primary">Admin Pusat</span>`
+                        : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+                </div>
+            </div>
+
+            <div class="panel">
+                ${periods?.length ? `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Periode</th>
+                                <th>Status</th>
+                                <th>Ditutup Pada</th>
+                                <th class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>` : `
+                <div class="text-center text-secondary py-5">
+                    <i class="bi bi-calendar3 fs-2"></i>
+                    <div class="mt-2 fw-semibold">Belum ada periode tahunan</div>
+                    <div class="small mt-1">Buat periode tahunan terlebih dahulu untuk menggunakan Tutup Buku.</div>
+                </div>`}
+            </div>
+        `);
+
+        if (!canManage) return;
+
+        const setBusy = (button, busy, label) => {
+            if (!button) return;
+            button.disabled = busy;
+            button.innerHTML = busy
+                ? `<span class="spinner-border spinner-border-sm me-1"></span>Memproses...`
+                : label;
+        };
+
+        document.querySelectorAll(".book-close").forEach(button => {
+            button.addEventListener("click", async () => {
+                const periodId = button.dataset.id;
+                if (!periodId) return;
+
+                const confirmed = confirm(
+                    "Tutup buku periode ini? Setelah ditutup, transaksi pada periode tersebut tidak dapat dibuat, diubah, atau dihapus sampai periode dibuka kembali."
+                );
+                if (!confirmed) return;
+
+                const original = `<i class="bi bi-lock me-1"></i>Tutup Buku`;
+                setBusy(button, true, original);
+
+                try {
+                    const { error: rpcError } = await supabaseClient.rpc("close_account_period", {
+                        p_period_id: periodId
+                    });
+                    if (rpcError) throw rpcError;
+
+                    showAppToast("success", "Buku berhasil ditutup", "Periode tahunan telah ditutup.");
+                    await renderBookClosingModule();
+                } catch (err) {
+                    console.error(err);
+                    showAppToast("error", "Gagal menutup buku", err.message || String(err));
+                    setBusy(button, false, original);
+                }
+            });
+        });
+
+        document.querySelectorAll(".book-reopen").forEach(button => {
+            button.addEventListener("click", async () => {
+                const periodId = button.dataset.id;
+                if (!periodId) return;
+
+                const confirmed = confirm(
+                    "Buka kembali periode ini? Transaksi pada periode tersebut akan dapat dikelola kembali sesuai hak akses."
+                );
+                if (!confirmed) return;
+
+                const original = `<i class="bi bi-unlock me-1"></i>Buka Kembali`;
+                setBusy(button, true, original);
+
+                try {
+                    const { error: rpcError } = await supabaseClient.rpc("reopen_account_period", {
+                        p_period_id: periodId
+                    });
+                    if (rpcError) throw rpcError;
+
+                    showAppToast("success", "Buku berhasil dibuka kembali", "Periode tahunan kembali terbuka.");
+                    await renderBookClosingModule();
+                } catch (err) {
+                    console.error(err);
+                    showAppToast("error", "Gagal membuka kembali buku", err.message || String(err));
+                    setBusy(button, false, original);
+                }
+            });
+        });
+    }
+
     async function renderOpeningBalancesModule() {
         const bumdesId = activeAppProfile.bumdes_id;
 
