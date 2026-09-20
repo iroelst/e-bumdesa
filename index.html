@@ -3979,6 +3979,7 @@
     let activeAppProfile = null;
     let activeAppBumdes = null;
     let activeReportUnits = [];
+    let activeReportHistory = null;
 
     function setActiveMenu(module) {
         document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
@@ -4095,8 +4096,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         return `<div class="panel text-center py-5"><i class="bi bi-inbox fs-2 text-secondary"></i><div class="mt-2 fw-semibold">${escapeHtml(text)}</div><div class="text-secondary small mt-1">Data akan tampil setelah modul mulai digunakan.</div></div>`;
     }
 
-    async function openAppModule(module) {
+    async function openHistoricalReport(period) {
+        if (!period?.start_date || !period?.end_date) return;
+        activeReportHistory = {
+            periodId: period.id,
+            startDate: period.start_date,
+            endDate: period.end_date,
+            year: String(period.start_date).slice(0, 4)
+        };
+        await openAppModule("labarugi", true);
+    }
+
+    async function openAppModule(module, preserveReportHistory = false) {
         if (!activeAppProfile?.bumdes_id) return;
+        const reportModules = ["labarugi","neraca","aruskas","ekuitas","calk"];
+        if (!reportModules.includes(module) || !preserveReportHistory) activeReportHistory = null;
         if (module === "dashboard") { showDashboardModule(); return; }
         showModuleShell(module, moduleLoading());
 
@@ -5308,6 +5322,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     async function loadFinancialReportData({module,startDate,endDate,scope}){
         const bumdesId=activeAppProfile.bumdes_id;
+        const historicalMode = Boolean(
+            activeReportHistory
+            && String(activeReportHistory.startDate) === String(startDate)
+            && String(activeReportHistory.endDate) === String(endDate)
+        );
         const startYear=Number(String(startDate).slice(0,4));
         const endYear=Number(String(endDate).slice(0,4));
         const scopeUnit=scope.startsWith('unit:')?scope.slice(5):null;
@@ -5328,6 +5347,22 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             .eq('bumdes_id',bumdesId).gte('journal_date',`${startYear}-01-01`).lte('journal_date',endDate).order('journal_date',{ascending:true});
         if(scopeUnit) jQuery=jQuery.eq('unit_id',scopeUnit);
         else if(isPusat) jQuery=jQuery.is('unit_id',null);
+
+        // Riwayat laporan menggunakan kondisi periode sebelum jurnal penutupan.
+        // Jurnal penutupan dan pembukaan kembali tetap tersimpan sebagai transaksi akuntansi,
+        // tetapi tidak boleh membuat Laporan periode yang sudah ditutup menjadi Rp0.
+        if(historicalMode){
+            const {data:closingTx,error:closingTxError}=await supabaseClient
+                .from('transactions')
+                .select('id')
+                .eq('bumdes_id',bumdesId)
+                .in('transaction_type',['penutupan_buku','pembukaan_kembali_buku']);
+            if(closingTxError) throw closingTxError;
+            const excludedIds=(closingTx||[]).map(x=>x.id).filter(Boolean);
+            if(excludedIds.length){
+                jQuery=jQuery.not('transaction_id','in',`(${excludedIds.join(',')})`);
+            }
+        }
         const journals=await fetchReportRows(jQuery);
 
         // Saldo awal tahun untuk posisi keuangan.
@@ -5752,7 +5787,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
         if(uErr) throw uErr;
         activeReportUnits = units || [];
-        const preset=reportPeriodPreset('tahunan');
+        const defaultPreset=reportPeriodPreset('tahunan');
+        const historyPreset=activeReportHistory && activeReportHistory.startDate && activeReportHistory.endDate
+            ? {start:activeReportHistory.startDate,end:activeReportHistory.endDate}
+            : defaultPreset;
+        const preset=historyPreset;
         const scopeOptions=reportScopeOptions(activeAppProfile,units||[]);
         const reportNames={labarugi:'Laporan Laba Rugi',neraca:'Laporan Posisi Keuangan (Neraca)',aruskas:'Laporan Arus Kas',ekuitas:'Laporan Perubahan Ekuitas',calk:'Catatan atas Laporan Keuangan (CALK)'};
         showModuleShell(module,`<div class="report-page">
@@ -5761,20 +5800,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     ${Object.entries(reportNames).map(([k,v])=>`<button class="report-tab ${k===module?'active':''}" data-report-tab="${k}">${escapeHtml(v.replace('Laporan ',''))}</button>`).join('')}
                 </div>
                 <div class="report-control-grid">
-                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" selected>Tahunan</option><option value="custom">Custom</option></select></div>
+                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" ${activeReportHistory?'':'selected'}>Tahunan</option><option value="custom" ${activeReportHistory?'selected':''}>Custom</option></select></div>
                     <div><div class="report-control-label">Dari</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
                     <div><div class="report-control-label">Sampai</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
                     <div><div class="report-control-label">Lingkup Laporan</div><select id="reportScope" class="form-select">${scopeOptions}</select></div>
                     <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>Cetak / Simpan PDF</button></div>
                 </div>
                 <div class="report-toolbar-note mt-2"><i class="bi bi-info-circle me-1"></i>Format dan susunan mengikuti contoh halaman 42–55 Pedoman Aplikasi. Akun diambil dari COA e-BUMDesa.</div>
+                ${activeReportHistory ? `<div class="alert alert-info py-2 px-3 mt-2 mb-0 no-print"><i class="bi bi-clock-history me-1"></i><strong>Riwayat Laporan ${escapeHtml(activeReportHistory.year)}</strong> — laporan menampilkan kondisi periode sebelum jurnal Tutup Buku, sehingga tidak menjadi nol setelah periode berikutnya dimulai.</div>` : ''}
             </div>
             <div id="financialReportOutput" class="report-card"><div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menyiapkan laporan...</div></div>
         </div>`);
 
         const presetEl=$('reportPreset'), startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
         presetEl.addEventListener('change',()=>{if(presetEl.value!=='custom'){const p=reportPeriodPreset(presetEl.value);startEl.value=p.start;endEl.value=p.end;}});
-        document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab)));
+        document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab, true)));
         $('btnPrintReport').addEventListener('click', async ()=>{
             try{
                 const images=[...document.querySelectorAll('#financialReportOutput img')];
@@ -6361,7 +6401,65 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <div class="small mt-1">Buat periode tahunan terlebih dahulu untuk menggunakan Tutup Buku.</div>
                 </div>`}
             </div>
+
+            <div class="panel mt-3">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                    <div>
+                        <div class="fw-semibold"><i class="bi bi-clock-history me-1"></i>Riwayat Laporan</div>
+                        <div class="text-secondary small mt-1">
+                            Laporan periode yang sudah ditutup dapat dibuka kembali dari sini. Angka laporan dibaca sebagai kondisi periode sebelum jurnal Tutup Buku, sehingga laporan tidak menjadi nol setelah masuk periode berikutnya.
+                        </div>
+                    </div>
+                </div>
+                ${(() => {
+                    const history = (periods || []).map(p => {
+                        const closing = closingMap.get(String(p.id));
+                        return {p, closing};
+                    }).filter(x => x.closing?.status === 'closed');
+                    return history.length ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tahun</th>
+                                        <th>Periode</th>
+                                        <th>Ditutup Pada</th>
+                                        <th class="text-end">Laporan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${history.map(({p,closing}) => `
+                                        <tr>
+                                            <td class="fw-semibold">${escapeHtml(String(p.start_date).slice(0,4))}</td>
+                                            <td>${fmtDate(p.start_date)} s/d ${fmtDate(p.end_date)}</td>
+                                            <td>${escapeHtml(fmtDateTime(closing.closed_at || p.closed_at))}</td>
+                                            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary book-report-history" data-id="${escapeHtml(p.id)}"><i class="bi bi-file-earmark-bar-graph me-1"></i>Lihat Laporan</button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>` : `
+                        <div class="text-center text-secondary py-4">
+                            <i class="bi bi-clock-history fs-2"></i>
+                            <div class="mt-2 fw-semibold">Belum ada laporan yang masuk riwayat</div>
+                            <div class="small mt-1">Riwayat akan tersedia setelah Tutup Buku berhasil dilakukan.</div>
+                        </div>`;
+                })()}
+            </div>
         `);
+
+        document.querySelectorAll(".book-report-history").forEach(button => {
+            button.addEventListener("click", async () => {
+                const period = (periods || []).find(p => String(p.id) === String(button.dataset.id));
+                if (!period) return;
+                try {
+                    await openHistoricalReport(period);
+                } catch (err) {
+                    console.error(err);
+                    showAppToast("error", "Gagal membuka riwayat laporan", err.message || String(err));
+                }
+            });
+        });
 
         if (!canManage) return;
 
