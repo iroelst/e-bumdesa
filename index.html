@@ -4285,22 +4285,51 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             throw new Error("Logo tidak dapat dikompres sampai maksimal 100 KB. Silakan gunakan gambar yang lebih sederhana.");
         }
 
+        async function persistLogoKop(dataUrl){
+            const { data, error } = await supabaseClient
+                .from("bumdes")
+                .update({ logo_kop: dataUrl })
+                .eq("id", bumdesId)
+                .select("id,logo_kop")
+                .maybeSingle();
+            if(error) throw error;
+            if(!data || data.id !== bumdesId) throw new Error("Logo tidak berhasil disimpan ke profil BUM Desa. Periksa hak akses database.");
+            pendingLogoKop=data.logo_kop || null;
+            logoChanged=true;
+            activeAppBumdes={...(activeAppBumdes||{}), logo_kop: pendingLogoKop};
+            return pendingLogoKop;
+        }
+
         logoFileEl?.addEventListener("change", async ()=>{
             const file=logoFileEl.files?.[0]; if(!file) return;
-            if(logoMsgEl) { logoMsgEl.textContent="Memproses logo..."; logoMsgEl.className="small mt-1 text-secondary"; }
+            if(logoMsgEl) { logoMsgEl.textContent="Memproses dan menyimpan logo..."; logoMsgEl.className="small mt-1 text-secondary"; }
             try{
                 const dataUrl=await compressLogoTo100KB(file);
-                pendingLogoKop=dataUrl; logoChanged=true; renderLogoPreview(dataUrl);
-                const bytes=Math.floor((dataUrl.length-dataUrl.indexOf(",")-1)*3/4);
-                if(logoMsgEl){ logoMsgEl.textContent=`Logo siap disimpan (${Math.max(1,Math.round(bytes/1024))} KB).`; logoMsgEl.className="small mt-1 text-success"; }
+                renderLogoPreview(dataUrl);
+                const savedLogo=await persistLogoKop(dataUrl);
+                const bytes=Math.floor((savedLogo.length-savedLogo.indexOf(",")-1)*3/4);
+                if(logoMsgEl){ logoMsgEl.textContent=`Logo tersimpan di profil BUM Desa (${Math.max(1,Math.round(bytes/1024))} KB).`; logoMsgEl.className="small mt-1 text-success"; }
+                showAppToast("success","Logo tersimpan","Logo BUM Desa sudah tersimpan dan akan digunakan pada kop laporan/dokumen.");
             }catch(err){
                 logoFileEl.value="";
+                renderLogoPreview(pendingLogoKop);
                 if(logoMsgEl){ logoMsgEl.textContent=err.message||String(err); logoMsgEl.className="small mt-1 text-danger"; }
             }
         });
-        removeLogoBtn?.addEventListener("click", ()=>{
-            pendingLogoKop=null; logoChanged=true; if(logoFileEl) logoFileEl.value=""; renderLogoPreview(null);
-            if(logoMsgEl){ logoMsgEl.textContent="Logo akan dihapus saat disimpan."; logoMsgEl.className="small mt-1 text-danger"; }
+        removeLogoBtn?.addEventListener("click", async ()=>{
+            const previous=pendingLogoKop;
+            pendingLogoKop=null; renderLogoPreview(null);
+            if(logoMsgEl){ logoMsgEl.textContent="Menghapus logo..."; logoMsgEl.className="small mt-1 text-secondary"; }
+            try{
+                await persistLogoKop(null);
+                if(logoFileEl) logoFileEl.value="";
+                if(logoMsgEl){ logoMsgEl.textContent="Logo kop sudah dihapus dari profil."; logoMsgEl.className="small mt-1 text-success"; }
+                showAppToast("success","Logo dihapus","Logo BUM Desa sudah dihapus dari profil.");
+            }catch(err){
+                pendingLogoKop=previous;
+                renderLogoPreview(previous);
+                if(logoMsgEl){ logoMsgEl.textContent=err.message||String(err); logoMsgEl.className="small mt-1 text-danger"; }
+            }
         });
 
         $("saveSettingsBtn").addEventListener("click", async ()=>{
@@ -4317,7 +4346,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     sekretaris:$("orgSekretaris").value.trim(),
                     bendahara:$("orgBendahara").value.trim()
                 };
-                const {error}=await supabaseClient.from("bumdes").update({
+                const {data:updatedBumdes,error}=await supabaseClient.from("bumdes").update({
                     nama:$("setNama").value.trim(),
                     kode:$("setKode").value.trim(),
                     no_ahu:$("setAhu").value.trim() || null,
@@ -4328,8 +4357,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     provinsi:$("setProvinsi").value.trim(),
                     struktur_organisasi:structure,
                     ...(logoChanged ? { logo_kop: pendingLogoKop } : {})
-                }).eq("id",bumdesId);
+                }).eq("id",bumdesId).select("id,nama,kode,no_ahu,desa,kecamatan,kabupaten,provinsi,alamat,tahun_buku,struktur_organisasi,logo_kop").maybeSingle();
                 if(error) throw error;
+                if(!updatedBumdes || updatedBumdes.id !== bumdesId) throw new Error("Profil BUM Desa tidak berhasil diperbarui. Periksa hak akses database.");
 
                 const cards=document.querySelectorAll(".org-unit-card");
                 for(const card of cards){
@@ -4342,7 +4372,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     if(e) throw e;
                 }
 
-                activeAppBumdes={...(activeAppBumdes||{}),...bumdes,nama:$("setNama").value.trim(),kode:$("setKode").value.trim(),no_ahu:$("setAhu").value.trim()||null,alamat:$("setAlamat").value.trim(),desa:$("setDesa").value.trim(),kecamatan:$("setKecamatan").value.trim(),kabupaten:$("setKabupaten").value.trim(),provinsi:$("setProvinsi").value.trim(),struktur_organisasi:structure,logo_kop:logoChanged?pendingLogoKop:(activeAppBumdes?.logo_kop||null)};
+                activeAppBumdes={...(activeAppBumdes||{}),...(updatedBumdes||{}),nama:$("setNama").value.trim(),kode:$("setKode").value.trim(),no_ahu:$("setAhu").value.trim()||null,alamat:$("setAlamat").value.trim(),desa:$("setDesa").value.trim(),kecamatan:$("setKecamatan").value.trim(),kabupaten:$("setKabupaten").value.trim(),provinsi:$("setProvinsi").value.trim(),struktur_organisasi:structure,logo_kop:logoChanged?pendingLogoKop:(updatedBumdes?.logo_kop||activeAppBumdes?.logo_kop||null)};
                 $("topBumdesName").textContent=activeAppBumdes.nama||"";
                 $("infoBumdesName").textContent=activeAppBumdes.nama||"-";
                 $("infoBumdesCode").textContent=activeAppBumdes.kode||"-";
