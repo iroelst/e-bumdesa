@@ -6220,7 +6220,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 <td><span class="badge text-bg-${u.status === "aktif" ? "success" : "secondary"}">${escapeHtml(u.status || "-")}</span></td>
                 ${canManageUnits ? `<td class="text-end text-nowrap">
                     <button type="button" class="btn btn-sm btn-outline-primary me-1" data-edit-unit="${escapeHtml(u.id)}" title="Edit Unit"><i class="bi bi-pencil-square"></i></button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" data-delete-unit="${escapeHtml(u.id)}" title="Hapus Unit"><i class="bi bi-trash3"></i></button>
+                    ${u.status === "nonaktif"
+                        ? `<button type="button" class="btn btn-sm btn-outline-success" data-activate-unit="${escapeHtml(u.id)}" title="Aktifkan Unit"><i class="bi bi-power"></i></button>`
+                        : `<button type="button" class="btn btn-sm btn-outline-danger" data-deactivate-unit="${escapeHtml(u.id)}" title="Nonaktifkan Unit"><i class="bi bi-power"></i></button>`}
                 </td>` : ""}
             </tr>`).join("");
 
@@ -6248,10 +6250,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             });
         });
 
-        modulePage.querySelectorAll("[data-delete-unit]").forEach(button => {
+        modulePage.querySelectorAll("[data-deactivate-unit]").forEach(button => {
             button.addEventListener("click", async () => {
-                const unit = data.find(u => String(u.id) === String(button.dataset.deleteUnit));
-                if (unit) await deleteUnit(unit, button);
+                const unit = data.find(u => String(u.id) === String(button.dataset.deactivateUnit));
+                if (unit) await deactivateUnit(unit, button);
+            });
+        });
+
+        modulePage.querySelectorAll("[data-activate-unit]").forEach(button => {
+            button.addEventListener("click", async () => {
+                const unit = data.find(u => String(u.id) === String(button.dataset.activateUnit));
+                if (unit) await activateUnit(unit, button);
             });
         });
     }
@@ -6324,15 +6333,20 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 };
                 if (!payload.nama_unit) throw new Error("Nama Unit Usaha wajib diisi.");
 
-                const { error } = await supabaseClient
+                const { data: updatedUnit, error } = await supabaseClient
                     .from("units")
                     .update(payload)
                     .eq("id", unit.id)
-                    .eq("bumdes_id", activeAppProfile.bumdes_id);
+                    .eq("bumdes_id", activeAppProfile.bumdes_id)
+                    .select("id,nama_unit,kode_unit,alamat,status,kepala_unit,sekretaris_unit,bendahara_unit")
+                    .maybeSingle();
                 if (error) throw error;
+                if (!updatedUnit) {
+                    throw new Error("Data Unit tidak berubah. Periksa hak akses pembaruan Unit Usaha pada database.");
+                }
 
                 closeEditUnitModal();
-                showAppToast("success", "Unit berhasil diperbarui", `${payload.nama_unit} sudah diperbarui.`);
+                showAppToast("success", "Unit berhasil diperbarui", `${updatedUnit.nama_unit} sudah diperbarui.`);
                 await renderUnitsModule();
             } catch (err) {
                 console.error(err);
@@ -6343,29 +6357,65 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         });
     }
 
-    async function deleteUnit(unit, button) {
+    async function deactivateUnit(unit, button) {
         if (activeAppProfile?.role !== "admin_pusat") return;
 
         const confirmed = window.confirm(
-            `Hapus Unit Usaha "${unit.nama_unit}" (${unit.kode_unit || "tanpa kode"})?\n\nData unit akan dihapus dan tindakan ini tidak dapat dibatalkan.`
+            `Nonaktifkan Unit Usaha "${unit.nama_unit}" (${unit.kode_unit || "tanpa kode"})?\n\nUnit tidak akan dihapus. Data dan histori transaksi tetap tersimpan, tetapi unit tidak lagi berstatus aktif.`
         );
         if (!confirmed) return;
 
         button.disabled = true;
         try {
-            const { error } = await supabaseClient
+            const { data: updatedUnit, error } = await supabaseClient
                 .from("units")
-                .delete()
+                .update({ status: "nonaktif" })
                 .eq("id", unit.id)
-                .eq("bumdes_id", activeAppProfile.bumdes_id);
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .select("id,nama_unit,status")
+                .maybeSingle();
             if (error) throw error;
+            if (!updatedUnit) {
+                throw new Error("Unit tidak berhasil dinonaktifkan. Periksa hak akses pembaruan Unit Usaha pada database.");
+            }
 
-            showAppToast("success", "Unit berhasil dihapus", `${unit.nama_unit} telah dihapus dari daftar unit.`);
+            showAppToast("success", "Unit dinonaktifkan", `${updatedUnit.nama_unit} sekarang berstatus nonaktif.`);
             await renderUnitsModule();
         } catch (err) {
             console.error(err);
             button.disabled = false;
-            showAppToast("error", "Gagal menghapus Unit Usaha", err.message || String(err));
+            showAppToast("error", "Gagal menonaktifkan Unit Usaha", err.message || String(err));
+        }
+    }
+
+    async function activateUnit(unit, button) {
+        if (activeAppProfile?.role !== "admin_pusat") return;
+
+        const confirmed = window.confirm(
+            `Aktifkan kembali Unit Usaha "${unit.nama_unit}" (${unit.kode_unit || "tanpa kode"})?\n\nUnit akan kembali berstatus aktif dan dapat digunakan pada modul yang hanya menampilkan Unit aktif.`
+        );
+        if (!confirmed) return;
+
+        button.disabled = true;
+        try {
+            const { data: updatedUnit, error } = await supabaseClient
+                .from("units")
+                .update({ status: "aktif" })
+                .eq("id", unit.id)
+                .eq("bumdes_id", activeAppProfile.bumdes_id)
+                .select("id,nama_unit,status")
+                .maybeSingle();
+            if (error) throw error;
+            if (!updatedUnit) {
+                throw new Error("Unit tidak berhasil diaktifkan. Periksa hak akses pembaruan Unit Usaha pada database.");
+            }
+
+            showAppToast("success", "Unit diaktifkan", `${updatedUnit.nama_unit} sekarang kembali berstatus aktif.`);
+            await renderUnitsModule();
+        } catch (err) {
+            console.error(err);
+            button.disabled = false;
+            showAppToast("error", "Gagal mengaktifkan Unit Usaha", err.message || String(err));
         }
     }
 
