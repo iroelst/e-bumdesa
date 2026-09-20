@@ -3569,7 +3569,7 @@
         // terpotong oleh batas default query.
         let journalQuery = supabaseClient
             .from("journals")
-            .select("account_id,unit_id,journal_date,debit,credit")
+            .select("transaction_id,account_id,unit_id,journal_date,debit,credit")
             .eq("bumdes_id", bumdesId)
             .gte("journal_date", `${year}-01-01`)
             .lte("journal_date", `${year}-${String(month).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`)
@@ -3579,7 +3579,12 @@
             journalQuery = journalQuery.eq("unit_id", allowedUnitId);
         }
 
-        const journals = await fetchAllDashboardRows(journalQuery);
+        let journals = await fetchAllDashboardRows(journalQuery);
+
+        const { data: dashboardClosingTransactions, error: dashboardClosingError } = await supabaseClient.from("transactions").select("id").eq("bumdes_id", bumdesId).in("transaction_type", ["penutupan_buku", "pembukaan_kembali_buku"]);
+        if (dashboardClosingError) throw dashboardClosingError;
+        const dashboardClosingIds = new Set((dashboardClosingTransactions || []).map(row => String(row.id)));
+        if (dashboardClosingIds.size) journals = journals.filter(row => !dashboardClosingIds.has(String(row.transaction_id || "")));
 
         // Saldo awal tahun dipakai untuk kartu posisi keuangan.
         // Jika periode tahunan belum dibuat, kartu tetap dihitung dari jurnal.
@@ -5557,15 +5562,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // pada Kantor Pusat akun RK Unit Usaha berada di Aset Lancar. Pada konsolidasi
         // kedua akun resiprokal sudah dieliminasi.
         const equityBase=(reportGroupTotal(data,'3.1.','balances')+
-            reportGroupTotal(data,'3.2.','balances')+
             reportGroupTotal(data,'3.3.','balances')+
             reportGroupTotal(data,'3.4.','balances')+
-            (String(data.scope||'').startsWith('unit:') ? reportGroupTotal(data,'3.8.','balances') : 0));
+            (data.scope==='unit' ? reportGroupTotal(data,'3.8.','balances') : 0));
         const priorEquityBase=(reportGroupTotal(data,'3.1.','priors')+
-            reportGroupTotal(data,'3.2.','priors')+
             reportGroupTotal(data,'3.3.','priors')+
             reportGroupTotal(data,'3.4.','priors')+
-            (String(data.scope||'').startsWith('unit:') ? reportGroupTotal(data,'3.8.','priors') : 0));
+            (data.scope==='unit' ? reportGroupTotal(data,'3.8.','priors') : 0));
         const p=buildProfitLossReport(data);
         // Jika laporan belum melalui jurnal penutup, laba/rugi bersih periode berjalan
         // menambah ekuitas. Jika sudah ditutup dan laba telah masuk saldo laba, current
@@ -5589,21 +5592,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const modalMasyAkhir=modalMasyAwal+modalMasyTambah;
         const saldoTidak=reportGroupTotal(data,'3.3.01.01','priors');
         const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
-        const ownerBagiDesaFromBalances=Math.max(0,-reportGroupTotal(data,'3.2.01.','balances'));
-        const ownerBagiMasyarakatFromBalances=Math.max(0,-reportGroupTotal(data,'3.2.02.','balances'));
-        const bagiDesa=profitReport.bagiDesa || ownerBagiDesaFromBalances;
-        const bagiMasyarakat=profitReport.bagiMasyarakat || ownerBagiMasyarakatFromBalances;
-        const retainedMovement=reportGroupTotal(data,'3.3.','movements');
-        const profitBersih=Math.abs(profitReport.net)>0.000001
-            ? profitReport.net
-            : retainedMovement+bagiDesa+bagiMasyarakat;
+        const bagiDesa=profitReport.bagiDesa;
+        const bagiMasyarakat=profitReport.bagiMasyarakat;
+        const profitBersih=profitReport.net;
         const donasi=reportGroupTotal(data,'3.4.01.','balances');
         const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
-        const equityEnd=reportGroupTotal(data,'3.1.','balances')+
-            reportGroupTotal(data,'3.2.','balances')+
-            reportGroupTotal(data,'3.3.','balances')+
-            reportGroupTotal(data,'3.4.','balances')+
-            (String(data.scope||'').startsWith('unit:') ? reportGroupTotal(data,'3.8.','balances') : 0);
+        const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
         const rows=[
             {type:'section',name:'PENYERTAAN MODAL'},
             {type:'group',name:'Penyertaan modal awal:'},
@@ -5886,20 +5880,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         ? 'Gabungan/Konsolidasian'
                         : (selectedUnit?.nama_unit ? `Unit Usaha — ${selectedUnit.nama_unit}` : 'Unit Usaha');
                 const balanceCheck=b.totalAssets-(b.totalLiab+b.equity);
-                const calkProfitBeforeBagi = Math.abs(p.beforeBagiHasil) > 0.000001
-                    ? p.beforeBagiHasil
-                    : Math.max(0,
-                        reportGroupTotal(data,'3.3.','movements')
-                        - Math.min(0,reportGroupTotal(data,'3.2.01.','movements'))
-                        - Math.min(0,reportGroupTotal(data,'3.2.02.','movements'))
-                    );
-                const calkBagiDesa = Math.abs(p.beforeBagiHasil) > 0.000001
-                    ? p.bagiDesa
-                    : Math.max(0,-reportGroupTotal(data,'3.2.01.','movements'));
-                const calkBagiMasyarakat = Math.abs(p.beforeBagiHasil) > 0.000001
-                    ? p.bagiMasyarakat
-                    : Math.max(0,-reportGroupTotal(data,'3.2.02.','movements'));
-                const calkNet = calkProfitBeforeBagi-calkBagiDesa-calkBagiMasyarakat;
                 html+=`<div class="calk-wrap">
                     <div class="calk-section"><div class="calk-heading">A. PERNYATAAN LAPORAN KEUANGAN</div><div class="calk-note">Laporan keuangan ${escapeHtml(scopeText)} untuk periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} disusun dengan mengacu pada Panduan Penyusunan Laporan Keuangan BUM Desa sebagaimana Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi Republik Indonesia Nomor 136 Tahun 2022, dengan akun yang bersumber dari COA e-BUMDesa.</div></div>
                     <div class="calk-section"><div class="calk-heading">B. DASAR PENYUSUNAN LAPORAN KEUANGAN</div><ol class="calk-list"><li>Laporan menggunakan data transaksi, jurnal, dan saldo awal yang tersedia pada sistem e-BUMDesa.</li><li>Laporan keuangan disusun berdasarkan basis akrual, sedangkan laporan arus kas disusun berbasis kas.</li><li>Periode akuntansi tahunan adalah 1 Januari sampai dengan 31 Desember; untuk laporan selain tahunan, tanggal mengikuti periode yang dipilih pengguna.</li><li>Nilai disajikan dalam Rupiah.</li></ol></div>
@@ -5922,10 +5902,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <tr><td>Beban Usaha</td><td class="num">${calkMoney(-p.opExpense)}</td></tr>
                         <tr><td>Pendapatan Lain-lain</td><td class="num">${calkMoney(p.otherIncome)}</td></tr>
                         <tr><td>Beban Lain-lain dan Pajak</td><td class="num">${calkMoney(-(p.otherExpense+p.taxExpense))}</td></tr>
-                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(calkProfitBeforeBagi)}</td></tr>
-                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-calkBagiDesa)}</td></tr>
-                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-calkBagiMasyarakat)}</td></tr>
-                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(calkNet)}</td></tr>
+                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-p.bagiDesa)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-p.bagiMasyarakat)}</td></tr>
+                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(p.net)}</td></tr>
                     </tbody></table></div>
                     <div class="calk-section"><div class="calk-heading">E. PENGUNGKAPAN LAIN</div><div class="calk-note">Lingkup laporan: <strong>${escapeHtml(scopeText)}</strong>. Sistem menghasilkan laporan berdasarkan jurnal dan saldo awal yang tersedia. Untuk laporan gabungan/konsolidasian, akun resiprokal Kantor Pusat dan Unit Usaha diperlakukan sebagai akun eliminasi sesuai mekanisme penggabungan yang digunakan sistem.</div><div class="calk-check ${Math.abs(balanceCheck)<0.01?'ok':'warn'}"><span>Selisih pemeriksaan Total Aset − (Total Kewajiban + Ekuitas)</span><strong>${calkMoney(balanceCheck)}</strong></div></div>
                 </div>`;
@@ -6075,18 +6055,27 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         const formatMoney = value => rupiah(Number(value || 0));
 
-        const accountSelectHtml = selectedId => `
+        const accountSelectHtml = (selectedId, rowIndex) => {
+            const usedByOtherRows = new Set(itemState.map((item, idx) => idx === rowIndex ? null : String(item.account_id || "")).filter(Boolean));
+            return `
             <select class="form-select form-select-sm shu-account" ${!canManage ? "disabled" : ""}>
                 <option value="">Pilih akun...</option>
-                ${targetAccounts.map(a => `<option value="${escapeHtml(a.id)}" ${String(a.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)} (${escapeHtml(a.account_type || "lain_lain")})</option>`).join("")}
+                ${targetAccounts.map(a => { const id=String(a.id); const selected=id===String(selectedId||""); const duplicate=usedByOtherRows.has(id); return `<option value="${escapeHtml(a.id)}" ${selected ? "selected" : ""} ${duplicate ? "disabled" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)} (${escapeHtml(a.account_type || "lain_lain")})${duplicate ? " — sudah digunakan" : ""}</option>`; }).join("")}
             </select>`;
+        };
+
+        const hasDuplicateDestinationAccounts = () => {
+            const seen = new Set();
+            for (const item of itemState) { const id=String(item.account_id||"").trim(); if (!id) continue; if (seen.has(id)) return true; seen.add(id); }
+            return false;
+        };
 
         const renderRows = () => {
             if (!body) return;
             body.innerHTML = itemState.length ? itemState.map((item, index) => `
                 <tr data-index="${index}">
                     <td><input type="text" class="form-control form-control-sm shu-name" value="${escapeHtml(item.nama_pos || "")}" placeholder="Nama pos" ${!canManage ? "disabled" : ""}></td>
-                    <td>${accountSelectHtml(item.account_id)}</td>
+                    <td>${accountSelectHtml(item.account_id, index)}</td>
                     <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}" ${!canManage ? "disabled" : ""}><span class="input-group-text">%</span></div></td>
                     <td class="text-end fw-semibold shu-value">${formatMoney(item.nilai || 0)}</td>
                     ${canManage ? `<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>` : ""}
@@ -6107,19 +6096,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const valueOk = Math.abs(totalValue - currentProfit) < 0.01;
             const periodOk = periodSelect?.value && currentPeriodStatus === "open";
             const rowsOk = itemState.length > 0 && itemState.every(item => String(item.nama_pos || "").trim() && item.account_id && Number(item.persentase) > 0 && Number(item.persentase) <= 100);
+            const duplicateAccounts = hasDuplicateDestinationAccounts();
 
             totalPctEl.className = pctOk ? "text-success" : "text-danger";
             totalValueEl.className = valueOk ? "text-success" : "text-danger";
             pctMessage.textContent = pctOk ? "Persentase sudah tepat 100%." : "Total persentase harus tepat 100%.";
             valueMessage.textContent = valueOk ? "Total pembagian sesuai dengan laba bersih." : "Total pembagian harus sama dengan laba bersih.";
             pctMessage.className = `small mt-1 ${pctOk ? "text-success" : "text-danger"}`;
+            if (duplicateAccounts) { pctMessage.textContent = "Akun tujuan yang sama tidak boleh digunakan lebih dari satu kali dalam satu pembagian SHU."; pctMessage.className = "small mt-1 text-danger"; }
             valueMessage.className = `small mt-1 ${valueOk ? "text-success" : "text-danger"}`;
 
             body?.querySelectorAll(".shu-value").forEach((el, index) => {
                 el.textContent = formatMoney(values[index] || 0);
             });
 
-            if (saveButton) saveButton.disabled = !canManage || !periodOk || currentProfit <= 0 || !pctOk || !valueOk || !rowsOk;
+            if (saveButton) saveButton.disabled = !canManage || !periodOk || currentProfit <= 0 || !pctOk || !valueOk || !rowsOk || duplicateAccounts;
         };
 
         const addRow = (item = {}) => {
@@ -6196,8 +6187,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             }
 
             if (!itemState.length && canManage && currentPeriodStatus === "open" && currentProfit > 0) {
-                addRow();
-                addRow();
+                const defaultAccount = targetAccounts.find(account => String(account.kode || "") === "3.3.01.01");
+                itemState = [{ nama_pos: "Bagi Hasil SHU", account_id: defaultAccount?.id || "", persentase: 100, nilai: currentProfit }];
+                renderRows();
+                recalc();
             } else {
                 renderRows();
                 recalc();
@@ -6232,7 +6225,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (!row) return;
             const index = Number(row.dataset.index);
             if (!itemState[index]) return;
-            if (event.target.classList.contains("shu-account")) itemState[index].account_id = event.target.value;
+            if (event.target.classList.contains("shu-account")) {
+                const selectedAccountId=String(event.target.value||"");
+                const duplicateIndex=itemState.findIndex((item,idx)=>idx!==index && selectedAccountId && String(item.account_id||"")===selectedAccountId);
+                if (duplicateIndex>=0) { showAppToast("error","Akun tujuan sudah digunakan","Akun tujuan yang sama tidak boleh digunakan lebih dari satu kali dalam satu pembagian SHU."); renderRows(); }
+                else { itemState[index].account_id=selectedAccountId; renderRows(); }
+            }
             recalc();
         });
 
