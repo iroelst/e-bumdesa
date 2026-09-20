@@ -6195,8 +6195,20 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             .order("created_at", { ascending:true });
         if (error) throw error;
 
-        if (!data?.length) return showModuleShell("unit", moduleEmpty("Belum ada Unit Usaha."));
+        if (!data?.length) {
+            showModuleShell("unit", `
+                <div class="panel">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                        <div class="text-secondary small">Struktur pengelola setiap Unit Usaha.</div>
+                        ${activeAppProfile.role === "admin_pusat" ? `<button class="btn btn-sm btn-primary" data-open-add-unit><i class="bi bi-plus-circle me-1"></i>Tambah Unit</button>` : ""}
+                    </div>
+                    ${moduleEmpty("Belum ada Unit Usaha.")}
+                </div>`);
+            $("appModulePage").querySelector("[data-open-add-unit]")?.addEventListener("click",()=>openAppModule("tambahunit"));
+            return;
+        }
 
+        const canManageUnits = activeAppProfile.role === "admin_pusat";
         const rows = data.map((u,i)=>`
             <tr>
                 <td>${i+1}</td>
@@ -6206,23 +6218,157 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 <td>${escapeHtml(u.bendahara_unit || "-")}</td>
                 <td>${escapeHtml(u.alamat || "-")}</td>
                 <td><span class="badge text-bg-${u.status === "aktif" ? "success" : "secondary"}">${escapeHtml(u.status || "-")}</span></td>
+                ${canManageUnits ? `<td class="text-end text-nowrap">
+                    <button type="button" class="btn btn-sm btn-outline-primary me-1" data-edit-unit="${escapeHtml(u.id)}" title="Edit Unit"><i class="bi bi-pencil-square"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-delete-unit="${escapeHtml(u.id)}" title="Hapus Unit"><i class="bi bi-trash3"></i></button>
+                </td>` : ""}
             </tr>`).join("");
 
         showModuleShell("unit", `
             <div class="panel">
                 <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
                     <div class="text-secondary small">Struktur pengelola setiap Unit Usaha.</div>
-                    ${activeAppProfile.role === "admin_pusat" ? `<button class="btn btn-sm btn-primary" data-open-add-unit><i class="bi bi-plus-circle me-1"></i>Tambah Unit</button>` : ""}
+                    ${canManageUnits ? `<button class="btn btn-sm btn-primary" data-open-add-unit><i class="bi bi-plus-circle me-1"></i>Tambah Unit</button>` : ""}
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">
-                        <thead><tr><th>#</th><th>Unit Usaha</th><th>Kepala Unit</th><th>Sekretaris</th><th>Bendahara</th><th>Alamat</th><th>Status</th></tr></thead>
+                        <thead><tr><th>#</th><th>Unit Usaha</th><th>Kepala Unit</th><th>Sekretaris</th><th>Bendahara</th><th>Alamat</th><th>Status</th>${canManageUnits ? "<th class=\"text-end\">Aksi</th>" : ""}</tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
                 </div>
             </div>`);
-        $("appModulePage").querySelector("[data-open-add-unit]")?.addEventListener("click",()=>openAppModule("tambahunit"));
+
+        const modulePage = $("appModulePage");
+        modulePage.querySelector("[data-open-add-unit]")?.addEventListener("click",()=>openAppModule("tambahunit"));
+
+        modulePage.querySelectorAll("[data-edit-unit]").forEach(button => {
+            button.addEventListener("click", () => {
+                const unit = data.find(u => String(u.id) === String(button.dataset.editUnit));
+                if (unit) openEditUnitModal(unit);
+            });
+        });
+
+        modulePage.querySelectorAll("[data-delete-unit]").forEach(button => {
+            button.addEventListener("click", async () => {
+                const unit = data.find(u => String(u.id) === String(button.dataset.deleteUnit));
+                if (unit) await deleteUnit(unit, button);
+            });
+        });
     }
+
+    function closeEditUnitModal() {
+        $("editUnitOverlay")?.remove();
+    }
+
+    function openEditUnitModal(unit) {
+        if (activeAppProfile?.role !== "admin_pusat") return;
+
+        closeEditUnitModal();
+        const overlay = document.createElement("div");
+        overlay.id = "editUnitOverlay";
+        overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,30,50,.48);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;";
+        overlay.innerHTML = `
+            <div style="width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 25px 80px rgba(0,0,0,.28);padding:22px;">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h5 class="mb-1">Edit Unit Usaha</h5>
+                        <div class="text-secondary small">Perbarui data unit. Kode Unit dibuat oleh sistem dan tidak dapat diubah.</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="editUnitClose"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <form id="editUnitForm">
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <div class="settings-card-title"><i class="bi bi-building"></i>Identitas Unit Usaha</div>
+                            <div class="row g-3">
+                                <div class="col-md-8"><label class="form-label small fw-semibold">Nama Unit Usaha *</label><input id="editUnitName" class="form-control" required value="${escapeHtml(unit.nama_unit || "")}"></div>
+                                <div class="col-md-4"><label class="form-label small fw-semibold">Kode Unit</label><input class="form-control" readonly value="${escapeHtml(unit.kode_unit || "-")}"></div>
+                                <div class="col-12"><label class="form-label small fw-semibold">Alamat Unit</label><input id="editUnitAddress" class="form-control" value="${escapeHtml(unit.alamat || "")}" placeholder="Alamat unit usaha"></div>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="settings-card-title"><i class="bi bi-people"></i>Struktur Pengelola Unit</div>
+                            <div class="unit-personnel-grid">
+                                <div><label class="form-label small fw-semibold">Kepala Unit</label><input id="editUnitHead" class="form-control" value="${escapeHtml(unit.kepala_unit || "")}" placeholder="Nama Kepala Unit"></div>
+                                <div><label class="form-label small fw-semibold">Sekretaris</label><input id="editUnitSecretary" class="form-control" value="${escapeHtml(unit.sekretaris_unit || "")}" placeholder="Nama Sekretaris"></div>
+                                <div><label class="form-label small fw-semibold">Bendahara</label><input id="editUnitTreasurer" class="form-control" value="${escapeHtml(unit.bendahara_unit || "")}" placeholder="Nama Bendahara"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="editUnitMessage" class="alert hidden mt-3"></div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary" id="editUnitCancel">Batal</button>
+                        <button type="submit" id="editUnitSave" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>`;
+
+        document.body.appendChild(overlay);
+        $("editUnitClose").addEventListener("click", closeEditUnitModal);
+        $("editUnitCancel").addEventListener("click", closeEditUnitModal);
+        overlay.addEventListener("click", event => { if (event.target === overlay) closeEditUnitModal(); });
+
+        $("editUnitForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            const btn = $("editUnitSave");
+            const msg = $("editUnitMessage");
+            btn.disabled = true;
+            msg.className = "alert hidden mt-3";
+            try {
+                const payload = {
+                    nama_unit: $("editUnitName").value.trim(),
+                    alamat: $("editUnitAddress").value.trim() || null,
+                    kepala_unit: $("editUnitHead").value.trim() || null,
+                    sekretaris_unit: $("editUnitSecretary").value.trim() || null,
+                    bendahara_unit: $("editUnitTreasurer").value.trim() || null
+                };
+                if (!payload.nama_unit) throw new Error("Nama Unit Usaha wajib diisi.");
+
+                const { error } = await supabaseClient
+                    .from("units")
+                    .update(payload)
+                    .eq("id", unit.id)
+                    .eq("bumdes_id", activeAppProfile.bumdes_id);
+                if (error) throw error;
+
+                closeEditUnitModal();
+                showAppToast("success", "Unit berhasil diperbarui", `${payload.nama_unit} sudah diperbarui.`);
+                await renderUnitsModule();
+            } catch (err) {
+                console.error(err);
+                msg.className = "alert alert-danger mt-3";
+                msg.textContent = "Gagal memperbarui Unit Usaha: " + (err.message || String(err));
+                btn.disabled = false;
+            }
+        });
+    }
+
+    async function deleteUnit(unit, button) {
+        if (activeAppProfile?.role !== "admin_pusat") return;
+
+        const confirmed = window.confirm(
+            `Hapus Unit Usaha "${unit.nama_unit}" (${unit.kode_unit || "tanpa kode"})?\n\nData unit akan dihapus dan tindakan ini tidak dapat dibatalkan.`
+        );
+        if (!confirmed) return;
+
+        button.disabled = true;
+        try {
+            const { error } = await supabaseClient
+                .from("units")
+                .delete()
+                .eq("id", unit.id)
+                .eq("bumdes_id", activeAppProfile.bumdes_id);
+            if (error) throw error;
+
+            showAppToast("success", "Unit berhasil dihapus", `${unit.nama_unit} telah dihapus dari daftar unit.`);
+            await renderUnitsModule();
+        } catch (err) {
+            console.error(err);
+            button.disabled = false;
+            showAppToast("error", "Gagal menghapus Unit Usaha", err.message || String(err));
+        }
+    }
+
 
     async function renderTambahUnitModule() {
         if (activeAppProfile.role !== "admin_pusat") {
