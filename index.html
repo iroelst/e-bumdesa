@@ -3591,7 +3591,7 @@
         let annualPeriodId = null;
         const { data: annualPeriod, error: annualPeriodError } = await supabaseClient
             .from("account_periods")
-            .select("id")
+            .select("id,status")
             .eq("bumdes_id", bumdesId)
             .eq("period_type", "tahunan")
             .eq("start_date", `${year}-01-01`)
@@ -3604,6 +3604,7 @@
         } else {
             annualPeriodId = annualPeriod?.id || null;
         }
+        const isAnnualBookClosed = annualPeriod?.status === "closed";
 
         let openingBalances = [];
         if (annualPeriodId) {
@@ -3754,6 +3755,18 @@
                 }
             }
         });
+
+        // Setelah Tutup Buku, kartu kinerja dashboard kembali ke nol.
+        // Saldo posisi keuangan tetap ditampilkan karena merupakan saldo akhir setelah tutup buku.
+        if (isAnnualBookClosed) {
+            incomeMonth = 0;
+            incomeYear = 0;
+            operationalMonth = 0;
+            operationalYear = 0;
+            netIncomeYear = 0;
+            monthly.forEach(item => { item.income = 0; item.expense = 0; });
+            unitStats.forEach(stats => { stats.income = 0; stats.operational = 0; });
+        }
 
         // Ringkasan posisi keuangan: saldo awal + mutasi jurnal sampai hari ini.
         let cashBank = 0;
@@ -5353,20 +5366,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if(scopeUnit) jQuery=jQuery.eq('unit_id',scopeUnit);
         else if(isPusat) jQuery=jQuery.is('unit_id',null);
 
-        // Riwayat laporan menggunakan kondisi periode sebelum jurnal penutupan.
-        // Jurnal penutupan dan pembukaan kembali tetap tersimpan sebagai transaksi akuntansi,
-        // tetapi tidak boleh membuat Laporan periode yang sudah ditutup menjadi Rp0.
-        if(historicalMode){
-            const {data:closingTx,error:closingTxError}=await supabaseClient
-                .from('transactions')
-                .select('id')
-                .eq('bumdes_id',bumdesId)
-                .in('transaction_type',['penutupan_buku','pembukaan_kembali_buku']);
-            if(closingTxError) throw closingTxError;
-            const excludedIds=(closingTx||[]).map(x=>x.id).filter(Boolean);
-            if(excludedIds.length){
-                jQuery=jQuery.not('transaction_id','in',`(${excludedIds.join(',')})`);
-            }
+        // Laporan keuangan menyajikan kinerja periode sebelum jurnal penutupan.
+        // Jurnal penutupan dan pembukaan kembali tetap tersimpan sebagai histori transaksi,
+        // tetapi tidak boleh membuat pendapatan/beban/laba menjadi Rp0 pada laporan periode.
+        const {data:closingTx,error:closingTxError}=await supabaseClient
+            .from('transactions')
+            .select('id')
+            .eq('bumdes_id',bumdesId)
+            .in('transaction_type',['penutupan_buku','pembukaan_kembali_buku']);
+        if(closingTxError) throw closingTxError;
+        const excludedIds=(closingTx||[]).map(x=>x.id).filter(Boolean);
+        if(excludedIds.length){
+            jQuery=jQuery.not('transaction_id','in',`(${excludedIds.join(',')})`);
         }
         const journals=await fetchReportRows(jQuery);
 
@@ -5564,11 +5575,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const equityBase=(reportGroupTotal(data,'3.1.','balances')+
             reportGroupTotal(data,'3.3.','balances')+
             reportGroupTotal(data,'3.4.','balances')+
-            (data.scope==='unit' ? reportGroupTotal(data,'3.8.','balances') : 0));
+            (String(data.scope).startsWith('unit:') ? reportGroupTotal(data,'3.8.','balances') : 0));
         const priorEquityBase=(reportGroupTotal(data,'3.1.','priors')+
             reportGroupTotal(data,'3.3.','priors')+
             reportGroupTotal(data,'3.4.','priors')+
-            (data.scope==='unit' ? reportGroupTotal(data,'3.8.','priors') : 0));
+            (String(data.scope).startsWith('unit:') ? reportGroupTotal(data,'3.8.','priors') : 0));
         const p=buildProfitLossReport(data);
         // Jika laporan belum melalui jurnal penutup, laba/rugi bersih periode berjalan
         // menambah ekuitas. Jika sudah ditutup dan laba telah masuk saldo laba, current
