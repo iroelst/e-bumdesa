@@ -3957,6 +3957,7 @@
 
     let activeAppProfile = null;
     let activeAppBumdes = null;
+    let activeReportUnits = [];
 
     function setActiveMenu(module) {
         document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
@@ -3965,7 +3966,10 @@
     }
 
 function printCashBankMutation({ account, from, to, opening, saldoSebelum, totalMasuk, totalKeluar, saldoAkhir, rows, unitId }) {
-        const unitName = unitId && unitId !== "all" ? (document.querySelector(`#cashBankUnit option[value="${unitId}"]`)?.textContent || "") : "Pusat/Kantor Pusat";
+        const selectedUnit = unitId && unitId !== "all"
+            ? (activeReportUnits || []).find(u => String(u.id) === String(unitId))
+            : null;
+        const unitName = selectedUnit?.nama_unit ? String(selectedUnit.nama_unit).toUpperCase() : "PUSAT";
         const bumdesName = activeAppBumdes?.nama || "BUM Desa";
         const alamat = [activeAppBumdes?.alamat, activeAppBumdes?.desa ? `Desa ${activeAppBumdes.desa}` : "", activeAppBumdes?.kecamatan ? `Kec. ${activeAppBumdes.kecamatan}` : "", activeAppBumdes?.kabupaten ? `Kab. ${activeAppBumdes.kabupaten}` : "", activeAppBumdes?.provinsi || ""].filter(Boolean).join(" · ");
         const printHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
@@ -5643,7 +5647,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             (b.telepon||b.no_tlp||b.no_telp||b.phone)?`No. Tlp. ${b.telepon||b.no_tlp||b.no_telp||b.phone}`:"",
             b.no_ahu?`No. AHU. ${b.no_ahu}`:""
         ].filter(Boolean);
-        const scopeText=scopeLabel==='Kantor Pusat'?'PUSAT':scopeLabel==='Gabungan / Konsolidasian'?'GABUNGAN / KONSOLIDASIAN':'UNIT USAHA';
+        const scopeText=scopeLabel==='Kantor Pusat'
+            ? 'PUSAT'
+            : scopeLabel==='Gabungan / Konsolidasian'
+                ? 'GABUNGAN / KONSOLIDASIAN'
+                : String(scopeLabel||'UNIT USAHA').toUpperCase();
         return `<div class="report-card-head">
             <div class="report-kop">
                 <div class="report-kop-logo-wrap">${logo?`<img class="report-kop-logo" src="${escapeHtml(logo)}" alt="Logo BUM Desa">`:``}</div>
@@ -5668,6 +5676,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const bumdesId=activeAppProfile.bumdes_id;
         const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
         if(uErr) throw uErr;
+        activeReportUnits = units || [];
         const preset=reportPeriodPreset('tahunan');
         const scopeOptions=reportScopeOptions(activeAppProfile,units||[]);
         const reportNames={labarugi:'Laporan Laba Rugi',neraca:'Laporan Posisi Keuangan (Neraca)',aruskas:'Laporan Arus Kas',ekuitas:'Laporan Perubahan Ekuitas',calk:'Catatan atas Laporan Keuangan (CALK)'};
@@ -5705,7 +5714,14 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         out.innerHTML='<div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menghitung laporan dari jurnal dan saldo awal...</div>';
         try{
             const data=await loadFinancialReportData({module,startDate:start,endDate:end,scope});
-            const scopeLabel=scope==='pusat'?'Kantor Pusat':scope==='gabungan'?'Gabungan / Konsolidasian':`Unit Usaha`;
+            const selectedUnit = scope.startsWith('unit:')
+                ? (activeReportUnits || []).find(u => String(u.id) === String(scope.slice(5)))
+                : null;
+            const scopeLabel=scope==='pusat'
+                ? 'Kantor Pusat'
+                : scope==='gabungan'
+                    ? 'Gabungan / Konsolidasian'
+                    : (selectedUnit?.nama_unit ? `Unit Usaha — ${selectedUnit.nama_unit}` : 'Unit Usaha');
             let html=reportHeaderHtml(data,{labarugi:'LAPORAN LABA RUGI',neraca:'LAPORAN POSISI KEUANGAN (NERACA)',aruskas:'LAPORAN ARUS KAS',ekuitas:'LAPORAN PERUBAHAN EKUITAS',calk:'CATATAN ATAS LAPORAN KEUANGAN (CALK)'}[module],scopeLabel);
             if(module==='labarugi'){
                 const p=buildProfitLossReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Pendapatan</div><div class="report-mini-value">${reportSigned(p.grossRevenue)}</div></div><div class="report-mini-card"><div class="report-mini-label">HPP</div><div class="report-mini-value">${reportSigned(p.hpp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Sebelum Bagi Hasil</div><div class="report-mini-value ${p.beforeBagiHasil<0?'report-negative':'report-positive'}">${reportSigned(p.beforeBagiHasil)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Bersih Setelah Bagi Hasil</div><div class="report-mini-value ${p.net<0?'report-negative':'report-positive'}">${reportSigned(p.net)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(p.rows)}</tbody></table></div>`;
@@ -5728,7 +5744,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const shortLiab=reportGroupTotal(data,'2.1.','balances');
                 const longLiab=reportGroupTotal(data,'2.2.','balances');
                 const calkMoney=(v)=>reportSigned(v);
-                const scopeText=scope==='pusat'?'Kantor Pusat':scope==='gabungan'?'Gabungan/Konsolidasian':(data.scope||'').startsWith('unit:')?'Unit Usaha':'';
+                const scopeText=scope==='pusat'
+                    ? 'Kantor Pusat'
+                    : scope==='gabungan'
+                        ? 'Gabungan/Konsolidasian'
+                        : (selectedUnit?.nama_unit ? `Unit Usaha — ${selectedUnit.nama_unit}` : 'Unit Usaha');
                 const balanceCheck=b.totalAssets-(b.totalLiab+b.equity);
                 html+=`<div class="calk-wrap">
                     <div class="calk-section"><div class="calk-heading">A. PERNYATAAN LAPORAN KEUANGAN</div><div class="calk-note">Laporan keuangan ${escapeHtml(scopeText)} untuk periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} disusun dengan mengacu pada Panduan Penyusunan Laporan Keuangan BUM Desa sebagaimana Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi Republik Indonesia Nomor 136 Tahun 2022, dengan akun yang bersumber dari COA e-BUMDesa.</div></div>
@@ -8037,6 +8057,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("bumdes_id", bumdesId).order("created_at", { ascending: true });
             if (unitError) throw unitError;
             units = unitData || [];
+            activeReportUnits = units;
             units.forEach(u => {
                 const opt = document.createElement("option");
                 opt.value = u.id;
