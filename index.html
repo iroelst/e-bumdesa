@@ -7713,7 +7713,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         const accountOptions = buildOptions(accounts || [], "id", a => `${a.kode} — ${a.nama}`);
         const visibleLedgerUnits = (units || []).filter(u => u.status !== "nonaktif");
-        const unitOptions = buildOptions(visibleLedgerUnits, "id", u => `${u.kode_unit} — ${u.nama_unit}`);
+        const unitOptions = `<option value="pusat">Pusat / Kantor Pusat</option>` +
+            buildOptions(visibleLedgerUnits, "id", u => `${u.kode_unit} — ${u.nama_unit}`);
 
         const shell = `
             <div class="panel mb-3">
@@ -7757,8 +7758,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         showModuleShell("bukubesar", shell);
 
         const ledgerUnitFilter = $("ledgerUnitFilter");
-        if (ledgerUnitFilter && visibleLedgerUnits.length) {
-            ledgerUnitFilter.value = visibleLedgerUnits[0].id;
+        if (ledgerUnitFilter) {
+            ledgerUnitFilter.value = "pusat";
         }
 
         const render = () => {
@@ -7769,7 +7770,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
             let items = allItems.filter(x =>
                 (!accountId || x.account_id === accountId) &&
-                (!!unitId && x.unit_id === unitId) &&
+                (unitId === "pusat" ? !x.unit_id : (!!unitId && x.unit_id === unitId)) &&
                 (!start || x.date >= start) &&
                 (!end || x.date <= end)
             );
