@@ -4057,8 +4057,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         $("appModulePage").innerHTML = moduleHeader(title, subtitle) + bodyHtml;
         setActiveMenu(module);
         document.querySelector(".topbar .fw-semibold").textContent = title;
-        const back = $("appModulePage").querySelector("[data-back-dashboard]");
-        if (back) back.addEventListener("click", showDashboardModule);
+        const backButtons = $("appModulePage").querySelectorAll("[data-back-dashboard]");
+        backButtons.forEach(back => {
+            back.addEventListener("click", (event) => {
+                event.preventDefault();
+                showDashboardModule();
+            });
+        });
     }
 
     function moduleLoading() {
@@ -6232,7 +6237,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                             <div class="settings-card-title"><i class="bi bi-building-add"></i>Identitas Unit Usaha</div>
                             <div class="row g-3">
                                 <div class="col-md-8"><label class="form-label small fw-semibold">Nama Unit Usaha *</label><input id="addUnitName" class="form-control" required placeholder="Contoh: Unit Wisata"></div>
-                                <div class="col-md-4"><label class="form-label small fw-semibold">Kode Unit *</label><input id="addUnitCode" class="form-control" required placeholder="U02"></div>
+                                <div class="col-md-4"><label class="form-label small fw-semibold">Kode Unit</label><input id="addUnitCode" class="form-control" readonly placeholder="Membuat kode..."><div class="form-text">Kode dibuat otomatis oleh sistem.</div></div>
                                 <div class="col-12"><label class="form-label small fw-semibold">Alamat Unit</label><input id="addUnitAddress" class="form-control" placeholder="Alamat unit usaha"></div>
                             </div>
                         </div>
@@ -6254,6 +6259,22 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 </form>
             </div>`);
 
+        // Kode unit dibuat otomatis berdasarkan kode terbesar yang sudah ada pada BUM Desa ini.
+        // Format: U01, U02, U03, dst. Nomor tidak bergantung pada jumlah baris aktif.
+        const { data: existingUnits, error: existingUnitsError } = await supabaseClient
+            .from("units")
+            .select("kode_unit")
+            .eq("bumdes_id", activeAppProfile.bumdes_id);
+        if (existingUnitsError) throw existingUnitsError;
+
+        const usedUnitNumbers = (existingUnits || [])
+            .map(unit => String(unit.kode_unit || "").trim().match(/^U(\d+)$/i))
+            .filter(Boolean)
+            .map(match => Number(match[1]))
+            .filter(Number.isFinite);
+        const nextUnitNumber = (usedUnitNumbers.length ? Math.max(...usedUnitNumbers) : 0) + 1;
+        $("addUnitCode").value = `U${String(nextUnitNumber).padStart(2, "0")}`;
+
         $("addUnitForm").addEventListener("submit", async (e)=>{
             e.preventDefault();
             const btn=$("saveUnitBtn"), msg=$("addUnitMessage");
@@ -6263,7 +6284,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const payload={
                     bumdes_id: activeAppProfile.bumdes_id,
                     nama_unit: $("addUnitName").value.trim(),
-                    kode_unit: $("addUnitCode").value.trim(),
+                    kode_unit: $("addUnitCode").value.trim().toUpperCase(),
                     alamat: $("addUnitAddress").value.trim() || null,
                     kepala_unit: $("addUnitHead").value.trim() || null,
                     sekretaris_unit: $("addUnitSecretary").value.trim() || null,
