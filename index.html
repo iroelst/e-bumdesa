@@ -6294,7 +6294,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const {error}=await supabaseClient.from("units").insert(payload);
                 if(error) throw error;
                 showAppToast("success","Unit berhasil ditambahkan",`${payload.nama_unit} sudah masuk ke Struktur Organisasi.`);
-                await loadDashboard(activeAppProfile);
                 await openAppModule("unit");
             }catch(err){
                 console.error(err);
