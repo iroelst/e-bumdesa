@@ -2037,7 +2037,7 @@
 .report-scope-pill{background:#eef4ff;color:#315fae;border:1px solid #dce8fb;border-radius:999px;padding:7px 12px;font-size:11px;font-weight:700;white-space:nowrap}
 .report-card{background:#fff;border:1px solid #e5eaf0;border-radius:18px;box-shadow:0 10px 28px rgba(31,45,61,.06);overflow:hidden}
 .report-card-head{padding:22px 24px 16px;background:linear-gradient(135deg,#f9fbff,#fff);border-bottom:1px solid #edf1f5}
-.report-brand{font-size:18px;font-weight:800;color:#23344d;text-align:center}
+.report-brand{font-size:18px;font-weight:800;color:#23344d;text-align:center}.report-kop{display:flex;align-items:center;justify-content:center;gap:14px;text-align:left;margin-bottom:8px}.report-kop-logo{width:58px;height:58px;object-fit:contain;flex:0 0 auto}.report-kop-text{text-align:center}.report-kop-name{font-size:18px;font-weight:800;color:#23344d}.report-kop-address{font-size:10px;color:#667588;line-height:1.45;margin-top:2px}.report-kop-divider{height:2px;background:#23344d;margin-top:10px}.settings-logo-preview{width:110px;height:110px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden}.settings-logo-preview img{max-width:100%;max-height:100%;object-fit:contain}.settings-logo-placeholder{font-size:11px;color:#94a3b8;text-align:center;padding:10px}.settings-logo-meta{font-size:11px;color:#7c8998;margin-top:5px}.settings-logo-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .report-title{font-size:17px;font-weight:800;text-align:center;color:#1e2d42;margin-top:4px;letter-spacing:.01em}
 .report-period{text-align:center;color:#788696;font-size:12px;margin-top:5px}
 .report-table-wrap{overflow:auto}
@@ -2538,7 +2538,7 @@
     <div id="invoicePrintArea" class="invoice-print">
         <div class="invoice-print-head">
             <div class="invoice-print-brand-wrap">
-                <img src="e-bumdesa-logo.png" alt="Logo e-BUMDesa" class="invoice-print-logo">
+                <img id="invoicePrintLogo" src="e-bumdesa-logo.png" alt="Logo BUM Desa" class="invoice-print-logo">
                 <div>
                     <div class="invoice-print-brand"><span>e-</span>BUMDesa</div>
                     <div class="invoice-print-subbrand">Sistem Keuangan BUM Desa</div>
@@ -3935,9 +3935,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const alamat = [activeAppBumdes?.alamat, activeAppBumdes?.desa ? `Desa ${activeAppBumdes.desa}` : "", activeAppBumdes?.kecamatan ? `Kec. ${activeAppBumdes.kecamatan}` : "", activeAppBumdes?.kabupaten ? `Kab. ${activeAppBumdes.kabupaten}` : "", activeAppBumdes?.provinsi || ""].filter(Boolean).join(" · ");
         const printHtml = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Mutasi ${escapeHtml(account?.nama || "Rekening")}</title>
         <style>
-        @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0;background:#fff}h1{font-size:17px;margin:0 0 3px;font-weight:800;text-transform:uppercase}h2{font-size:14px;margin:0 0 4px;font-weight:700}.kop{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px}.kop-address{font-size:9px;color:#444;line-height:1.45}.report-subtitle{font-size:11px;color:#444;margin-top:7px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px;line-height:1.55}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #bbb;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px}table{width:100%;border-collapse:collapse}th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px}td{border-bottom:1px solid #ddd;padding:5px 6px;vertical-align:top}.right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
+        @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:10px;margin:0;background:#fff}h1{font-size:17px;margin:0 0 3px;font-weight:800;text-transform:uppercase}.kop{display:flex;align-items:center;gap:12px;position:relative}.kop-logo{width:58px;height:58px;object-fit:contain;flex:0 0 auto}.kop-text{flex:1}.kop .report-subtitle{position:absolute;left:70px;bottom:-2px}h2{font-size:14px;margin:0 0 4px;font-weight:700}.kop{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px}.kop-address{font-size:9px;color:#444;line-height:1.45}.report-subtitle{font-size:11px;color:#444;margin-top:7px}.meta{display:flex;justify-content:space-between;gap:20px;margin-bottom:12px;line-height:1.55}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}.box{border:1px solid #bbb;padding:7px}.box span{display:block;color:#666;font-size:8px;margin-bottom:3px}.box strong{font-size:10px}table{width:100%;border-collapse:collapse}th{background:#eee;border-top:1px solid #222;border-bottom:1px solid #222;padding:6px;text-align:left;font-size:9px}td{border-bottom:1px solid #ddd;padding:5px 6px;vertical-align:top}.right{text-align:right}.footer{margin-top:12px;font-size:8px;color:#777;text-align:right}@media print{thead{display:table-header-group}tr{page-break-inside:avoid}}
         </style></head><body>
-        <div class="kop"><h1>${escapeHtml(bumdesName)}</h1><div class="kop-address">${escapeHtml(alamat || "")}</div><div class="report-subtitle">MUTASI REKENING</div></div>
+        <div class="kop">${activeAppBumdes?.logo_kop ? `<img class="kop-logo" src="${escapeHtml(activeAppBumdes.logo_kop)}" alt="Logo BUM Desa">` : ``}<div class="kop-text"><h1>${escapeHtml(bumdesName)}</h1><div class="kop-address">${escapeHtml(alamat || "")}</div></div><div class="report-subtitle">MUTASI REKENING</div></div>
         <div class="meta"><div><strong>${escapeHtml(account?.nama || "-")}</strong><br>Kode COA: ${escapeHtml(account?.kode || "-")}</div><div class="right">Periode: ${fmtDate(from)} s.d. ${fmtDate(to)}<br>${escapeHtml(unitName)}</div></div>
         <div class="summary"><div class="box"><span>Saldo sebelum periode</span><strong>${rupiah(saldoSebelum)}</strong></div><div class="box"><span>Kas masuk</span><strong>${rupiah(totalMasuk)}</strong></div><div class="box"><span>Kas keluar</span><strong>${rupiah(totalKeluar)}</strong></div><div class="box"><span>Saldo akhir</span><strong>${rupiah(saldoAkhir)}</strong></div></div>
         <table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Uraian</th><th class="right">Masuk</th><th class="right">Keluar</th><th class="right">Saldo</th></tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center">Tidak ada mutasi.</td></tr>`}</tbody></table>
@@ -4036,7 +4036,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const bumdesId = activeAppProfile.bumdes_id;
         const { data: bumdes, error: bumdesError } = await supabaseClient
             .from("bumdes")
-            .select("id,nama,kode,no_ahu,desa,kecamatan,kabupaten,provinsi,alamat,tahun_buku,struktur_organisasi")
+            .select("id,nama,kode,no_ahu,desa,kecamatan,kabupaten,provinsi,alamat,tahun_buku,struktur_organisasi,logo_kop")
             .eq("id", bumdesId)
             .maybeSingle();
         if (bumdesError) throw bumdesError;
@@ -4064,6 +4064,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <div class="col-12"><label class="form-label small fw-semibold">Nama BUM Desa</label><input id="setNama" class="form-control" value="${escapeHtml(bumdes?.nama||"")}" ${canEdit?"":"disabled"}></div>
                         <div class="col-md-6"><label class="form-label small fw-semibold">Kode BUM Desa</label><input id="setKode" class="form-control" value="${escapeHtml(bumdes?.kode||"")}" ${canEdit?"":"disabled"}></div>
                         <div class="col-md-6"><label class="form-label small fw-semibold">No. AHU BUM Desa</label><input id="setAhu" class="form-control" value="${escapeHtml(bumdes?.no_ahu||"")}" placeholder="Nomor AHU" ${canEdit?"":"disabled"}></div>
+                        <div class="col-12"><label class="form-label small fw-semibold">Logo Kop BUM Desa</label><div class="d-flex flex-wrap gap-3 align-items-center"><div id="setLogoPreview" class="settings-logo-preview">${bumdes?.logo_kop ? `<img src="${escapeHtml(bumdes.logo_kop)}" alt="Logo BUM Desa">` : `<div class="settings-logo-placeholder">Belum ada logo</div>`}</div><div class="flex-grow-1"><div class="settings-logo-actions">${canEdit ? `<input id="setLogoFile" type="file" class="form-control" accept="image/png,image/jpeg,image/webp" style="max-width:430px"><button type="button" id="removeLogoBtn" class="btn btn-sm btn-outline-danger">Hapus Logo</button>` : ``}</div><div class="settings-logo-meta">PNG, JPG/JPEG atau WebP · Maksimal 100 KB. Logo ini hanya digunakan pada kop laporan dan dokumen.</div><div id="setLogoMessage" class="small mt-1"></div></div></div></div>
                         <div class="col-12"><label class="form-label small fw-semibold">Alamat</label><input id="setAlamat" class="form-control" value="${escapeHtml(bumdes?.alamat||"")}" ${canEdit?"":"disabled"}></div>
                         <div class="col-md-6"><label class="form-label small fw-semibold">Desa</label><input id="setDesa" class="form-control" value="${escapeHtml(bumdes?.desa||"")}" ${canEdit?"":"disabled"}></div>
                         <div class="col-md-6"><label class="form-label small fw-semibold">Kecamatan</label><input id="setKecamatan" class="form-control" value="${escapeHtml(bumdes?.kecamatan||"")}" ${canEdit?"":"disabled"}></div>
@@ -4175,6 +4176,66 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         refreshPengawasRows();
 
+        let pendingLogoKop = bumdes?.logo_kop || null;
+        let logoChanged = false;
+        const logoFileEl = $("setLogoFile");
+        const logoPreviewEl = $("setLogoPreview");
+        const logoMsgEl = $("setLogoMessage");
+        const removeLogoBtn = $("removeLogoBtn");
+
+        function renderLogoPreview(dataUrl){
+            if(logoPreviewEl) logoPreviewEl.innerHTML = dataUrl
+                ? `<img src="${escapeHtml(dataUrl)}" alt="Logo BUM Desa">`
+                : `<div class="settings-logo-placeholder">Belum ada logo</div>`;
+        }
+
+        async function compressLogoTo100KB(file){
+            const maxBytes = 100 * 1024;
+            if(!file) return null;
+            if(!/^image\/(png|jpeg|webp)$/i.test(file.type)) throw new Error("Format logo harus PNG, JPG/JPEG, atau WebP.");
+            if(file.size <= maxBytes){
+                return await new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=()=>reject(new Error("Logo gagal dibaca.")); r.readAsDataURL(file); });
+            }
+            const source = await new Promise((resolve,reject)=>{
+                const r=new FileReader(); r.onload=()=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=()=>reject(new Error("File logo tidak dapat diproses.")); img.src=r.result; }; r.onerror=()=>reject(new Error("Logo gagal dibaca.")); r.readAsDataURL(file);
+            });
+            let maxSide = 900;
+            for(let pass=0; pass<8; pass++){
+                const scale = Math.min(1, maxSide / Math.max(source.width, source.height));
+                const w = Math.max(1, Math.round(source.width * scale));
+                const h = Math.max(1, Math.round(source.height * scale));
+                const canvas=document.createElement("canvas"); canvas.width=w; canvas.height=h;
+                const ctx=canvas.getContext("2d");
+                if(file.type === "image/jpeg") { ctx.fillStyle="#fff"; ctx.fillRect(0,0,w,h); }
+                ctx.drawImage(source,0,0,w,h);
+                for(let q=0.90;q>=0.25;q-=0.05){
+                    const data=canvas.toDataURL("image/webp",q);
+                    const bytes=Math.floor((data.length-data.indexOf(",")-1)*3/4);
+                    if(bytes<=maxBytes) return data;
+                }
+                maxSide = Math.round(maxSide*0.75);
+            }
+            throw new Error("Logo tidak dapat dikompres sampai maksimal 100 KB. Silakan gunakan gambar yang lebih sederhana.");
+        }
+
+        logoFileEl?.addEventListener("change", async ()=>{
+            const file=logoFileEl.files?.[0]; if(!file) return;
+            if(logoMsgEl) { logoMsgEl.textContent="Memproses logo..."; logoMsgEl.className="small mt-1 text-secondary"; }
+            try{
+                const dataUrl=await compressLogoTo100KB(file);
+                pendingLogoKop=dataUrl; logoChanged=true; renderLogoPreview(dataUrl);
+                const bytes=Math.floor((dataUrl.length-dataUrl.indexOf(",")-1)*3/4);
+                if(logoMsgEl){ logoMsgEl.textContent=`Logo siap disimpan (${Math.max(1,Math.round(bytes/1024))} KB).`; logoMsgEl.className="small mt-1 text-success"; }
+            }catch(err){
+                logoFileEl.value="";
+                if(logoMsgEl){ logoMsgEl.textContent=err.message||String(err); logoMsgEl.className="small mt-1 text-danger"; }
+            }
+        });
+        removeLogoBtn?.addEventListener("click", ()=>{
+            pendingLogoKop=null; logoChanged=true; if(logoFileEl) logoFileEl.value=""; renderLogoPreview(null);
+            if(logoMsgEl){ logoMsgEl.textContent="Logo akan dihapus saat disimpan."; logoMsgEl.className="small mt-1 text-danger"; }
+        });
+
         $("saveSettingsBtn").addEventListener("click", async ()=>{
             const btn=$("saveSettingsBtn"), msg=$("settingsMessage");
             btn.disabled=true; msg.className="alert hidden mt-3";
@@ -4198,7 +4259,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     kecamatan:$("setKecamatan").value.trim(),
                     kabupaten:$("setKabupaten").value.trim(),
                     provinsi:$("setProvinsi").value.trim(),
-                    struktur_organisasi:structure
+                    struktur_organisasi:structure,
+                    ...(logoChanged ? { logo_kop: pendingLogoKop } : {})
                 }).eq("id",bumdesId);
                 if(error) throw error;
 
@@ -4213,7 +4275,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     if(e) throw e;
                 }
 
-                activeAppBumdes={...(activeAppBumdes||{}),...bumdes,nama:$("setNama").value.trim(),kode:$("setKode").value.trim(),no_ahu:$("setAhu").value.trim()||null,alamat:$("setAlamat").value.trim(),desa:$("setDesa").value.trim(),kecamatan:$("setKecamatan").value.trim(),kabupaten:$("setKabupaten").value.trim(),provinsi:$("setProvinsi").value.trim(),struktur_organisasi:structure};
+                activeAppBumdes={...(activeAppBumdes||{}),...bumdes,nama:$("setNama").value.trim(),kode:$("setKode").value.trim(),no_ahu:$("setAhu").value.trim()||null,alamat:$("setAlamat").value.trim(),desa:$("setDesa").value.trim(),kecamatan:$("setKecamatan").value.trim(),kabupaten:$("setKabupaten").value.trim(),provinsi:$("setProvinsi").value.trim(),struktur_organisasi:structure,logo_kop:logoChanged?pendingLogoKop:(activeAppBumdes?.logo_kop||null)};
                 $("topBumdesName").textContent=activeAppBumdes.nama||"";
                 $("infoBumdesName").textContent=activeAppBumdes.nama||"-";
                 $("infoBumdesCode").textContent=activeAppBumdes.kode||"-";
@@ -5522,7 +5584,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     function reportHeaderHtml(data,title,scopeLabel){
         const bumdesName=activeAppBumdes?.nama||'BUM Desa';
-        return `<div class="report-card-head"><div class="report-brand">${escapeHtml(bumdesName)}</div><div class="report-title">${escapeHtml(title)}</div><div class="report-period">Periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} · ${escapeHtml(scopeLabel)}</div></div>`;
+        const alamat=[activeAppBumdes?.alamat,activeAppBumdes?.desa?`Desa ${activeAppBumdes.desa}`:"",activeAppBumdes?.kecamatan?`Kec. ${activeAppBumdes.kecamatan}`:"",activeAppBumdes?.kabupaten?`Kab. ${activeAppBumdes.kabupaten}`:"",activeAppBumdes?.provinsi||""].filter(Boolean).join(" · ");
+        const logo=activeAppBumdes?.logo_kop||"";
+        return `<div class="report-card-head"><div class="report-kop">${logo?`<img class="report-kop-logo" src="${escapeHtml(logo)}" alt="Logo BUM Desa">`:``}<div class="report-kop-text"><div class="report-kop-name">${escapeHtml(bumdesName)}</div>${alamat?`<div class="report-kop-address">${escapeHtml(alamat)}</div>`:``}</div></div><div class="report-kop-divider"></div><div class="report-title">${escapeHtml(title)}</div><div class="report-period">Periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} · ${escapeHtml(scopeLabel)}</div></div>`;
     }
 
     async function renderFinancialReportModule(module){
@@ -8119,7 +8183,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
 
         const [{ data: bumdes }, { data: subscription }] = await Promise.all([
-            supabaseClient.from("bumdes").select("id,nama,desa,kecamatan,kabupaten,provinsi,alamat").eq("id",profile.bumdes_id).maybeSingle(),
+            supabaseClient.from("bumdes").select("id,nama,desa,kecamatan,kabupaten,provinsi,alamat,logo_kop").eq("id",profile.bumdes_id).maybeSingle(),
             supabaseClient.from("subscriptions").select("id,plan_name,amount,billing_period_months,status,started_at,expires_at").eq("bumdes_id",profile.bumdes_id).maybeSingle()
         ]);
 
@@ -8192,6 +8256,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         const b = ctx.bumdes || {};
         $("invoicePrintNumber").textContent = p.invoice_number || "-";
+        $("invoicePrintLogo").src = b.logo_kop || "e-bumdesa-logo.png";
         $("invoicePrintBumdes").textContent = b.nama || "-";
         $("invoicePrintAddress").textContent = [b.alamat,b.desa,b.kecamatan,b.kabupaten,b.provinsi].filter(Boolean).join(", ") || "-";
         $("invoicePrintDate").textContent = fmtDateTime(p.created_at);
