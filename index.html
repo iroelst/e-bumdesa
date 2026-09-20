@@ -6279,7 +6279,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 : (isReopened ? "Sudah dibuka kembali" : "-");
 
             const profitInfo = distribution?.total_profit != null
-                ? formatMoney(Number(distribution.total_profit))
+                ? rupiah(Number(distribution.total_profit))
                 : "-";
 
             return `<tr>
