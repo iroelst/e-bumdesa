@@ -6660,18 +6660,57 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const periodMap = new Map((periods || []).map(v => [String(v.id), v]));
         const paymentMap = new Map((payments || []).map(v => [String(v.allocation_item_id), v]));
 
-        // Saldo kas/bank dihitung dari jurnal agar pilihan sumber pembayaran
-        // selalu menunjukkan saldo aktual berdasarkan pembukuan.
+        // Saldo Kas/Bank harus dihitung dari:
+        // 1) saldo awal periode tahunan, dan
+        // 2) jurnal berjalan Kantor Pusat.
+        // Pembayaran SHU adalah transaksi pusat (unit_id = NULL), sehingga
+        // jurnal unit usaha tidak boleh ikut mengurangi/menambah saldo pusat.
+        const annualPeriodsForBalance = (periods || []).filter(p => p.period_type === "tahunan");
+        const balancePeriod = annualPeriodsForBalance.find(p => p.start_date === `${new Date().getFullYear()}-01-01`)
+            || annualPeriodsForBalance[0];
+
+        let openingRowsForBalance = [];
+        if (balancePeriod?.id) {
+            const { data: openingRows, error: openingBalanceError } = await supabaseClient
+                .from("opening_balances")
+                .select("account_id,unit_id,debit,credit")
+                .eq("bumdes_id", bumdesId)
+                .eq("period_id", balancePeriod.id)
+                .is("unit_id", null);
+
+            if (openingBalanceError) throw openingBalanceError;
+            openingRowsForBalance = openingRows || [];
+        }
+
         const { data: journalRows, error: journalError } = await supabaseClient
             .from("journals")
-            .select("account_id,debit,credit")
-            .eq("bumdes_id", bumdesId);
+            .select("account_id,unit_id,debit,credit")
+            .eq("bumdes_id", bumdesId)
+            .is("unit_id", null);
         if (journalError) throw journalError;
 
         const balances = new Map();
+
+        // Saldo awal: debit - credit.
+        (openingRowsForBalance || []).forEach(j => {
+            const id = String(j.account_id);
+            balances.set(
+                id,
+                (balances.get(id) || 0)
+                + Number(j.debit || 0)
+                - Number(j.credit || 0)
+            );
+        });
+
+        // Mutasi pusat: debit - credit.
         (journalRows || []).forEach(j => {
             const id = String(j.account_id);
-            balances.set(id, (balances.get(id) || 0) + Number(j.debit || 0) - Number(j.credit || 0));
+            balances.set(
+                id,
+                (balances.get(id) || 0)
+                + Number(j.debit || 0)
+                - Number(j.credit || 0)
+            );
         });
 
         const rows = [];
@@ -6782,7 +6821,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                     <div class="mb-3"><label class="form-label">Tanggal pembayaran</label><input id="shuPaymentDate" type="date" class="form-control" value="${defaultDate}"></div>
                                     <div class="mb-3"><label class="form-label">Akun tujuan pembayaran</label><select id="shuPaymentDestination" class="form-select"><option value="">Pilih akun tujuan</option>${destinationChoices}</select><div class="form-text">Pilih akun tujuan pembayaran dari akun Bagi Hasil SHU yang tersedia. Contoh untuk PADes: Bagi Hasil Penyertaan Modal Desa.</div></div>
                                     <div><label class="form-label">Dibayar dari</label><select id="shuPaymentCash" class="form-select"><option value="">Pilih Kas/Bank</option>${cashChoices}</select></div>
-                                    <div class="alert alert-info small mt-3 mb-0">Tanggal pembayaran fleksibel dan mengikuti tanggal transaksi pembayaran sebenarnya.</div>
+                                    <div class="alert alert-info small mt-3 mb-0">Saldo Kas/Bank dihitung dari saldo awal tahun ditambah mutasi Kantor Pusat. Tanggal pembayaran fleksibel dan mengikuti tanggal transaksi pembayaran sebenarnya.</div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
