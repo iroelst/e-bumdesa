@@ -5779,13 +5779,20 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // mengurangi ekuitas. 3.8 RK Pusat hanya disajikan pada laporan Unit Usaha;
         // pada Kantor Pusat akun RK Unit Usaha berada di Aset Lancar. Pada konsolidasi
         // kedua akun resiprokal sudah dieliminasi.
+        // Akun 3.2.xx adalah bagi hasil/pengambilan pemilik dengan saldo normal
+        // Debit, sehingga menjadi pengurang ekuitas. Jangan memasukkannya sebagai
+        // beban laba rugi; pengurangannya dilakukan langsung pada total ekuitas.
+        const bagiHasilEkuitas=reportGroupTotal(data,'3.2.','balances');
+        const bagiHasilEkuitasPrior=reportGroupTotal(data,'3.2.','priors');
         const equityBase=(reportGroupTotal(data,'3.1.','balances')+
             reportGroupTotal(data,'3.3.','balances')+
-            reportGroupTotal(data,'3.4.','balances')+
+            reportGroupTotal(data,'3.4.','balances')-
+            bagiHasilEkuitas+
             (String(data.scope).startsWith('unit:') ? reportGroupTotal(data,'3.8.','balances') : 0));
         const priorEquityBase=(reportGroupTotal(data,'3.1.','priors')+
             reportGroupTotal(data,'3.3.','priors')+
-            reportGroupTotal(data,'3.4.','priors')+
+            reportGroupTotal(data,'3.4.','priors')-
+            bagiHasilEkuitasPrior+
             (String(data.scope).startsWith('unit:') ? reportGroupTotal(data,'3.8.','priors') : 0));
         const p=buildProfitLossReport(data);
         // Jika laporan belum melalui jurnal penutup, laba/rugi bersih periode berjalan
