@@ -2250,6 +2250,62 @@
 <style>
 .cashbank-detail-filter{display:grid;grid-template-columns:1fr 1fr 150px;gap:10px;padding:12px 14px;border-bottom:1px solid #edf1f5;background:#fbfcfe}.cashbank-detail-filter .form-label{font-size:10px;font-weight:700;color:#68788b;margin-bottom:4px}.cashbank-detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;border-bottom:1px solid #edf1f5}.cashbank-detail-summary>div{padding:9px 10px;border:1px solid #e5eaf0;border-radius:9px;background:#fff}.cashbank-detail-summary span{display:block;font-size:9px;color:#8793a1;margin-bottom:4px}.cashbank-detail-summary strong{font-size:12px;color:#26374c}@media(max-width:700px){.cashbank-detail-filter{grid-template-columns:1fr 1fr}.cashbank-detail-filter>div:last-child{grid-column:1/-1}.cashbank-detail-summary{grid-template-columns:1fr 1fr}}
 </style>
+<style id="shuAllocationPrintStyles">
+#shuAllocationPrintPage{display:none;}
+@media print{
+  body > *{visibility:hidden !important;}
+  #shuAllocationPrintPage,
+  #shuAllocationPrintPage *{visibility:visible !important;}
+  #shuAllocationPrintPage{
+    display:block !important;
+    position:absolute !important;
+    left:0 !important;
+    top:0 !important;
+    width:100% !important;
+    background:#fff !important;
+    z-index:999999 !important;
+  }
+  #shuAllocationPrintPage .shu-allocation-print-sheet{
+    width:100%;
+    padding:6mm 5mm;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+    color:#111;
+    background:#fff;
+  }
+  #shuAllocationPrintPage .shu-print-kop{
+    display:grid;
+    grid-template-columns:75px 1fr 75px;
+    align-items:center;
+    gap:10px;
+    text-align:center;
+  }
+  #shuAllocationPrintPage .shu-print-logo-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:68px;
+  }
+  #shuAllocationPrintPage .shu-print-logo{width:60px;height:60px;object-fit:contain;}
+  #shuAllocationPrintPage .shu-print-head-text{grid-column:2;}
+  #shuAllocationPrintPage .shu-print-org{font-size:14px;font-weight:700;}
+  #shuAllocationPrintPage .shu-print-name{font-size:20px;font-weight:800;margin-top:2px;}
+  #shuAllocationPrintPage .shu-print-location{font-size:10px;margin-top:3px;}
+  #shuAllocationPrintPage .shu-print-divider{border-top:3px solid #111;margin-top:7px;}
+  #shuAllocationPrintPage .shu-print-title{text-align:center;font-size:14px;font-weight:800;margin-top:17px;}
+  #shuAllocationPrintPage .shu-print-period{text-align:center;font-size:10px;margin:5px 0 15px;}
+  #shuAllocationPrintPage .shu-print-table{width:100%;border-collapse:collapse;font-size:10px;}
+  #shuAllocationPrintPage .shu-print-table th{background:#eee !important;border-top:1px solid #222;border-bottom:1px solid #222;padding:7px 6px;text-align:left;}
+  #shuAllocationPrintPage .shu-print-table td{border-bottom:1px solid #ddd;padding:6px;vertical-align:top;}
+  #shuAllocationPrintPage .shu-print-table .center{text-align:center;}
+  #shuAllocationPrintPage .shu-print-table .right{text-align:right;}
+  #shuAllocationPrintPage .shu-print-table tfoot td{border-top:1.5px solid #222;border-bottom:1px solid #222;background:#f5f5f5;}
+  #shuAllocationPrintPage .shu-print-note{margin-top:16px;padding-top:9px;border-top:1px dashed #aaa;font-size:9px;line-height:1.5;}
+  #shuAllocationPrintPage .shu-print-footer{display:flex;justify-content:space-between;margin-top:20px;font-size:8px;color:#555;}
+  #shuAllocationPrintPage tr{page-break-inside:avoid;}
+  @page{size:A4 portrait;margin:10mm;}
+}
+</style>
 </head>
 
 <body>
