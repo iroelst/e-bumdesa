@@ -6147,6 +6147,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         let allocationId = null;
         let allocationStatusValue = "";
         let allocationAccountBalances = new Map();
+        let allocationBaseAmount = 0;
 
         const formatMoney = value => rupiah(Number(value || 0));
 
@@ -6182,12 +6183,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const recalcAllocation = () => {
             const totalPct = allocationState.reduce((sum, item) => sum + (Number(item.persentase) || 0), 0);
             const roundedPct = Math.round(totalPct * 10000) / 10000;
-            const values = allocationState.map(item => Math.round((currentProfit * (Number(item.persentase) || 0) / 100) * 100) / 100);
+            const values = allocationState.map(item => Math.round((allocationBaseAmount * (Number(item.persentase) || 0) / 100) * 100) / 100);
             const totalValue = Math.round(values.reduce((sum, value) => sum + value, 0) * 100) / 100;
 
             allocationTotalPctEl && (allocationTotalPctEl.textContent = `${roundedPct}%`);
             allocationTotalValueEl && (allocationTotalValueEl.textContent = formatMoney(totalValue));
-            allocationAvailableEl && (allocationAvailableEl.textContent = formatMoney(currentProfit));
+            allocationAvailableEl && (allocationAvailableEl.textContent = formatMoney(allocationBaseAmount));
 
             const pctOk = Math.abs(roundedPct - 100) < 0.0000001;
             const valueOk = Math.abs(totalValue - currentProfit) < 0.01;
@@ -6233,7 +6234,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 el.textContent = formatMoney(values[index] || 0);
             });
 
-            const canSave = canManage && periodOk && currentProfit > 0 && pctOk && valueOk && rowsOk && balanceOk && allocationStatusValue !== "posted";
+            const canSave = canManage && periodOk && allocationBaseAmount > 0 && pctOk && valueOk && rowsOk && balanceOk && allocationStatusValue !== "posted";
             if (allocationSaveButton) allocationSaveButton.disabled = !canSave;
             if (allocationAddButton) allocationAddButton.disabled = !canManage || !periodOk || allocationStatusValue === "posted";
         };
@@ -6254,6 +6255,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             allocationId = null;
             allocationStatusValue = "";
             allocationAccountBalances = new Map();
+            allocationBaseAmount = 0;
             renderAllocationRows();
 
             if (!periodId || currentPeriodStatus !== "closed") {
@@ -6262,10 +6264,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 return;
             }
 
-            const [{ data: allocation, error: allocationError }, { data: journalRows, error: journalError }] = await Promise.all([
+            const [{ data: allocation, error: allocationError },
+                   { data: distribution, error: distributionError },
+                   { data: journalRows, error: journalError }] = await Promise.all([
                 supabaseClient
                     .from("profit_allocations")
                     .select("id,total_amount,total_percentage,status")
+                    .eq("period_id", periodId)
+                    .eq("bumdes_id", bumdesId)
+                    .maybeSingle(),
+                supabaseClient
+                    .from("profit_distributions")
+                    .select("id,total_profit,total_percentage,status")
                     .eq("period_id", periodId)
                     .eq("bumdes_id", bumdesId)
                     .maybeSingle(),
@@ -6276,12 +6286,30 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             ]);
 
             if (allocationError) throw allocationError;
+            if (distributionError) throw distributionError;
             if (journalError) throw journalError;
 
             (journalRows || []).forEach(j => {
                 const id = String(j.account_id);
-                allocationAccountBalances.set(id, (allocationAccountBalances.get(id) || 0) + Number(j.credit || 0) - Number(j.debit || 0));
+                allocationAccountBalances.set(
+                    id,
+                    (allocationAccountBalances.get(id) || 0)
+                    + Number(j.credit || 0)
+                    - Number(j.debit || 0)
+                );
             });
+
+            /*
+             * Setelah Tutup Buku, preview_period_profit() memang dapat bernilai Rp0
+             * karena laba sudah dipindahkan dari Ikhtisar Laba Rugi ke Saldo Laba.
+             * Dasar Alokasi Bagi Hasil harus mengambil laba yang telah ditetapkan
+             * pada Draft SHU, bukan laba periode berjalan yang sudah ditutup.
+             */
+            allocationBaseAmount = Number(
+                allocation?.total_amount
+                || distribution?.total_profit
+                || 0
+            );
 
             if (allocation) {
                 allocationId = allocation.id;
@@ -6301,12 +6329,24 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             }
 
             if (allocationStatus) {
-                allocationStatus.textContent = allocationStatusValue === "posted" ? "Sudah ditetapkan" : (allocation ? "Draft" : "Belum ada alokasi");
-                allocationStatus.className = allocationStatusValue === "posted" ? "badge text-bg-success" : "badge text-bg-warning";
+                allocationStatus.textContent = allocationStatusValue === "posted"
+                    ? "Sudah ditetapkan"
+                    : (allocation ? "Draft" : "Belum ada alokasi");
+                allocationStatus.className = allocationStatusValue === "posted"
+                    ? "badge text-bg-success"
+                    : "badge text-bg-warning";
             }
 
-            if (!allocationState.length && allocationStatusValue !== "posted") {
-                addAllocationRow({ nama_alokasi: "BUM Desa / Saldo Laba", persentase: 100 });
+            if (!allocationState.length && allocationStatusValue !== "posted" && allocationBaseAmount > 0) {
+                const defaultSource = targetAccounts.find(account =>
+                    Number(allocationAccountBalances.get(String(account.id)) || 0) > 0
+                ) || targetAccounts.find(account => String(account.kode || "") === "3.3.01.01");
+
+                addAllocationRow({
+                    nama_alokasi: "BUM Desa / Saldo Laba",
+                    source_account_id: defaultSource?.id || "",
+                    persentase: 100
+                });
             } else {
                 renderAllocationRows();
                 recalcAllocation();
