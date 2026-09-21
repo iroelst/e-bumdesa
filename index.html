@@ -5946,6 +5946,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("level", 4)
                 .eq("is_active", true)
                 .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .like("kode", "3.3.%")
                 .order("kode", { ascending: true })
         ]);
 
@@ -5963,9 +5964,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             <div class="panel mb-3">
                 <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                     <div>
-                        <div class="fw-semibold">Rancangan Pembagian SHU</div>
+                        <div class="fw-semibold">Draft Penutupan Laba ke Saldo Laba</div>
                         <div class="text-secondary small mt-1">
-                            Laba bersih dihitung otomatis dari jurnal periode. Pembagian dapat dibuat sesuai keputusan BUM Desa dan harus berjumlah tepat 100%.
+                            Laba bersih dihitung otomatis dari jurnal periode. Draft ini hanya menentukan pemindahan laba tahun berjalan ke akun Saldo Laba pada saat Tutup Buku dan harus berjumlah tepat 100%.
                         </div>
                     </div>
                     ${canManage
@@ -5996,10 +5997,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             <div id="shuEditor" class="panel ${annualPeriods.length ? "" : "d-none"}">
                 <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
                     <div>
-                        <div class="fw-semibold">Pos Pembagian</div>
-                        <div class="text-secondary small">Setiap pos memilih akun Level 4 sebagai tujuan pencatatan laba.</div>
+                        <div class="fw-semibold">Tujuan Saldo Laba</div>
+                        <div class="text-secondary small">Setiap baris memilih akun dalam kelompok Saldo Laba sebagai tujuan pemindahan laba saat Tutup Buku.</div>
                     </div>
-                    ${canManage ? `<button type="button" id="shuAddRow" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>Tambah Pos Pembagian</button>` : ""}
+                    ${canManage ? `<button type="button" id="shuAddRow" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>Tambah Tujuan Saldo Laba</button>` : ""}
                 </div>
 
                 <div class="table-responsive">
@@ -6009,7 +6010,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                 <th style="min-width:220px">Nama Pos</th>
                                 <th style="min-width:320px">Akun Tujuan</th>
                                 <th style="width:150px" class="text-end">Persentase</th>
-                                <th style="width:140px" class="text-center">Dapat Dibayarkan</th>
                                 <th style="width:170px" class="text-end">Nilai</th>
                                 ${canManage ? `<th style="width:70px"></th>` : ""}
                             </tr>
@@ -6027,7 +6027,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     </div>
                     <div class="col-md-6">
                         <div class="border rounded p-3">
-                            <div class="d-flex justify-content-between"><span>Total Pembagian</span><strong id="shuTotalValue">Rp0</strong></div>
+                            <div class="d-flex justify-content-between"><span>Total Laba Dialokasikan</span><strong id="shuTotalValue">Rp0</strong></div>
                             <div id="shuValueMessage" class="small text-secondary mt-1">Harus sama dengan laba bersih.</div>
                         </div>
                     </div>
@@ -6089,11 +6089,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <td><input type="text" class="form-control form-control-sm shu-name" value="${escapeHtml(item.nama_pos || "")}" placeholder="Nama pos" ${!canManage ? "disabled" : ""}></td>
                     <td>${accountSelectHtml(item.account_id, index)}</td>
                     <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}" ${!canManage ? "disabled" : ""}><span class="input-group-text">%</span></div></td>
-                    <td class="text-center"><div class="form-check d-inline-flex justify-content-center"><input type="checkbox" class="form-check-input shu-payable" ${item.is_payable ? "checked" : ""} ${!canManage ? "disabled" : ""} title="Pos ini dapat dibayarkan"></div></td>
                     <td class="text-end fw-semibold shu-value">${formatMoney(item.nilai || 0)}</td>
                     ${canManage ? `<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>` : ""}
                 </tr>
-            `).join("") : `<tr><td colspan="${canManage ? 6 : 5}" class="text-center text-secondary py-4">Belum ada pos pembagian.</td></tr>`;
+            `).join("") : `<tr><td colspan="${canManage ? 5 : 4}" class="text-center text-secondary py-4">Belum ada pos pembagian.</td></tr>`;
         };
 
         const recalc = () => {
@@ -6113,10 +6112,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
             totalPctEl.className = pctOk ? "text-success" : "text-danger";
             totalValueEl.className = valueOk ? "text-success" : "text-danger";
-            pctMessage.textContent = pctOk ? "Persentase sudah tepat 100%." : "Total persentase harus tepat 100%.";
-            valueMessage.textContent = valueOk ? "Total pembagian sesuai dengan laba bersih." : "Total pembagian harus sama dengan laba bersih.";
+            pctMessage.textContent = pctOk ? "Persentase sudah tepat 100%." : "Total persentase tujuan Saldo Laba harus tepat 100%.";
+            valueMessage.textContent = valueOk ? "Total laba yang dialokasikan sesuai dengan laba bersih." : "Total laba yang dialokasikan harus sama dengan laba bersih.";
             pctMessage.className = `small mt-1 ${pctOk ? "text-success" : "text-danger"}`;
-            if (duplicateAccounts) { pctMessage.textContent = "Akun tujuan yang sama tidak boleh digunakan lebih dari satu kali dalam satu pembagian SHU."; pctMessage.className = "small mt-1 text-danger"; }
+            if (duplicateAccounts) { pctMessage.textContent = "Akun Saldo Laba yang sama tidak boleh digunakan lebih dari satu kali dalam satu draft."; pctMessage.className = "small mt-1 text-danger"; }
             valueMessage.className = `small mt-1 ${valueOk ? "text-success" : "text-danger"}`;
 
             body?.querySelectorAll(".shu-value").forEach((el, index) => {
@@ -6132,7 +6131,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 account_id: item.account_id || "",
                 persentase: item.persentase ?? "",
                 nilai: item.nilai || 0,
-                is_payable: !!item.is_payable
             });
             renderRows();
             recalc();
@@ -6197,13 +6195,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     account_id: item.account_id,
                     persentase: item.persentase,
                     nilai: item.nilai,
-                    is_payable: !!item.is_payable
-                }));
+                    }));
             }
 
             if (!itemState.length && canManage && currentPeriodStatus === "open" && currentProfit > 0) {
                 const defaultAccount = targetAccounts.find(account => String(account.kode || "") === "3.3.01.01");
-                itemState = [{ nama_pos: "Bagi Hasil SHU", account_id: defaultAccount?.id || "", persentase: 100, nilai: currentProfit, is_payable: false }];
+                itemState = [{ nama_pos: "Bagi Hasil SHU", account_id: defaultAccount?.id || "", persentase: 100, nilai: currentProfit }];
                 renderRows();
                 recalc();
             } else {
@@ -6240,13 +6237,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (!row) return;
             const index = Number(row.dataset.index);
             if (!itemState[index]) return;
-            if (event.target.classList.contains("shu-payable")) {
-                itemState[index].is_payable = !!event.target.checked;
-            }
             if (event.target.classList.contains("shu-account")) {
                 const selectedAccountId=String(event.target.value||"");
                 const duplicateIndex=itemState.findIndex((item,idx)=>idx!==index && selectedAccountId && String(item.account_id||"")===selectedAccountId);
-                if (duplicateIndex>=0) { showAppToast("error","Akun tujuan sudah digunakan","Akun tujuan yang sama tidak boleh digunakan lebih dari satu kali dalam satu pembagian SHU."); renderRows(); }
+                if (duplicateIndex>=0) { showAppToast("error","Akun tujuan sudah digunakan","Akun Saldo Laba yang sama tidak boleh digunakan lebih dari satu kali dalam satu draft."); renderRows(); }
                 else { itemState[index].account_id=selectedAccountId; renderRows(); }
             }
             recalc();
@@ -6270,7 +6264,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 account_id: item.account_id,
                 nama_pos: String(item.nama_pos || "").trim(),
                 persentase: Number(item.persentase),
-                is_payable: !!item.is_payable
             }));
 
             const original = saveButton.innerHTML;
