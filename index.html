@@ -15,6 +15,9 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -6639,25 +6642,25 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .select("id,allocation_item_id,transaction_id,amount,paid_at,created_at")
                 .eq("bumdes_id", bumdesId),
             supabaseClient.from("chart_of_accounts")
-                .select("id,kode,nama,level,account_type,normal_balance,is_active")
-                .eq("bumdes_id", bumdesId)
+                .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
                 .eq("level", 4)
                 .eq("is_active", true)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .like("kode", "1.1.01.%")
                 .eq("normal_balance", "debit")
                 .order("kode", { ascending: true }),
             supabaseClient.from("chart_of_accounts")
-                .select("id,kode,nama,level,account_type,normal_balance,is_active")
-                .eq("bumdes_id", bumdesId)
+                .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
                 .eq("level", 4)
                 .eq("is_active", true)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .like("kode", "3.2.%")
                 .order("kode", { ascending: true }),
             supabaseClient.from("chart_of_accounts")
-                .select("id,kode,nama,level,account_type,normal_balance,is_active")
-                .eq("bumdes_id", bumdesId)
+                .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
                 .eq("level", 4)
                 .eq("is_active", true)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .order("kode", { ascending: true })
         ]);
 
@@ -6826,8 +6829,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 document.getElementById("shuPaymentModal")?.remove();
                 document.body.insertAdjacentHTML("beforeend", html);
                 const modalEl = document.getElementById("shuPaymentModal");
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
+                const modal = (window.bootstrap && window.bootstrap.Modal)
+                    ? new bootstrap.Modal(modalEl)
+                    : null;
+                if (modal) {
+                    modal.show();
+                } else {
+                    modalEl.style.display = "block";
+                    modalEl.classList.add("show");
+                    modalEl.setAttribute("aria-hidden", "false");
+                    modalEl.removeAttribute("aria-hidden");
+                    modalEl.style.background = "rgba(0,0,0,.45)";
+                }
 
                 modalEl.querySelector("#shuPaymentConfirm").addEventListener("click", async () => {
                     const date = modalEl.querySelector("#shuPaymentDate").value;
@@ -6848,7 +6861,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                             p_payment_date: date
                         });
                         if (error) throw error;
-                        modal.hide();
+                        if (modal) modal.hide();
+                        else modalEl.remove();
                         showAppToast("success", "Pembayaran SHU berhasil", "Pembayaran SHU berhasil dicatat dan saldo Kas/Bank diperbarui.");
                         await renderProfitPaymentModule();
                     } catch (err) {
@@ -6860,6 +6874,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     }
                 });
                 modalEl.addEventListener("hidden.bs.modal", () => modalEl.remove(), { once: true });
+                modalEl.querySelector(".btn-close")?.addEventListener("click", () => { if (!modal) modalEl.remove(); });
+                modalEl.querySelector('[data-bs-dismiss="modal"]')?.addEventListener("click", () => { if (!modal) modalEl.remove(); });
             });
         });
     }
