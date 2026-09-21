@@ -4088,7 +4088,7 @@
         penyesuaian: ["Penyesuaian", "Jurnal penyesuaian akhir periode."],
         tutupbuku: ["Tutup Buku", "Pengelolaan penutupan dan pembukaan kembali periode tahunan."],
         pembagianshu: ["Pembagian SHU", "Pengaturan pembagian laba bersih berdasarkan keputusan BUM Desa."],
-        pembayaranshu: ["Pembayaran SHU", "Pembayaran bagian SHU yang telah ditetapkan setelah Tutup Buku."],
+        pembayaranshu: ["Pembayaran SHU", "Pencatatan pembayaran bagian SHU yang telah ditetapkan."],
         aset: ["Aset", "Daftar aset tetap dan penyusutan."],
         unit: ["Daftar Unit", "Daftar Unit Usaha dalam BUMDes."],
         tambahunit: ["Tambah Unit", "Menambahkan Unit Usaha baru."],
@@ -6604,7 +6604,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
     }
 
-
     async function renderProfitPaymentModule() {
         const bumdesId = activeAppProfile.bumdes_id;
         const canManage = activeAppProfile.role === "admin_pusat";
@@ -6612,72 +6611,96 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const [
             { data: periods, error: periodError },
             { data: allocations, error: allocationError },
-            { data: items, error: itemError },
+            { data: allocationItems, error: itemError },
+            { data: distributions, error: distributionError },
+            { data: distributionItems, error: distributionItemError },
             { data: payments, error: paymentError },
-            { data: accounts, error: accountError },
-            { data: journals, error: journalError }
+            { data: cashAccounts, error: cashError },
+            { data: allAccounts, error: accountError }
         ] = await Promise.all([
-            supabaseClient
-                .from("account_periods")
+            supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
                 .eq("bumdes_id", bumdesId)
                 .eq("period_type", "tahunan")
                 .order("start_date", { ascending: false }),
-            supabaseClient
-                .from("profit_allocations")
-                .select("id,period_id,total_amount,total_percentage,status")
+            supabaseClient.from("profit_allocations")
+                .select("id,period_id,total_amount,total_percentage,status,created_at")
                 .eq("bumdes_id", bumdesId),
-            supabaseClient
-                .from("profit_allocation_items")
-                .select("id,allocation_id,nama_alokasi,persentase,nilai,urutan,payment_account_id")
+            supabaseClient.from("profit_allocation_items")
+                .select("id,allocation_id,source_account_id,nama_alokasi,persentase,nilai,urutan")
                 .order("urutan", { ascending: true }),
-            supabaseClient
-                .from("profit_allocation_payments")
-                .select("id,allocation_item_id,transaction_id,amount,paid_at"),
-            supabaseClient
-                .from("chart_of_accounts")
-                .select("id,kode,nama,account_type,level,normal_balance,is_active,bumdes_id")
+            supabaseClient.from("profit_distributions")
+                .select("id,period_id,total_profit,total_percentage,status"),
+            supabaseClient.from("profit_distribution_items")
+                .select("id,distribution_id,account_id,nama_pos,persentase,nilai,urutan")
+                .order("urutan", { ascending: true }),
+            supabaseClient.from("profit_allocation_payments")
+                .select("id,allocation_item_id,transaction_id,amount,paid_at,created_at")
+                .eq("bumdes_id", bumdesId),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,is_active")
+                .eq("bumdes_id", bumdesId)
                 .eq("level", 4)
                 .eq("is_active", true)
-                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .like("kode", "1.1.01.%")
+                .eq("normal_balance", "debit")
                 .order("kode", { ascending: true }),
-            supabaseClient
-                .from("journals")
-                .select("account_id,debit,credit")
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,is_active")
                 .eq("bumdes_id", bumdesId)
+                .eq("level", 4)
+                .eq("is_active", true)
+                .order("kode", { ascending: true })
         ]);
 
         if (periodError) throw periodError;
         if (allocationError) throw allocationError;
         if (itemError) throw itemError;
+        if (distributionError) throw distributionError;
+        if (distributionItemError) throw distributionItemError;
         if (paymentError) throw paymentError;
+        if (cashError) throw cashError;
         if (accountError) throw accountError;
+
+        const allocationMap = new Map((allocations || []).map(v => [String(v.id), v]));
+        const periodMap = new Map((periods || []).map(v => [String(v.id), v]));
+        const distributionMap = new Map((distributions || []).map(v => [String(v.period_id), v]));
+        const distributionItemMap = new Map();
+        (distributionItems || []).forEach(v => {
+            const d = (distributions || []).find(x => String(x.id) === String(v.distribution_id));
+            if (d) distributionItemMap.set(`${d.period_id}:${v.urutan}`, v);
+        });
+        const coaMap = new Map((allAccounts || []).map(v => [String(v.id), v]));
+        const paymentMap = new Map((payments || []).map(v => [String(v.allocation_item_id), v]));
+
+        // Saldo kas/bank dihitung dari jurnal agar pilihan sumber pembayaran
+        // selalu menunjukkan saldo aktual berdasarkan pembukuan.
+        const { data: journalRows, error: journalError } = await supabaseClient
+            .from("journals")
+            .select("account_id,debit,credit")
+            .eq("bumdes_id", bumdesId);
         if (journalError) throw journalError;
 
-        const periodMap = new Map((periods || []).map(p => [String(p.id), p]));
-        const allocationMap = new Map((allocations || []).map(a => [String(a.id), a]));
-        const paymentMap = new Map((payments || []).map(p => [String(p.allocation_item_id), p]));
-
-        const accountMap = new Map((accounts || []).map(a => [String(a.id), a]));
-        const cashAccounts = (accounts || []).filter(a =>
-            a.bumdes_id == null &&
-            Number(a.level) === 4 &&
-            String(a.kode || "").startsWith("1.1.01.") &&
-            String(a.account_type || "").toLowerCase() === "aset" &&
-            String(a.normal_balance || "").toLowerCase() === "debit" &&
-            a.is_active === true
-        );
-
         const balances = new Map();
-        (journals || []).forEach(j => {
+        (journalRows || []).forEach(j => {
             const id = String(j.account_id);
             balances.set(id, (balances.get(id) || 0) + Number(j.debit || 0) - Number(j.credit || 0));
         });
 
-        const closedPeriods = (periods || []).filter(p => p.status === "closed");
-        const eligiblePeriods = closedPeriods.filter(p => {
-            const a = allocationMap.get(String(p.id));
-            return a && a.status === "posted";
+        const rows = [];
+        (allocationItems || []).forEach(item => {
+            const allocation = allocationMap.get(String(item.allocation_id));
+            if (!allocation || allocation.status !== "posted") return;
+            const period = periodMap.get(String(allocation.period_id));
+            if (!period || period.status !== "closed") return;
+
+            const distribution = distributionMap.get(String(period.id));
+            const destination = distribution
+                ? distributionItemMap.get(`${period.id}:${item.urutan}`)
+                : null;
+            const targetAccount = destination ? null : null;
+            const paid = paymentMap.get(String(item.id));
+            rows.push({ item, allocation, period, destination, paid, targetAccount });
         });
 
         showModuleShell("pembayaranshu", `
@@ -6686,231 +6709,145 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <div>
                         <div class="fw-semibold">Pembayaran SHU</div>
                         <div class="text-secondary small mt-1">
-                            Pembayaran dilakukan setelah Tutup Buku. Pilih rekening sumber dana untuk setiap pembayaran.
-                            Pembayaran ini merupakan transaksi terpisah dan mengurangi saldo Kas/Bank.
+                            Pembayaran dicatat sebagai transaksi tersendiri setelah Tutup Buku. Tanggal pembayaran mengikuti tanggal pembayaran sebenarnya.
                         </div>
                     </div>
-                    ${canManage
-                        ? `<span class="badge text-bg-primary">Admin Pusat</span>`
-                        : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+                    ${canManage ? '<span class="badge text-bg-primary">Admin Pusat</span>' : '<span class="badge text-bg-secondary">Hanya lihat</span>'}
                 </div>
             </div>
 
             <div class="panel mb-3">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-7">
-                        <label class="form-label small fw-semibold">Periode</label>
-                        <select id="shuPaymentPeriod" class="form-select">
-                            ${eligiblePeriods.length
-                                ? eligiblePeriods.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(fmtDate(p.start_date))} s/d ${escapeHtml(fmtDate(p.end_date))}</option>`).join("")
-                                : `<option value="">Belum ada periode yang dapat dibayar</option>`}
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label small fw-semibold">Tanggal Pembayaran</label>
-                        <input id="shuPaymentDate" type="date" class="form-control"
-                               ${!canManage || !eligiblePeriods.length ? "disabled" : ""}>
+                <div class="d-flex align-items-start gap-3">
+                    <div class="text-primary fs-4"><i class="bi bi-calendar-check"></i></div>
+                    <div>
+                        <div class="fw-semibold">Tanggal pembayaran fleksibel</div>
+                        <div class="text-secondary small mt-1">
+                            Tanggal pembayaran tidak harus berada di dalam tanggal periode tahun buku. Gunakan tanggal saat pembayaran benar-benar dilakukan.
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div id="shuPaymentContent"></div>
+            ${rows.length ? `
+            <div class="panel">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Periode</th>
+                                <th>Alokasi SHU</th>
+                                <th class="text-end">Nilai</th>
+                                <th>Akun Tujuan</th>
+                                <th>Status</th>
+                                <th class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(r => {
+                                const destId = r.destination?.account_id;
+                                const destAccount = destId ? coaMap.get(String(destId)) : null;
+                                const statusPaid = !!r.paid;
+                                const action = statusPaid
+                                    ? `<span class="badge text-bg-success">Sudah dibayar</span>`
+                                    : (canManage ? `<button type="button" class="btn btn-sm btn-primary shu-pay-btn" data-id="${escapeHtml(r.item.id)}"><i class="bi bi-cash-coin me-1"></i>Bayar</button>` : `<span class="text-secondary small">Hanya lihat</span>`);
+                                return `<tr>
+                                    <td class="fw-semibold">${fmtDate(r.period.start_date)} s/d ${fmtDate(r.period.end_date)}</td>
+                                    <td>${escapeHtml(r.item.nama_alokasi || "-")}</td>
+                                    <td class="text-end fw-semibold">${rupiah(Number(r.item.nilai || 0))}</td>
+                                    <td>${destId ? escapeHtml(destAccount ? `${destAccount.kode} — ${destAccount.nama}` : "Akun tujuan tersimpan") : '<span class="text-secondary">Belum ditentukan</span>'}</td>
+                                    <td>${r.paid ? `<span class="small">${fmtDate(r.paid.paid_at)}</span>` : '<span class="badge text-bg-warning">Belum dibayar</span>'}</td>
+                                    <td class="text-end">${action}</td>
+                                </tr>`;
+                            }).join("")}
+                        </tbody>
+                    </table>
+                </div>
+            </div>` : `
+            <div class="panel text-center py-5">
+                <i class="bi bi-cash-stack fs-2 text-secondary"></i>
+                <div class="mt-2 fw-semibold">Belum ada SHU yang siap dibayar</div>
+                <div class="text-secondary small mt-1">Pembayaran tersedia setelah alokasi SHU diposting melalui Tutup Buku.</div>
+            </div>`}
         `);
 
-        const periodSelect = $("shuPaymentPeriod");
-        const dateInput = $("shuPaymentDate");
-        const content = $("shuPaymentContent");
+        const payButtons = document.querySelectorAll(".shu-pay-btn");
+        payButtons.forEach(button => {
+            button.addEventListener("click", async () => {
+                const itemId = button.dataset.id;
+                const row = rows.find(r => String(r.item.id) === String(itemId));
+                if (!row || row.paid) return;
 
-        const today = new Date().toISOString().slice(0, 10);
-        if (dateInput) dateInput.value = today;
-
-        const formatBalance = value => {
-            const n = Number(value || 0);
-            return formatMoney(n);
-        };
-
-        const render = () => {
-            const periodId = periodSelect?.value;
-            const period = periodMap.get(String(periodId));
-            const allocation = allocationMap.get(String(
-                (allocations || []).find(a => String(a.period_id) === String(periodId))?.id || ""
-            ));
-
-            if (!period || !allocation || allocation.status !== "posted") {
-                content.innerHTML = `
-                    <div class="panel text-center py-5">
-                        <i class="bi bi-info-circle fs-2 text-secondary"></i>
-                        <div class="mt-2 fw-semibold">Belum ada alokasi SHU yang siap dibayar</div>
-                        <div class="text-secondary small mt-1">Periode harus sudah Tutup Buku dan alokasi SHU harus sudah ditetapkan.</div>
-                    </div>`;
-                return;
-            }
-
-            const periodItems = (items || [])
-                .filter(item => String(item.allocation_id) === String(allocation.id))
-                .sort((a,b) => Number(a.urutan || 0) - Number(b.urutan || 0));
-
-            const rows = periodItems.map(item => {
-                const payment = paymentMap.get(String(item.id));
-                const payable = !!item.payment_account_id;
-                const paymentAccount = accountMap.get(String(item.payment_account_id));
-                const value = Number(item.nilai || 0);
-
-                if (payment) {
-                    return `<tr>
-                        <td class="fw-semibold">${escapeHtml(item.nama_alokasi || "-")}</td>
-                        <td>${Number(item.persentase || 0).toLocaleString("id-ID",{maximumFractionDigits:4})}%</td>
-                        <td class="text-end">${formatMoney(value)}</td>
-                        <td>${escapeHtml(paymentAccount?.kode || "-")} — ${escapeHtml(paymentAccount?.nama || "-")}</td>
-                        <td><span class="badge text-bg-success">Sudah dibayar</span>
-                            <div class="small text-secondary mt-1">${escapeHtml(fmtDate(payment.paid_at))}</div></td>
-                        <td class="text-end"><span class="text-success"><i class="bi bi-check-circle me-1"></i>Selesai</span></td>
-                    </tr>`;
+                const destinationId = row.destination?.account_id;
+                if (!destinationId) {
+                    showAppToast("error", "Akun tujuan belum tersedia", "Akun tujuan pembayaran belum ditetapkan pada Pembagian SHU periode ini.");
+                    return;
                 }
 
-                if (!payable) {
-                    return `<tr>
-                        <td class="fw-semibold">${escapeHtml(item.nama_alokasi || "-")}</td>
-                        <td>${Number(item.persentase || 0).toLocaleString("id-ID",{maximumFractionDigits:4})}%</td>
-                        <td class="text-end">${formatMoney(value)}</td>
-                        <td><span class="text-secondary">Tidak ada akun pembayaran</span></td>
-                        <td><span class="badge text-bg-secondary">Alokasi internal</span></td>
-                        <td class="text-end"><span class="text-secondary small">Tidak dibayarkan</span></td>
-                    </tr>`;
-                }
-
-                const options = cashAccounts.map(a => {
-                    const bal = Number(balances.get(String(a.id)) || 0);
-                    const sufficient = bal >= value;
-                    return `<option value="${escapeHtml(a.id)}" ${!sufficient ? "disabled" : ""}>
-                        ${escapeHtml(a.kode)} — ${escapeHtml(a.nama)} (Saldo ${escapeHtml(formatBalance(bal))})${!sufficient ? " — saldo tidak cukup" : ""}
-                    </option>`;
+                const cashChoices = (cashAccounts || []).map(account => {
+                    const saldo = Number(balances.get(String(account.id)) || 0);
+                    const disabled = saldo < Number(row.item.nilai || 0);
+                    return `<option value="${escapeHtml(account.id)}" ${disabled ? "disabled" : ""}>${escapeHtml(account.kode)} — ${escapeHtml(account.nama)} (Saldo ${escapeHtml(rupiah(saldo))})${disabled ? " — saldo tidak cukup" : ""}</option>`;
                 }).join("");
 
-                return `<tr data-payment-item="${escapeHtml(item.id)}">
-                    <td class="fw-semibold">${escapeHtml(item.nama_alokasi || "-")}</td>
-                    <td>${Number(item.persentase || 0).toLocaleString("id-ID",{maximumFractionDigits:4})}%</td>
-                    <td class="text-end fw-semibold">${formatMoney(value)}</td>
-                    <td>${escapeHtml(paymentAccount?.kode || "-")} — ${escapeHtml(paymentAccount?.nama || "-")}</td>
-                    <td>
-                        <select class="form-select form-select-sm shu-cash-account" ${!canManage ? "disabled" : ""}>
-                            <option value="">Pilih rekening sumber...</option>
-                            ${options}
-                        </select>
-                    </td>
-                    <td class="text-end">
-                        ${canManage
-                            ? `<button type="button" class="btn btn-sm btn-primary shu-pay-btn" data-id="${escapeHtml(item.id)}">
-                                   <i class="bi bi-cash-coin me-1"></i>Bayar
-                               </button>`
-                            : `<span class="text-secondary small">Hanya lihat</span>`}
-                    </td>
-                </tr>`;
-            }).join("");
-
-            content.innerHTML = `
-                <div class="panel">
-                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-                        <div>
-                            <div class="fw-semibold">Daftar Alokasi SHU</div>
-                            <div class="text-secondary small mt-1">
-                                Total alokasi: <strong>${formatMoney(Number(allocation.total_amount || 0))}</strong>.
-                                Pembayaran hanya tersedia untuk alokasi yang memiliki akun pembayaran.
+                const defaultDate = new Date().toISOString().slice(0, 10);
+                const html = `
+                    <div class="modal fade" id="shuPaymentModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Pembayaran SHU</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3"><div class="small text-secondary">Alokasi</div><div class="fw-semibold">${escapeHtml(row.item.nama_alokasi)}</div></div>
+                                    <div class="mb-3"><div class="small text-secondary">Nilai pembayaran</div><div class="fs-5 fw-bold">${rupiah(Number(row.item.nilai || 0))}</div></div>
+                                    <div class="mb-3"><label class="form-label">Tanggal pembayaran</label><input id="shuPaymentDate" type="date" class="form-control" value="${defaultDate}"></div>
+                                    <div><label class="form-label">Dibayar dari</label><select id="shuPaymentCash" class="form-select"><option value="">Pilih Kas/Bank</option>${cashChoices}</select></div>
+                                    <div class="alert alert-info small mt-3 mb-0">Tanggal pembayaran fleksibel dan mengikuti tanggal transaksi pembayaran sebenarnya.</div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                                    <button type="button" class="btn btn-primary" id="shuPaymentConfirm"><i class="bi bi-check2-circle me-1"></i>Catat Pembayaran</button>
+                                </div>
                             </div>
                         </div>
-                        <span class="badge text-bg-success">Alokasi sudah ditetapkan</span>
-                    </div>
-                    <div class="alert alert-light border small">
-                        <i class="bi bi-shield-check text-primary me-1"></i>
-                        Rekening sumber diambil dari akun Kas/Bank aktif. Saldo diperiksa sebelum pembayaran.
-                        Satu alokasi hanya dapat dibayar satu kali.
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Alokasi</th>
-                                    <th>Persentase</th>
-                                    <th class="text-end">Nilai</th>
-                                    <th>Akun Tujuan</th>
-                                    <th>Rekening Sumber / Status</th>
-                                    <th class="text-end">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${rows || `<tr><td colspan="6" class="text-center text-secondary py-4">Belum ada item alokasi.</td></tr>`}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
+                    </div>`;
+                document.getElementById("shuPaymentModal")?.remove();
+                document.body.insertAdjacentHTML("beforeend", html);
+                const modalEl = document.getElementById("shuPaymentModal");
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
 
-            content.querySelectorAll(".shu-pay-btn").forEach(button => {
-                button.addEventListener("click", async () => {
-                    const itemId = button.dataset.id;
-                    const row = button.closest("tr");
-                    const cashSelect = row?.querySelector(".shu-cash-account");
-                    const cashAccountId = cashSelect?.value;
-                    const item = periodItems.find(x => String(x.id) === String(itemId));
-                    if (!item) return;
-
-                    if (!cashAccountId) {
-                        showAppToast("error", "Rekening sumber belum dipilih", "Pilih rekening Kas/Bank yang akan digunakan untuk pembayaran.");
-                        return;
-                    }
-
-                    const selectedAccount = accountMap.get(String(cashAccountId));
-                    const balance = Number(balances.get(String(cashAccountId)) || 0);
-                    const amount = Number(item.nilai || 0);
-
-                    if (!selectedAccount || balance < amount) {
-                        showAppToast("error", "Saldo tidak mencukupi", "Pilih rekening lain yang memiliki saldo cukup.");
-                        return;
-                    }
-
-                    const paymentDate = dateInput?.value;
-                    if (!paymentDate || paymentDate < period.start_date || paymentDate > period.end_date) {
-                        showAppToast("error", "Tanggal pembayaran tidak valid", "Tanggal pembayaran harus berada di dalam periode yang ditutup.");
-                        return;
-                    }
-
-                    const confirmed = confirm(
-                        `Bayar ${item.nama_alokasi} sebesar ${formatMoney(amount)} dari ${selectedAccount.nama}?\\n\\nPembayaran akan mengurangi saldo rekening tersebut dan tidak dapat diulang untuk alokasi yang sama.`
-                    );
-                    if (!confirmed) return;
-
-                    const original = button.innerHTML;
-                    button.disabled = true;
-                    button.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memproses...`;
-
+                modalEl.querySelector("#shuPaymentConfirm").addEventListener("click", async () => {
+                    const date = modalEl.querySelector("#shuPaymentDate").value;
+                    const cashId = modalEl.querySelector("#shuPaymentCash").value;
+                    if (!date) { showAppToast("error", "Tanggal belum dipilih", "Silakan pilih tanggal pembayaran."); return; }
+                    if (!cashId) { showAppToast("error", "Kas/Bank belum dipilih", "Silakan pilih sumber pembayaran."); return; }
+                    const original = modalEl.querySelector("#shuPaymentConfirm").innerHTML;
+                    const confirmBtn = modalEl.querySelector("#shuPaymentConfirm");
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Mencatat...`;
                     try {
                         const { data, error } = await supabaseClient.rpc("pay_profit_allocation", {
                             p_allocation_item_id: itemId,
-                            p_cash_account_id: cashAccountId,
-                            p_payment_date: paymentDate
+                            p_cash_account_id: cashId,
+                            p_payment_date: date
                         });
                         if (error) throw error;
-
-                        const result = Array.isArray(data) ? data[0] : data;
-                        showAppToast(
-                            "success",
-                            "Pembayaran SHU berhasil",
-                            `Pembayaran ${formatMoney(amount)} berhasil dicatat dengan nomor ${result?.transaction_number || "-"}.`
-                        );
-
+                        modal.hide();
+                        showAppToast("success", "Pembayaran SHU berhasil", "Pembayaran SHU berhasil dicatat dan saldo Kas/Bank diperbarui.");
                         await renderProfitPaymentModule();
                     } catch (err) {
                         console.error(err);
                         showAppToast("error", "Pembayaran SHU gagal", err.message || String(err));
-                        button.disabled = false;
-                        button.innerHTML = original;
+                    } finally {
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = original;
                     }
                 });
+                modalEl.addEventListener("hidden.bs.modal", () => modalEl.remove(), { once: true });
             });
-        };
-
-        periodSelect?.addEventListener("change", render);
-        render();
+        });
     }
 
     async function renderBookClosingModule() {
@@ -6920,8 +6857,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const [
             { data: periods, error: periodError },
             { data: closingBooks, error: closingError },
-            { data: distributions, error: distributionError },
-            { data: allocationPayments, error: allocationPaymentError }
+            { data: distributions, error: distributionError }
         ] = await Promise.all([
             supabaseClient
                 .from("account_periods")
@@ -6937,50 +6873,15 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             supabaseClient
                 .from("profit_distributions")
                 .select("id,period_id,total_profit,total_percentage,status")
-                .eq("bumdes_id", bumdesId),
-            supabaseClient
-                .from("profit_allocation_payments")
-                .select("id,allocation_item_id,amount,paid_at")
                 .eq("bumdes_id", bumdesId)
         ]);
 
         if (periodError) throw periodError;
         if (closingError) throw closingError;
         if (distributionError) throw distributionError;
-        if (allocationPaymentError) throw allocationPaymentError;
 
         const closingMap = new Map((closingBooks || []).map(item => [String(item.period_id), item]));
         const distributionMap = new Map((distributions || []).map(item => [String(item.period_id), item]));
-        const paidPeriodIds = new Set();
-
-        if (allocationPayments?.length) {
-            const paidItemIds = new Set(
-                allocationPayments.map(item => String(item.allocation_item_id))
-            );
-            const { data: paidItems, error: paidItemError } = await supabaseClient
-                .from("profit_allocation_items")
-                .select("id,allocation_id")
-                .in("id", Array.from(paidItemIds));
-
-            if (paidItemError) throw paidItemError;
-
-            const allocationIds = Array.from(
-                new Set((paidItems || []).map(item => String(item.allocation_id)))
-            );
-
-            if (allocationIds.length) {
-                const { data: paidAllocations, error: paidAllocationError } = await supabaseClient
-                    .from("profit_allocations")
-                    .select("id,period_id")
-                    .in("id", allocationIds);
-
-                if (paidAllocationError) throw paidAllocationError;
-
-                (paidAllocations || []).forEach(item => {
-                    paidPeriodIds.add(String(item.period_id));
-                });
-            }
-        }
 
         const formatStatus = status => {
             if (status === "posted") {
@@ -7002,24 +6903,15 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 ? `<span class="badge text-bg-success">Terbuka</span>`
                 : `<span class="badge text-bg-secondary">Tertutup</span>`;
 
-            const hasPayment = paidPeriodIds.has(String(p.id));
-
             let action = `<span class="text-secondary small">Hanya lihat</span>`;
             if (canManage) {
-                if (isOpen) {
-                    action = `<button type="button" class="btn btn-sm btn-outline-danger book-close" data-id="${escapeHtml(p.id)}">
+                action = isOpen
+                    ? `<button type="button" class="btn btn-sm btn-outline-danger book-close" data-id="${escapeHtml(p.id)}">
                             <i class="bi bi-lock me-1"></i>Tutup Buku
-                       </button>`;
-                } else if (hasPayment) {
-                    action = `<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Periode tidak dapat dibuka kembali karena sudah ada pembayaran SHU">
-                            <i class="bi bi-lock-fill me-1"></i>Buka Kembali
-                       </button>
-                       <div class="small text-danger mt-1">Sudah ada pembayaran SHU</div>`;
-                } else {
-                    action = `<button type="button" class="btn btn-sm btn-outline-success book-reopen" data-id="${escapeHtml(p.id)}">
+                       </button>`
+                    : `<button type="button" class="btn btn-sm btn-outline-success book-reopen" data-id="${escapeHtml(p.id)}">
                             <i class="bi bi-unlock me-1"></i>Buka Kembali
                        </button>`;
-                }
             }
 
             const closedInfo = p.closed_at
@@ -7063,8 +6955,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <div class="fw-semibold">Tutup Buku tidak memotong saldo Kas/Bank</div>
                         <div class="text-secondary small mt-1">
                             Tutup Buku hanya melakukan pencatatan akuntansi dan alokasi laba. Pembayaran SHU merupakan transaksi terpisah;
-                            saldo Kas/Bank baru berkurang ketika pembayaran benar-benar dicatat. Setelah ada pembayaran SHU,
-                            periode tidak dapat dibuka kembali.
+                            saldo Kas/Bank baru berkurang ketika pembayaran benar-benar dicatat.
                         </div>
                     </div>
                 </div>
