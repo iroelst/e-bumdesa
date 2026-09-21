@@ -4216,9 +4216,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (!refreshData || !activeAppProfile?.bumdes_id) return;
 
         try {
-            // Ambil ulang data jurnal/periode/saldo dari Supabase setiap kali
-            // Dashboard dibuka agar angka langsung mengikuti Tutup Buku,
-            // Buka Kembali, atau transaksi terbaru tanpa reload browser.
             await loadDashboardFinancialData(
                 activeAppProfile,
                 activeDashboardUnits || []
@@ -4255,7 +4252,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         backButtons.forEach(back => {
             back.addEventListener("click", (event) => {
                 event.preventDefault();
-                await showDashboardModule();
+                showDashboardModule();
             });
         });
     }
@@ -4283,7 +4280,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (!activeAppProfile?.bumdes_id) return;
         const reportModules = ["labarugi","neraca","aruskas","ekuitas","calk"];
         if (!reportModules.includes(module) || !preserveReportHistory) activeReportHistory = null;
-        if (module === "dashboard") { await showDashboardModule(); return; }
+        if (module === "dashboard") {
+            await showDashboardModule(true);
+            return;
+        }
         showModuleShell(module, moduleLoading());
 
         try {
