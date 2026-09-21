@@ -6181,7 +6181,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         ]);
 
         if (periodError) throw periodError;
-        if (accountError) throw accountError;
 
         const annualPeriods = periods || [];
         const targetAccounts = accounts || [];
@@ -6615,12 +6614,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             { data: periods, error: periodError },
             { data: allocations, error: allocationError },
             { data: allocationItems, error: itemError },
-            { data: distributions, error: distributionError },
-            { data: distributionItems, error: distributionItemError },
             { data: payments, error: paymentError },
             { data: cashAccounts, error: cashError },
-            { data: paymentAccounts, error: paymentAccountError },
-            { data: allAccounts, error: accountError }
+            { data: paymentAccounts, error: paymentAccountError }
         ] = await Promise.all([
             supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
@@ -6632,11 +6628,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("bumdes_id", bumdesId),
             supabaseClient.from("profit_allocation_items")
                 .select("id,allocation_id,source_account_id,nama_alokasi,persentase,nilai,urutan")
-                .order("urutan", { ascending: true }),
-            supabaseClient.from("profit_distributions")
-                .select("id,period_id,total_profit,total_percentage,status"),
-            supabaseClient.from("profit_distribution_items")
-                .select("id,distribution_id,account_id,nama_pos,persentase,nilai,urutan")
                 .order("urutan", { ascending: true }),
             supabaseClient.from("profit_allocation_payments")
                 .select("id,allocation_item_id,transaction_id,amount,paid_at,created_at")
@@ -6656,33 +6647,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .like("kode", "3.2.%")
                 .order("kode", { ascending: true }),
-            supabaseClient.from("chart_of_accounts")
-                .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id")
-                .eq("level", 4)
-                .eq("is_active", true)
-                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
-                .order("kode", { ascending: true })
         ]);
 
         if (periodError) throw periodError;
         if (allocationError) throw allocationError;
         if (itemError) throw itemError;
-        if (distributionError) throw distributionError;
-        if (distributionItemError) throw distributionItemError;
         if (paymentError) throw paymentError;
         if (cashError) throw cashError;
         if (paymentAccountError) throw paymentAccountError;
-        if (accountError) throw accountError;
 
         const allocationMap = new Map((allocations || []).map(v => [String(v.id), v]));
         const periodMap = new Map((periods || []).map(v => [String(v.id), v]));
-        const distributionMap = new Map((distributions || []).map(v => [String(v.period_id), v]));
-        const distributionItemMap = new Map();
-        (distributionItems || []).forEach(v => {
-            const d = (distributions || []).find(x => String(x.id) === String(v.distribution_id));
-            if (d) distributionItemMap.set(`${d.period_id}:${v.urutan}`, v);
-        });
-        const coaMap = new Map((allAccounts || []).map(v => [String(v.id), v]));
         const paymentMap = new Map((payments || []).map(v => [String(v.allocation_item_id), v]));
 
         // Saldo kas/bank dihitung dari jurnal agar pilihan sumber pembayaran
@@ -6706,13 +6681,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const period = periodMap.get(String(allocation.period_id));
             if (!period || period.status !== "closed") return;
 
-            const distribution = distributionMap.get(String(period.id));
-            const destination = distribution
-                ? distributionItemMap.get(`${period.id}:${item.urutan}`)
-                : null;
-            const targetAccount = destination ? null : null;
             const paid = paymentMap.get(String(item.id));
-            rows.push({ item, allocation, period, destination, paid, targetAccount });
+            rows.push({ item, allocation, period, paid });
         });
 
         showModuleShell("pembayaranshu", `
@@ -6756,8 +6726,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         </thead>
                         <tbody>
                             ${rows.map(r => {
-                                const destId = r.destination?.account_id;
-                                const destAccount = destId ? coaMap.get(String(destId)) : null;
                                 const statusPaid = !!r.paid;
                                 const action = statusPaid
                                     ? `<span class="badge text-bg-success">Sudah dibayar</span>`
@@ -6766,7 +6734,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                     <td class="fw-semibold">${fmtDate(r.period.start_date)} s/d ${fmtDate(r.period.end_date)}</td>
                                     <td>${escapeHtml(r.item.nama_alokasi || "-")}</td>
                                     <td class="text-end fw-semibold">${rupiah(Number(r.item.nilai || 0))}</td>
-                                    <td>${destId ? escapeHtml(destAccount ? `${destAccount.kode} — ${destAccount.nama}` : "Akun tujuan tersimpan") : '<span class="text-secondary">Dipilih saat pembayaran</span>'}</td>
+                                    <td><span class="text-secondary">Dipilih saat pembayaran</span></td>
                                     <td>${r.paid ? `<span class="small">${fmtDate(r.paid.paid_at)}</span>` : '<span class="badge text-bg-warning">Belum dibayar</span>'}</td>
                                     <td class="text-end">${action}</td>
                                 </tr>`;
@@ -6789,11 +6757,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const row = rows.find(r => String(r.item.id) === String(itemId));
                 if (!row || row.paid) return;
 
-                const destinationId = row.destination?.account_id || "";
-
                 const destinationChoices = (paymentAccounts || []).map(account => {
-                    const selected = String(account.id) === String(destinationId) ? "selected" : "";
-                    return `<option value="${escapeHtml(account.id)}" ${selected}>${escapeHtml(account.kode)} — ${escapeHtml(account.nama)}</option>`;
+                    return `<option value="${escapeHtml(account.id)}">${escapeHtml(account.kode)} — ${escapeHtml(account.nama)}</option>`;
                 }).join("");
 
                 const cashChoices = (cashAccounts || []).map(account => {
@@ -6815,7 +6780,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                     <div class="mb-3"><div class="small text-secondary">Alokasi</div><div class="fw-semibold">${escapeHtml(row.item.nama_alokasi)}</div></div>
                                     <div class="mb-3"><div class="small text-secondary">Nilai pembayaran</div><div class="fs-5 fw-bold">${rupiah(Number(row.item.nilai || 0))}</div></div>
                                     <div class="mb-3"><label class="form-label">Tanggal pembayaran</label><input id="shuPaymentDate" type="date" class="form-control" value="${defaultDate}"></div>
-                                    <div class="mb-3"><label class="form-label">Akun tujuan pembayaran</label><select id="shuPaymentDestination" class="form-select"><option value="">Pilih akun tujuan</option>${destinationChoices}</select><div class="form-text">Pilih akun tujuan SHU yang sesuai dengan alokasi yang akan dibayar.</div></div>
+                                    <div class="mb-3"><label class="form-label">Akun tujuan pembayaran</label><select id="shuPaymentDestination" class="form-select"><option value="">Pilih akun tujuan</option>${destinationChoices}</select><div class="form-text">Pilih akun tujuan pembayaran dari akun Bagi Hasil SHU yang tersedia. Contoh untuk PADes: Bagi Hasil Penyertaan Modal Desa.</div></div>
                                     <div><label class="form-label">Dibayar dari</label><select id="shuPaymentCash" class="form-select"><option value="">Pilih Kas/Bank</option>${cashChoices}</select></div>
                                     <div class="alert alert-info small mt-3 mb-0">Tanggal pembayaran fleksibel dan mengikuti tanggal transaksi pembayaran sebenarnya.</div>
                                 </div>
@@ -7182,7 +7147,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         ]);
 
         if (periodError) throw periodError;
-        if (accountError) throw accountError;
         if (unitError) throw unitError;
         if (openingError) throw openingError;
 
@@ -7796,7 +7760,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         if (txError) throw txError;
         if (periodError) throw periodError;
-        if (accountError) throw accountError;
         if (unitError) throw unitError;
 
         const allPeriods = periods || [];
@@ -9554,7 +9517,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             .eq("account_type", "aset")
             .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
             .order("kode", { ascending: true });
-        if (accountError) throw accountError;
 
         const cashAccounts = (accounts || []).filter(a => /^1\.1\.01\.|^1\.1\.02\./.test(String(a.kode || "")));
         if (!cashAccounts.length) return showModuleShell("kasbank", moduleEmpty("Akun Kas/Bank belum tersedia pada COA."));
