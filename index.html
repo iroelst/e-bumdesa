@@ -6041,6 +6041,74 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 </div>` : ""}
             </div>
 
+            ${canManage ? `
+            <div class="panel mt-3" id="shuAllocationPanel">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                    <div>
+                        <div class="fw-semibold">Alokasi Bagi Hasil</div>
+                        <div class="text-secondary small mt-1">
+                            Alokasi dilakukan setelah Tutup Buku. BUM Desa dapat menjadi salah satu alokasi dan tetap menjadi Saldo Laba.
+                            Tahap ini belum melakukan pembayaran dan tidak mengurangi Kas/Bank.
+                        </div>
+                    </div>
+                    <span id="shuAllocationStatus" class="badge text-bg-secondary">Belum ada alokasi</span>
+                </div>
+
+                <div class="alert alert-light border small mb-3">
+                    <i class="bi bi-info-circle me-1 text-primary"></i>
+                    Total persentase harus 100%. Satu akun sumber Saldo Laba boleh digunakan pada beberapa baris, tetapi total alokasi dari akun tersebut tidak boleh melebihi saldo yang tersedia.
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-2">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="min-width:230px">Nama Alokasi</th>
+                                <th style="min-width:330px">Sumber Saldo Laba</th>
+                                <th style="width:150px" class="text-end">Persentase</th>
+                                <th style="width:170px" class="text-end">Nilai</th>
+                                <th style="width:70px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shuAllocationItemsBody">
+                            <tr><td colspan="5" class="text-center text-secondary py-4">Pilih periode yang sudah ditutup.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <div class="text-secondary small">Saldo Laba tersedia</div>
+                            <div id="shuAllocationAvailable" class="fs-5 fw-bold">Rp0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <div class="text-secondary small">Total Persentase</div>
+                            <strong id="shuAllocationTotalPct">0%</strong>
+                            <div id="shuAllocationPctMessage" class="small text-secondary mt-1">Harus tepat 100%.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <div class="text-secondary small">Total Alokasi</div>
+                            <strong id="shuAllocationTotalValue">Rp0</strong>
+                            <div id="shuAllocationValueMessage" class="small text-secondary mt-1">Harus sama dengan laba bersih.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button type="button" id="shuAllocationAddRow" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Tambah Alokasi
+                    </button>
+                    <button type="button" id="shuAllocationSave" class="btn btn-primary" disabled>
+                        <i class="bi bi-save me-1"></i>Simpan Alokasi
+                    </button>
+                </div>
+            </div>` : ""}
+
             ${!annualPeriods.length ? `
                 <div class="panel text-center text-secondary py-5 mt-3">
                     <i class="bi bi-calendar3 fs-2"></i>
@@ -6065,7 +6133,185 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         let loadedDistributionId = null;
         let itemState = [];
 
+        const allocationBody = $("shuAllocationItemsBody");
+        const allocationStatus = $("shuAllocationStatus");
+        const allocationAvailableEl = $("shuAllocationAvailable");
+        const allocationTotalPctEl = $("shuAllocationTotalPct");
+        const allocationTotalValueEl = $("shuAllocationTotalValue");
+        const allocationPctMessage = $("shuAllocationPctMessage");
+        const allocationValueMessage = $("shuAllocationValueMessage");
+        const allocationAddButton = $("shuAllocationAddRow");
+        const allocationSaveButton = $("shuAllocationSave");
+
+        let allocationState = [];
+        let allocationId = null;
+        let allocationStatusValue = "";
+        let allocationAccountBalances = new Map();
+
         const formatMoney = value => rupiah(Number(value || 0));
+
+        const allocationAccountSelectHtml = (selectedId, rowIndex) => {
+            const balances = allocationAccountBalances;
+            return `
+                <select class="form-select form-select-sm shu-allocation-account">
+                    <option value="">Pilih akun...</option>
+                    ${targetAccounts.map(a => {
+                        const id = String(a.id);
+                        const selected = id === String(selectedId || "");
+                        const saldo = Number(balances.get(id) || 0);
+                        return `<option value="${escapeHtml(a.id)}" ${selected ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)} (saldo ${formatMoney(saldo)})</option>`;
+                    }).join("")}
+                </select>`;
+        };
+
+        const renderAllocationRows = () => {
+            if (!allocationBody) return;
+            allocationBody.innerHTML = allocationState.length
+                ? allocationState.map((item, index) => `
+                    <tr data-allocation-index="${index}">
+                        <td><input type="text" class="form-control form-control-sm shu-allocation-name" value="${escapeHtml(item.nama_alokasi || "")}" placeholder="Contoh: BUM Desa / Saldo Laba"></td>
+                        <td>${allocationAccountSelectHtml(item.source_account_id, index)}</td>
+                        <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-allocation-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}"><span class="input-group-text">%</span></div></td>
+                        <td class="text-end fw-semibold shu-allocation-value">${formatMoney(item.nilai || 0)}</td>
+                        <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-allocation-remove" title="Hapus"><i class="bi bi-trash"></i></button></td>
+                    </tr>
+                `).join("")
+                : `<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada alokasi.</td></tr>`;
+        };
+
+        const recalcAllocation = () => {
+            const totalPct = allocationState.reduce((sum, item) => sum + (Number(item.persentase) || 0), 0);
+            const roundedPct = Math.round(totalPct * 10000) / 10000;
+            const values = allocationState.map(item => Math.round((currentProfit * (Number(item.persentase) || 0) / 100) * 100) / 100);
+            const totalValue = Math.round(values.reduce((sum, value) => sum + value, 0) * 100) / 100;
+
+            allocationTotalPctEl && (allocationTotalPctEl.textContent = `${roundedPct}%`);
+            allocationTotalValueEl && (allocationTotalValueEl.textContent = formatMoney(totalValue));
+            allocationAvailableEl && (allocationAvailableEl.textContent = formatMoney(currentProfit));
+
+            const pctOk = Math.abs(roundedPct - 100) < 0.0000001;
+            const valueOk = Math.abs(totalValue - currentProfit) < 0.01;
+            const periodOk = currentPeriodStatus === "closed";
+            const rowsOk = allocationState.length > 0 && allocationState.every(item =>
+                String(item.nama_alokasi || "").trim() &&
+                item.source_account_id &&
+                Number(item.persentase) > 0 &&
+                Number(item.persentase) <= 100
+            );
+
+            const accountTotals = new Map();
+            allocationState.forEach((item, index) => {
+                const id = String(item.source_account_id || "");
+                if (!id) return;
+                const value = Number(values[index] || 0);
+                accountTotals.set(id, (accountTotals.get(id) || 0) + value);
+            });
+
+            let balanceOk = true;
+            let balanceError = "";
+            accountTotals.forEach((allocated, accountId) => {
+                const available = Number(allocationAccountBalances.get(accountId) || 0);
+                if (allocated > available + 0.005) {
+                    balanceOk = false;
+                    const account = targetAccounts.find(a => String(a.id) === String(accountId));
+                    balanceError = `Alokasi ${account?.kode || "akun"} melebihi saldo tersedia (${formatMoney(available)}).`;
+                }
+            });
+
+            if (allocationTotalPctEl) allocationTotalPctEl.className = pctOk ? "text-success" : "text-danger";
+            if (allocationTotalValueEl) allocationTotalValueEl.className = valueOk && balanceOk ? "text-success" : "text-danger";
+            if (allocationPctMessage) {
+                allocationPctMessage.textContent = pctOk ? "Persentase sudah tepat 100%." : "Total persentase alokasi harus tepat 100%.";
+                allocationPctMessage.className = `small mt-1 ${pctOk ? "text-success" : "text-danger"}`;
+            }
+            if (allocationValueMessage) {
+                allocationValueMessage.textContent = balanceError || (valueOk ? "Total alokasi sesuai dengan laba bersih." : "Total alokasi harus sama dengan laba bersih.");
+                allocationValueMessage.className = `small mt-1 ${valueOk && balanceOk ? "text-success" : "text-danger"}`;
+            }
+
+            allocationBody?.querySelectorAll(".shu-allocation-value").forEach((el, index) => {
+                el.textContent = formatMoney(values[index] || 0);
+            });
+
+            const canSave = canManage && periodOk && currentProfit > 0 && pctOk && valueOk && rowsOk && balanceOk && allocationStatusValue !== "posted";
+            if (allocationSaveButton) allocationSaveButton.disabled = !canSave;
+            if (allocationAddButton) allocationAddButton.disabled = !canManage || !periodOk || allocationStatusValue === "posted";
+        };
+
+        const addAllocationRow = (item = {}) => {
+            allocationState.push({
+                nama_alokasi: item.nama_alokasi || "",
+                source_account_id: item.source_account_id || "",
+                persentase: item.persentase ?? "",
+                nilai: item.nilai || 0
+            });
+            renderAllocationRows();
+            recalcAllocation();
+        };
+
+        const loadAllocation = async periodId => {
+            allocationState = [];
+            allocationId = null;
+            allocationStatusValue = "";
+            allocationAccountBalances = new Map();
+            renderAllocationRows();
+
+            if (!periodId || currentPeriodStatus !== "closed") {
+                if (allocationStatus) allocationStatus.textContent = "Tersedia setelah Tutup Buku";
+                recalcAllocation();
+                return;
+            }
+
+            const [{ data: allocation, error: allocationError }, { data: journalRows, error: journalError }] = await Promise.all([
+                supabaseClient
+                    .from("profit_allocations")
+                    .select("id,total_amount,total_percentage,status")
+                    .eq("period_id", periodId)
+                    .eq("bumdes_id", bumdesId)
+                    .maybeSingle(),
+                supabaseClient
+                    .from("journals")
+                    .select("account_id,debit,credit")
+                    .eq("bumdes_id", bumdesId)
+            ]);
+
+            if (allocationError) throw allocationError;
+            if (journalError) throw journalError;
+
+            (journalRows || []).forEach(j => {
+                const id = String(j.account_id);
+                allocationAccountBalances.set(id, (allocationAccountBalances.get(id) || 0) + Number(j.credit || 0) - Number(j.debit || 0));
+            });
+
+            if (allocation) {
+                allocationId = allocation.id;
+                allocationStatusValue = allocation.status || "draft";
+                const { data: items, error: itemError } = await supabaseClient
+                    .from("profit_allocation_items")
+                    .select("id,source_account_id,nama_alokasi,persentase,nilai,urutan")
+                    .eq("allocation_id", allocation.id)
+                    .order("urutan", { ascending: true });
+                if (itemError) throw itemError;
+                allocationState = (items || []).map(item => ({
+                    nama_alokasi: item.nama_alokasi,
+                    source_account_id: item.source_account_id,
+                    persentase: item.persentase,
+                    nilai: item.nilai
+                }));
+            }
+
+            if (allocationStatus) {
+                allocationStatus.textContent = allocationStatusValue === "posted" ? "Sudah ditetapkan" : (allocation ? "Draft" : "Belum ada alokasi");
+                allocationStatus.className = allocationStatusValue === "posted" ? "badge text-bg-success" : "badge text-bg-warning";
+            }
+
+            if (!allocationState.length && allocationStatusValue !== "posted") {
+                addAllocationRow({ nama_alokasi: "BUM Desa / Saldo Laba", persentase: 100 });
+            } else {
+                renderAllocationRows();
+                recalcAllocation();
+            }
+        };
 
         const accountSelectHtml = (selectedId, rowIndex) => {
             const usedByOtherRows = new Set(itemState.map((item, idx) => idx === rowIndex ? null : String(item.account_id || "")).filter(Boolean));
@@ -6212,6 +6458,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         periodSelect?.addEventListener("change", async () => {
             try {
                 await loadPeriod(periodSelect.value);
+                await loadAllocation(periodSelect.value);
             } catch (err) {
                 console.error(err);
                 profitStatus.textContent = err.message || String(err);
@@ -6289,11 +6536,76 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             }
         });
 
+        allocationAddButton?.addEventListener("click", () => addAllocationRow());
+
+        allocationBody?.addEventListener("input", event => {
+            const row = event.target.closest("tr[data-allocation-index]");
+            if (!row) return;
+            const index = Number(row.dataset.allocationIndex);
+            if (!allocationState[index]) return;
+            if (event.target.classList.contains("shu-allocation-name")) allocationState[index].nama_alokasi = event.target.value;
+            if (event.target.classList.contains("shu-allocation-pct")) allocationState[index].persentase = event.target.value;
+            recalcAllocation();
+        });
+
+        allocationBody?.addEventListener("change", event => {
+            const row = event.target.closest("tr[data-allocation-index]");
+            if (!row) return;
+            const index = Number(row.dataset.allocationIndex);
+            if (!allocationState[index]) return;
+            if (event.target.classList.contains("shu-allocation-account")) allocationState[index].source_account_id = event.target.value;
+            recalcAllocation();
+        });
+
+        allocationBody?.addEventListener("click", event => {
+            const button = event.target.closest(".shu-allocation-remove");
+            if (!button) return;
+            const row = button.closest("tr[data-allocation-index]");
+            const index = Number(row?.dataset.allocationIndex);
+            if (!Number.isInteger(index)) return;
+            allocationState.splice(index, 1);
+            renderAllocationRows();
+            recalcAllocation();
+        });
+
+        allocationSaveButton?.addEventListener("click", async () => {
+            if (allocationSaveButton.disabled || !periodSelect.value) return;
+
+            const payload = allocationState.map(item => ({
+                source_account_id: item.source_account_id,
+                nama_alokasi: String(item.nama_alokasi || "").trim(),
+                persentase: Number(item.persentase)
+            }));
+
+            const original = allocationSaveButton.innerHTML;
+            allocationSaveButton.disabled = true;
+            allocationSaveButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...`;
+
+            try {
+                const { data, error } = await supabaseClient.rpc("save_profit_allocation", {
+                    p_period_id: periodSelect.value,
+                    p_items: payload
+                });
+                if (error) throw error;
+
+                allocationId = data?.id || allocationId;
+                showAppToast("success", "Alokasi Bagi Hasil tersimpan", "Alokasi SHU berhasil disimpan sebagai draft. Belum ada pembayaran dan saldo Kas/Bank tidak berubah.");
+                await loadAllocation(periodSelect.value);
+            } catch (err) {
+                console.error(err);
+                showAppToast("error", "Gagal menyimpan Alokasi Bagi Hasil", err.message || String(err));
+            } finally {
+                allocationSaveButton.innerHTML = original;
+                recalcAllocation();
+            }
+        });
+
         if (annualPeriods.length) {
             const firstOpen = annualPeriods.find(p => p.status === "open");
             periodSelect.value = firstOpen?.id || annualPeriods[0].id;
             try {
                 await loadPeriod(periodSelect.value);
+                await loadAllocation(periodSelect.value);
             } catch (err) {
                 console.error(err);
                 profitStatus.textContent = err.message || String(err);
