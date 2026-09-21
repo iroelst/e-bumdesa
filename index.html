@@ -5667,10 +5667,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const op=gross-opExpense;
         const otherNet=otherIncome-otherExpense-taxExpense;
         const beforeBagiHasil=op+otherNet;
-        // Bagi hasil mengikuti akun 3.2 pada COA aplikasi dan bersifat pengurang laba.
+        // Akun 3.2.xx adalah distribusi/pembagian ekuitas, bukan pendapatan atau
+        // beban periode berjalan. Nilainya tetap dikumpulkan sebagai data untuk
+        // Laporan Perubahan Ekuitas, tetapi tidak mengurangi laba/rugi periode ini.
         const bagiDesa=Math.max(0,reportGroupTotal(data,'3.2.01.','movements'));
         const bagiMasyarakat=Math.max(0,reportGroupTotal(data,'3.2.02.','movements'));
-        const net=beforeBagiHasil-bagiDesa-bagiMasyarakat;
+        const net=beforeBagiHasil;
 
         const rows=[];
         rows.push({type:'section',name:'PENDAPATAN USAHA'});
@@ -5721,10 +5723,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         rows.push({type:'subtotal',name:'Total Beban Pajak',value:-taxExpense});
         rows.push({type:'grand',name:'Total Pendapatan dan Beban Lain-lain',value:otherNet});
 
-        rows.push({type:'grand',name:'LABA (RUGI) SEBELUM BAGI HASIL',value:beforeBagiHasil});
-        rows.push({name:'BAGI HASIL PENYERTAAN MODAL DESA',value:-bagiDesa,indent:1});
-        rows.push({name:'BAGI HASIL PENYERTAAN MODAL MASYARAKAT',value:-bagiMasyarakat,indent:1});
-        rows.push({type:'grand',name:'LABA (RUGI) BERSIH SETELAH BAGI HASIL KE PEMILIK',value:net});
+        rows.push({type:'grand',name:'LABA (RUGI) BERSIH',value:net});
         return {rows,net,beforeBagiHasil,bagiDesa,bagiMasyarakat,grossRevenue,hpp,opExpense,otherIncome,otherExpense,taxExpense,otherNet};
     }
     function rptGroup(data,prefix,mapName){return reportGroupTotal(data,prefix,mapName);}
