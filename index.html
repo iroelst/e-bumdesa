@@ -5813,12 +5813,26 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
         const bagiDesa=profitReport.bagiDesa;
         const bagiMasyarakat=profitReport.bagiMasyarakat;
-        // Laporan Perubahan Ekuitas harus menunjukkan laba periode berjalan sebelum
-        // jurnal penutupan, agar Saldo Laba Akhir benar-benar merupakan hasil dari
-        // pos-pos di atasnya sesuai format Kepmendesa 136/2022.
+        // Laporan Perubahan Ekuitas harus menunjukkan laba/rugi periode berjalan
+        // sebelum jurnal penutupan, sesuai format resmi. Pembayaran Bagi Hasil
+        // (akun 3.2.xx) bukan beban periode pembayaran dan tidak boleh mengurangi
+        // laba/rugi periode berjalan. Pos 3.2.xx tetap ditampilkan tersendiri pada
+        // bagian "Bagi Hasil Penyertaan".
         // Dashboard dan Laporan Laba Rugi berjalan tetap menggunakan profitReport (current).
         const equityMovementData={...data,movements:data.preClosingMovements||data.movements};
-        const equityProfitReport=buildProfitLossReport(equityMovementData);
+
+        // Keluarkan akun 3.2.xx dari perhitungan laba/rugi Laporan Perubahan Ekuitas.
+        // Pembayaran SHU/PADes adalah distribusi laba, bukan beban.
+        const equityProfitMovements={...equityMovementData.movements};
+        equityMovementData.leafAccounts.forEach(a=>{
+            if(String(a.kode||'').startsWith('3.2.')){
+                equityProfitMovements[a.id]=0;
+            }
+        });
+        const equityProfitReport=buildProfitLossReport({
+            ...equityMovementData,
+            movements:equityProfitMovements
+        });
         const profitBersih=equityProfitReport.net;
         const donasi=reportGroupTotal(data,'3.4.01.','balances');
         const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
