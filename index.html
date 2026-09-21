@@ -2881,17 +2881,17 @@
                                 <span class="dashboard-financial-label">INVENTARIS</span>
                                 <span id="dashInventory" class="dashboard-financial-value">Rp 0</span>
                             </div>
-                            <div class="dashboard-financial-row total">
-                                <span class="dashboard-financial-label">TOTAL ASET</span>
-                                <span id="dashTotalAssets" class="dashboard-financial-value">Rp 0</span>
-                            </div>
                             <div class="dashboard-financial-row">
-                                <span class="dashboard-financial-label">EKUITAS</span>
+                                <span class="dashboard-financial-label">MODAL</span>
                                 <span id="dashEquity" class="dashboard-financial-value">Rp 0</span>
                             </div>
                             <div class="dashboard-financial-row profit">
                                 <span class="dashboard-financial-label">LABA/RUGI TAHUN BERJALAN</span>
                                 <span id="dashNetIncome" class="dashboard-financial-value positive">Rp 0</span>
+                            </div>
+                            <div class="dashboard-financial-row total">
+                                <span class="dashboard-financial-label">TOTAL ASET</span>
+                                <span id="dashTotalAssets" class="dashboard-financial-value">Rp 0</span>
                             </div>
                         </div>
                     </div>
@@ -3873,7 +3873,7 @@
         let liabilities = 0;
         let inventory = 0;
         let totalAssets = 0;
-        let classifiedEquity = 0;
+        let modalPemilik = 0;
 
         accountBalances.forEach((balance, accountId) => {
             const account = accountMap.get(accountId);
@@ -3887,8 +3887,10 @@
             if (account.account_type === "kewajiban") {
                 liabilities += value;
             }
-            if (account.account_type === "ekuitas" && !code.startsWith("3.9.")) {
-                classifiedEquity += value;
+            // Ringkasan Dashboard menampilkan MODAL pemilik, bukan total ekuitas.
+            // Modal pemilik berasal dari kelompok akun 3.1 (Modal Desa dan Modal Masyarakat).
+            if (code.startsWith("3.1.")) {
+                modalPemilik += value;
             }
 
             if (code.startsWith("1.1.01.") || code.startsWith("1.1.02.")) {
@@ -3915,13 +3917,11 @@
         $("dashReceivables").textContent = dashboardRupiah(receivables);
         $("dashLiabilities").textContent = dashboardRupiah(liabilities);
         $("dashInventory").textContent = dashboardRupiah(inventory);
-        // Total Ekuitas Dashboard harus sama dengan persamaan akuntansi:
-        // Aset = Kewajiban + Ekuitas. Dengan demikian saldo laba yang sudah
-        // dibawa dari tahun sebelumnya otomatis ikut menjadi bagian Ekuitas.
-        const equity = totalAssets - liabilities;
-
+        // Ringkasan Dashboard menampilkan MODAL pemilik secara khusus.
+        // Saldo laba tetap disajikan di laporan Perubahan Ekuitas/Neraca, bukan
+        // digabung ke angka Modal pada kartu ringkasan ini.
+        $("dashEquity").textContent = dashboardRupiah(modalPemilik);
         $("dashTotalAssets").textContent = dashboardRupiah(totalAssets);
-        $("dashEquity").textContent = dashboardRupiah(equity);
         $("dashNetIncome").textContent = dashboardRupiah(netIncomeYear);
         $("dashNetIncome").classList.toggle("positive", netIncomeYear >= 0);
         $("dashNetIncome").classList.toggle("negative", netIncomeYear < 0);
