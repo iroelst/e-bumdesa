@@ -3534,7 +3534,33 @@
         const bumdesId = profile?.bumdes_id;
         if (!bumdesId) return;
 
-        const { year, month, monthText } = dashboardDateParts();
+        // Dashboard mengikuti periode akuntansi aktif, bukan sekadar tahun kalender browser.
+        // Setelah Tutup Buku 2026, posisi aktif menjadi periode 2027.
+        const today = new Date();
+        let year = today.getFullYear();
+        let month = today.getMonth() + 1;
+        let monthText = today.toLocaleDateString("id-ID", { month: "long" });
+
+        const { data: activeAnnualPeriod, error: activeAnnualPeriodError } = await supabaseClient
+            .from("account_periods")
+            .select("id,start_date,end_date,status")
+            .eq("bumdes_id", bumdesId)
+            .eq("period_type", "tahunan")
+            .eq("status", "open")
+            .order("start_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (!activeAnnualPeriodError && activeAnnualPeriod?.start_date) {
+            const activeYear = Number(String(activeAnnualPeriod.start_date).slice(0, 4));
+            if (Number.isFinite(activeYear) && activeYear > 1900) {
+                year = activeYear;
+                // Jika hari ini belum masuk periode aktif (misalnya setelah Tutup Buku 2026
+                // sementara tanggal sistem masih 2026), tidak boleh mengambil transaksi 2026.
+                if (activeYear !== today.getFullYear()) month = 1;
+                monthText = new Date(activeYear, month - 1, 1).toLocaleDateString("id-ID", { month: "long" });
+            }
+        }
 
         // Admin Pusat melihat seluruh BUMDes (Pusat + seluruh Unit).
         // Admin/Operator Unit hanya melihat unitnya sendiri.
@@ -3588,21 +3614,23 @@
 
         // Saldo awal tahun dipakai untuk kartu posisi keuangan.
         // Jika periode tahunan belum dibuat, kartu tetap dihitung dari jurnal.
-        let annualPeriodId = null;
-        const { data: annualPeriod, error: annualPeriodError } = await supabaseClient
-            .from("account_periods")
-            .select("id,status")
-            .eq("bumdes_id", bumdesId)
-            .eq("period_type", "tahunan")
-            .eq("start_date", `${year}-01-01`)
-            .eq("end_date", `${year}-12-31`)
-            .limit(1)
-            .maybeSingle();
+        let annualPeriodId = activeAnnualPeriod?.id || null;
+        let annualPeriod = activeAnnualPeriod || null;
+        const annualPeriodError = activeAnnualPeriodError;
 
-        if (annualPeriodError) {
-            console.warn("Periode tahunan dashboard tidak dapat dibaca:", annualPeriodError);
-        } else {
+        if (!annualPeriodId) {
+            const fallbackPeriodResult = await supabaseClient
+                .from("account_periods")
+                .select("id,status,start_date,end_date")
+                .eq("bumdes_id", bumdesId)
+                .eq("period_type", "tahunan")
+                .eq("start_date", `${year}-01-01`)
+                .eq("end_date", `${year}-12-31`)
+                .limit(1)
+                .maybeSingle();
+            annualPeriod = fallbackPeriodResult.data || null;
             annualPeriodId = annualPeriod?.id || null;
+            if (fallbackPeriodResult.error) console.warn("Periode tahunan dashboard tidak dapat dibaca:", fallbackPeriodResult.error);
         }
         // Status tutup buku utama berasal dari periode tahunan. Sebagai fallback,
         // baca closing_books agar dashboard tetap konsisten apabila status periode
@@ -3638,6 +3666,60 @@
 
             const openingResult = await fetchAllDashboardRows(openingQuery);
             openingBalances = openingResult || [];
+        }
+
+        // Jika periode aktif belum mempunyai baris opening_balances, gunakan saldo akhir
+        // periode tahunan sebelumnya sebagai saldo awal. Ini penting agar Ekuitas dashboard
+        // terhubung dengan Saldo Laba Akhir tahun yang sudah ditutup.
+        if (!openingBalances.length && year > 1900) {
+            const previousYear = year - 1;
+            const { data: previousPeriod } = await supabaseClient
+                .from("account_periods")
+                .select("id")
+                .eq("bumdes_id", bumdesId)
+                .eq("period_type", "tahunan")
+                .eq("start_date", `${previousYear}-01-01`)
+                .eq("end_date", `${previousYear}-12-31`)
+                .limit(1)
+                .maybeSingle();
+
+            let previousOpenings = [];
+            if (previousPeriod?.id) {
+                let previousOpeningQuery = supabaseClient
+                    .from("opening_balances")
+                    .select("account_id,unit_id,debit,credit")
+                    .eq("bumdes_id", bumdesId)
+                    .eq("period_id", previousPeriod.id);
+                if (isUnitUser && allowedUnitId) previousOpeningQuery = previousOpeningQuery.eq("unit_id", allowedUnitId);
+                previousOpenings = await fetchAllDashboardRows(previousOpeningQuery);
+            }
+
+            let previousJournalQuery = supabaseClient
+                .from("journals")
+                .select("account_id,unit_id,journal_date,debit,credit")
+                .eq("bumdes_id", bumdesId)
+                .gte("journal_date", `${previousYear}-01-01`)
+                .lte("journal_date", `${previousYear}-12-31`);
+            if (isUnitUser && allowedUnitId) previousJournalQuery = previousJournalQuery.eq("unit_id", allowedUnitId);
+            else if (!isUnitUser) previousJournalQuery = previousJournalQuery.is("unit_id", null);
+            const previousJournals = await fetchAllDashboardRows(previousJournalQuery);
+
+            const derivedOpening = new Map();
+            const addDerived = (row) => {
+                const account = accountMap.get(row.account_id);
+                if (!account) return;
+                const d = Number(row.debit || 0);
+                const c = Number(row.credit || 0);
+                const delta = getNormalBalance(account) === "K" ? (c - d) : (d - c);
+                derivedOpening.set(row.account_id, Number(derivedOpening.get(row.account_id) || 0) + delta);
+            };
+            previousOpenings.forEach(addDerived);
+            previousJournals.forEach(addDerived);
+            openingBalances = [...derivedOpening.entries()].map(([account_id, value]) => ({
+                account_id,
+                debit: value >= 0 ? value : 0,
+                credit: value < 0 ? -value : 0
+            }));
         }
 
         let incomeMonth = 0;
