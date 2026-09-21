@@ -5462,6 +5462,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 if(scopeUnit) prevJQuery=prevJQuery.eq('unit_id',scopeUnit);
                 else if(isPusat) prevJQuery=prevJQuery.is('unit_id',null);
                 const prevJournals=await fetchReportRows(prevJQuery);
+                const add=(map,id,val)=>map.set(id,(map.get(id)||0)+Number(val||0));
                 const derived=new Map();
                 const addDerived=(r)=>{const a=accountMap.get(r.account_id);if(a)add(derived,r.account_id,reportNormalBalance(a,r.debit,r.credit));};
                 prevOpenings.forEach(addDerived); prevJournals.forEach(addDerived);
