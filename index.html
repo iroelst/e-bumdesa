@@ -6616,6 +6616,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             { data: distributionItems, error: distributionItemError },
             { data: payments, error: paymentError },
             { data: cashAccounts, error: cashError },
+            { data: paymentAccounts, error: paymentAccountError },
             { data: allAccounts, error: accountError }
         ] = await Promise.all([
             supabaseClient.from("account_periods")
@@ -6650,6 +6651,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("bumdes_id", bumdesId)
                 .eq("level", 4)
                 .eq("is_active", true)
+                .like("kode", "3.2.%")
+                .order("kode", { ascending: true }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,level,account_type,normal_balance,is_active")
+                .eq("bumdes_id", bumdesId)
+                .eq("level", 4)
+                .eq("is_active", true)
                 .order("kode", { ascending: true })
         ]);
 
@@ -6660,6 +6668,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (distributionItemError) throw distributionItemError;
         if (paymentError) throw paymentError;
         if (cashError) throw cashError;
+        if (paymentAccountError) throw paymentAccountError;
         if (accountError) throw accountError;
 
         const allocationMap = new Map((allocations || []).map(v => [String(v.id), v]));
@@ -6754,7 +6763,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                     <td class="fw-semibold">${fmtDate(r.period.start_date)} s/d ${fmtDate(r.period.end_date)}</td>
                                     <td>${escapeHtml(r.item.nama_alokasi || "-")}</td>
                                     <td class="text-end fw-semibold">${rupiah(Number(r.item.nilai || 0))}</td>
-                                    <td>${destId ? escapeHtml(destAccount ? `${destAccount.kode} — ${destAccount.nama}` : "Akun tujuan tersimpan") : '<span class="text-secondary">Belum ditentukan</span>'}</td>
+                                    <td>${destId ? escapeHtml(destAccount ? `${destAccount.kode} — ${destAccount.nama}` : "Akun tujuan tersimpan") : '<span class="text-secondary">Dipilih saat pembayaran</span>'}</td>
                                     <td>${r.paid ? `<span class="small">${fmtDate(r.paid.paid_at)}</span>` : '<span class="badge text-bg-warning">Belum dibayar</span>'}</td>
                                     <td class="text-end">${action}</td>
                                 </tr>`;
@@ -6777,11 +6786,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const row = rows.find(r => String(r.item.id) === String(itemId));
                 if (!row || row.paid) return;
 
-                const destinationId = row.destination?.account_id;
-                if (!destinationId) {
-                    showAppToast("error", "Akun tujuan belum tersedia", "Akun tujuan pembayaran belum ditetapkan pada Pembagian SHU periode ini.");
-                    return;
-                }
+                const destinationId = row.destination?.account_id || "";
+
+                const destinationChoices = (paymentAccounts || []).map(account => {
+                    const selected = String(account.id) === String(destinationId) ? "selected" : "";
+                    return `<option value="${escapeHtml(account.id)}" ${selected}>${escapeHtml(account.kode)} — ${escapeHtml(account.nama)}</option>`;
+                }).join("");
 
                 const cashChoices = (cashAccounts || []).map(account => {
                     const saldo = Number(balances.get(String(account.id)) || 0);
@@ -6802,6 +6812,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                     <div class="mb-3"><div class="small text-secondary">Alokasi</div><div class="fw-semibold">${escapeHtml(row.item.nama_alokasi)}</div></div>
                                     <div class="mb-3"><div class="small text-secondary">Nilai pembayaran</div><div class="fs-5 fw-bold">${rupiah(Number(row.item.nilai || 0))}</div></div>
                                     <div class="mb-3"><label class="form-label">Tanggal pembayaran</label><input id="shuPaymentDate" type="date" class="form-control" value="${defaultDate}"></div>
+                                    <div class="mb-3"><label class="form-label">Akun tujuan pembayaran</label><select id="shuPaymentDestination" class="form-select"><option value="">Pilih akun tujuan</option>${destinationChoices}</select><div class="form-text">Pilih akun tujuan SHU yang sesuai dengan alokasi yang akan dibayar.</div></div>
                                     <div><label class="form-label">Dibayar dari</label><select id="shuPaymentCash" class="form-select"><option value="">Pilih Kas/Bank</option>${cashChoices}</select></div>
                                     <div class="alert alert-info small mt-3 mb-0">Tanggal pembayaran fleksibel dan mengikuti tanggal transaksi pembayaran sebenarnya.</div>
                                 </div>
@@ -6820,8 +6831,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
                 modalEl.querySelector("#shuPaymentConfirm").addEventListener("click", async () => {
                     const date = modalEl.querySelector("#shuPaymentDate").value;
+                    const destinationId = modalEl.querySelector("#shuPaymentDestination").value;
                     const cashId = modalEl.querySelector("#shuPaymentCash").value;
                     if (!date) { showAppToast("error", "Tanggal belum dipilih", "Silakan pilih tanggal pembayaran."); return; }
+                    if (!destinationId) { showAppToast("error", "Akun tujuan belum dipilih", "Silakan pilih akun tujuan pembayaran."); return; }
                     if (!cashId) { showAppToast("error", "Kas/Bank belum dipilih", "Silakan pilih sumber pembayaran."); return; }
                     const original = modalEl.querySelector("#shuPaymentConfirm").innerHTML;
                     const confirmBtn = modalEl.querySelector("#shuPaymentConfirm");
@@ -6830,6 +6843,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     try {
                         const { data, error } = await supabaseClient.rpc("pay_profit_allocation", {
                             p_allocation_item_id: itemId,
+                            p_destination_account_id: destinationId,
                             p_cash_account_id: cashId,
                             p_payment_date: date
                         });
