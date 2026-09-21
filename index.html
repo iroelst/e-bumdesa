@@ -5431,7 +5431,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const journals=await fetchReportRows(jQuery);
 
         // Saldo awal tahun untuk posisi keuangan.
-        const {data:period}=await supabaseClient.from('account_periods').select('id,start_date,end_date')
+        const {data:period}=await supabaseClient.from('account_periods').select('id,start_date,end_date,status')
             .eq('bumdes_id',bumdesId).eq('period_type','tahunan').eq('start_date',`${startYear}-01-01`).eq('end_date',`${startYear}-12-31`).limit(1).maybeSingle();
         let openings=[];
         if(period?.id){
@@ -5439,6 +5439,34 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if(scopeUnit) oQuery=oQuery.eq('unit_id',scopeUnit);
             else if(isPusat) oQuery=oQuery.is('unit_id',null);
             openings=await fetchReportRows(oQuery);
+        }
+
+        // Jika periode berikutnya belum memiliki baris opening_balances, gunakan
+        // saldo akhir periode tahunan sebelumnya sebagai saldo awal periode ini.
+        // Ini membuat hasil Tutup Buku mengalir otomatis ke periode berikutnya:
+        // Saldo Laba Akhir 2026 -> Saldo Laba Awal 2027.
+        if(!openings.length && startYear > 1900){
+            const prevYear=startYear-1;
+            const {data:prevPeriod}=await supabaseClient.from('account_periods')
+                .select('id,start_date,end_date')
+                .eq('bumdes_id',bumdesId).eq('period_type','tahunan')
+                .eq('start_date',`${prevYear}-01-01`).eq('end_date',`${prevYear}-12-31`)
+                .limit(1).maybeSingle();
+            if(prevPeriod?.id){
+                let prevOpenQuery=supabaseClient.from('opening_balances').select('account_id,unit_id,debit,credit').eq('bumdes_id',bumdesId).eq('period_id',prevPeriod.id);
+                if(scopeUnit) prevOpenQuery=prevOpenQuery.eq('unit_id',scopeUnit);
+                else if(isPusat) prevOpenQuery=prevOpenQuery.is('unit_id',null);
+                const prevOpenings=await fetchReportRows(prevOpenQuery);
+                let prevJQuery=supabaseClient.from('journals').select('account_id,unit_id,journal_date,debit,credit')
+                    .eq('bumdes_id',bumdesId).gte('journal_date',`${prevYear}-01-01`).lte('journal_date',`${prevYear}-12-31`);
+                if(scopeUnit) prevJQuery=prevJQuery.eq('unit_id',scopeUnit);
+                else if(isPusat) prevJQuery=prevJQuery.is('unit_id',null);
+                const prevJournals=await fetchReportRows(prevJQuery);
+                const derived=new Map();
+                const addDerived=(r)=>{const a=accountMap.get(r.account_id);if(a)add(derived,r.account_id,reportNormalBalance(a,r.debit,r.credit));};
+                prevOpenings.forEach(addDerived); prevJournals.forEach(addDerived);
+                openings=[...derived.entries()].map(([account_id,val])=>({account_id,debit:val>=0?val:0,credit:val<0?-val:0}));
+            }
         }
 
         const balanceMap=new Map();
@@ -5466,8 +5494,25 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             prev.forEach(j=>{const a=accountMap.get(j.account_id);if(a)add(priorMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));});
         }
 
-        const balances={}; const movements={}; const priors={};
-        leafAccounts.forEach(a=>{balances[a.id]=balanceMap.get(a.id)||0;movements[a.id]=moveMap.get(a.id)||0;priors[a.id]=priorMap.get(a.id)||0;});
+        const balances={}; const movements={}; const priors={}; const preClosingMovements={};
+        // Mutasi sebelum jurnal Tutup Buku dipertahankan khusus untuk Laporan Perubahan Ekuitas.
+        // Laporan tersebut mengikuti format resmi: laba/rugi periode berjalan tetap menjadi
+        // unsur pembentuk Saldo Laba Akhir, meskipun pada saldo akun berjalan laba sudah
+        // ditutup ke akun Saldo Laba. Dashboard/Laba Rugi berjalan tetap menggunakan movements.
+        const preClosingMoveMap=new Map();
+        journals.forEach(j=>{
+            if(excludedIds.includes(j.transaction_id)) return;
+            const a=accountMap.get(j.account_id); if(!a) return;
+            if(j.journal_date>=startDate && j.journal_date<=endDate){
+                add(preClosingMoveMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
+            }
+        });
+        leafAccounts.forEach(a=>{
+            balances[a.id]=balanceMap.get(a.id)||0;
+            movements[a.id]=moveMap.get(a.id)||0;
+            priors[a.id]=priorMap.get(a.id)||0;
+            preClosingMovements[a.id]=preClosingMoveMap.get(a.id)||0;
+        });
         if(isConsolidated){
             // Sesuai pedoman, akun resiprokal RK Unit Usaha/RK Pusat dieliminasi pada konsolidasi.
             leafAccounts.forEach(a=>{
@@ -5477,7 +5522,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 }
             });
         }
-        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,journals,startDate,endDate,scope,isConsolidated};
+        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,preClosingMovements,journals,startDate,endDate,scope,isConsolidated};
     }
 
     function reportGroupTotal(data, prefix, mapName='balances'){
@@ -5654,7 +5699,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const saldoCad=reportGroupTotal(data,'3.3.01.02','priors')+reportGroupTotal(data,'3.3.01.03','priors');
         const bagiDesa=profitReport.bagiDesa;
         const bagiMasyarakat=profitReport.bagiMasyarakat;
-        const profitBersih=profitReport.net;
+        // Laporan Perubahan Ekuitas harus menunjukkan laba periode berjalan sebelum
+        // jurnal penutupan, agar Saldo Laba Akhir benar-benar merupakan hasil dari
+        // pos-pos di atasnya sesuai format Kepmendesa 136/2022.
+        // Dashboard dan Laporan Laba Rugi berjalan tetap menggunakan profitReport (current).
+        const equityMovementData={...data,movements:data.preClosingMovements||data.movements};
+        const equityProfitReport=buildProfitLossReport(equityMovementData);
+        const profitBersih=equityProfitReport.net;
         const donasi=reportGroupTotal(data,'3.4.01.','balances');
         const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
         const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
@@ -5852,7 +5903,23 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
         if(uErr) throw uErr;
         activeReportUnits = units || [];
-        const defaultPreset=reportPeriodPreset('tahunan');
+        let defaultPreset=reportPeriodPreset('tahunan');
+        // Setelah tahun buku terakhir ditutup, laporan berjalan berpindah ke tahun berikutnya.
+        // Riwayat tetap menggunakan periode lama melalui activeReportHistory.
+        if(!activeReportHistory){
+            const {data:latestClosed}=await supabaseClient.from('account_periods')
+                .select('start_date,end_date,status')
+                .eq('bumdes_id',bumdesId).eq('period_type','tahunan').eq('status','closed')
+                .order('end_date',{ascending:false}).limit(1).maybeSingle();
+            if(latestClosed?.end_date){
+                const closedYear=Number(String(latestClosed.end_date).slice(0,4));
+                const currentYear=Number(String(defaultPreset.start).slice(0,4));
+                if(closedYear>=currentYear){
+                    const nextYear=closedYear+1;
+                    defaultPreset={start:`${nextYear}-01-01`,end:`${nextYear}-12-31`,label:'Tahunan'};
+                }
+            }
+        }
         const historyPreset=activeReportHistory && activeReportHistory.startDate && activeReportHistory.endDate
             ? {start:activeReportHistory.startDate,end:activeReportHistory.endDate}
             : defaultPreset;
