@@ -5466,7 +5466,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const derived=new Map();
                 const addDerived=(r)=>{const a=accountMap.get(r.account_id);if(a)add(derived,r.account_id,reportNormalBalance(a,r.debit,r.credit));};
                 prevOpenings.forEach(addDerived); prevJournals.forEach(addDerived);
-                openings=[...derived.entries()].map(([account_id,val])=>({account_id,debit:val>=0?val:0,credit:val<0?-val:0}));
+                openings=[...derived.entries()].map(([account_id,val])=>{const a=accountMap.get(account_id); const n=Number(val||0); const creditNormal=reportNormalBalance(a,0,1)>0; return {account_id,debit:creditNormal?(n<0?-n:0):(n>0?n:0),credit:creditNormal?(n>0?n:0):(n<0?-n:0)};});
             }
         }
 
