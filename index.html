@@ -3963,10 +3963,11 @@
         $("infoTahunBuku").textContent = bumdes?.tahun_buku || "-";
 
         const dashboardUnits = await loadUnits(profile.bumdes_id, profile);
-        showDashboardModule();
+        activeDashboardUnits = dashboardUnits || [];
+        showDashboardModule(false);
 
         try {
-            await loadDashboardFinancialData(profile, dashboardUnits);
+            await loadDashboardFinancialData(profile, activeDashboardUnits);
         } catch (err) {
             console.error("Gagal memuat data keuangan dashboard:", err);
             showAppToast(
@@ -4100,6 +4101,7 @@
 
     let activeAppProfile = null;
     let activeAppBumdes = null;
+    let activeDashboardUnits = [];
     let activeReportUnits = [];
     let activeReportHistory = null;
 
@@ -4205,11 +4207,30 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         setTimeout(printWhenReady, 80);
     }
 
-    function showDashboardModule() {
+    async function showDashboardModule(refreshData = true) {
         $("dashboardContent").classList.remove("hidden");
         $("appModulePage").classList.add("hidden");
         setActiveMenu("dashboard");
         document.querySelector(".topbar .fw-semibold").textContent = "Dashboard";
+
+        if (!refreshData || !activeAppProfile?.bumdes_id) return;
+
+        try {
+            // Ambil ulang data jurnal/periode/saldo dari Supabase setiap kali
+            // Dashboard dibuka agar angka langsung mengikuti Tutup Buku,
+            // Buka Kembali, atau transaksi terbaru tanpa reload browser.
+            await loadDashboardFinancialData(
+                activeAppProfile,
+                activeDashboardUnits || []
+            );
+        } catch (err) {
+            console.error("Gagal menyegarkan Dashboard:", err);
+            showAppToast(
+                "error",
+                "Dashboard belum dapat diperbarui",
+                err.message || "Silakan coba buka Dashboard kembali."
+            );
+        }
     }
 
     function moduleHeader(title, subtitle) {
@@ -4234,7 +4255,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         backButtons.forEach(back => {
             back.addEventListener("click", (event) => {
                 event.preventDefault();
-                showDashboardModule();
+                await showDashboardModule();
             });
         });
     }
@@ -4262,7 +4283,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (!activeAppProfile?.bumdes_id) return;
         const reportModules = ["labarugi","neraca","aruskas","ekuitas","calk"];
         if (!reportModules.includes(module) || !preserveReportHistory) activeReportHistory = null;
-        if (module === "dashboard") { showDashboardModule(); return; }
+        if (module === "dashboard") { await showDashboardModule(); return; }
         showModuleShell(module, moduleLoading());
 
         try {
