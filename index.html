@@ -3612,6 +3612,22 @@
         const dashboardClosingIds = new Set((dashboardClosingTransactions || []).map(row => String(row.id)));
         if (dashboardClosingIds.size) journals = journals.filter(row => !dashboardClosingIds.has(String(row.transaction_id || "")));
 
+        // Tentukan saldo normal lebih awal karena juga dipakai saat membentuk
+        // saldo awal dari saldo akhir periode sebelumnya.
+        const getNormalBalance = (account) => {
+            if (!account) return "D";
+            const stored = String(account.normal_balance || "").trim().toUpperCase();
+            if (stored === "D" || stored === "K") return stored;
+            const type = String(account.account_type || "").toLowerCase();
+            const code = String(account.kode || "");
+            if (["kewajiban", "ekuitas", "pendapatan"].includes(type)) return "K";
+            if (["aset", "hpp", "beban"].includes(type)) return "D";
+            if (type === "lain_lain") return code.startsWith("7.1") ? "K" : "D";
+            if (code.startsWith("1.1.04.") || code.startsWith("1.3.07.") ||
+                code.startsWith("1.4.02.") || code.startsWith("1.9.02.")) return "K";
+            return "D";
+        };
+
         // Saldo awal tahun dipakai untuk kartu posisi keuangan.
         // Jika periode tahunan belum dibuat, kartu tetap dihitung dari jurnal.
         let annualPeriodId = activeAnnualPeriod?.id || null;
@@ -3715,11 +3731,16 @@
             };
             previousOpenings.forEach(addDerived);
             previousJournals.forEach(addDerived);
-            openingBalances = [...derivedOpening.entries()].map(([account_id, value]) => ({
-                account_id,
-                debit: value >= 0 ? value : 0,
-                credit: value < 0 ? -value : 0
-            }));
+            openingBalances = [...derivedOpening.entries()].map(([account_id, value]) => {
+                const account = accountMap.get(account_id);
+                const amount = Number(value || 0);
+                const isCreditNormal = getNormalBalance(account) === "K";
+                return {
+                    account_id,
+                    debit: !isCreditNormal && amount > 0 ? amount : (isCreditNormal && amount < 0 ? -amount : 0),
+                    credit: isCreditNormal && amount > 0 ? amount : (!isCreditNormal && amount < 0 ? -amount : 0)
+                };
+            });
         }
 
         let incomeMonth = 0;
@@ -3742,28 +3763,6 @@
                 operational: 0
             });
         });
-
-        // Tentukan saldo normal. Beberapa data COA lama dapat memiliki
-        // normal_balance kosong; jangan otomatis menganggapnya Debit karena
-        // akun Pendapatan, Kewajiban, dan Ekuitas secara normal bersaldo Kredit.
-        const getNormalBalance = (account) => {
-            if (!account) return "D";
-            const stored = String(account.normal_balance || "").trim().toUpperCase();
-            if (stored === "D" || stored === "K") return stored;
-
-            const type = String(account.account_type || "").toLowerCase();
-            const code = String(account.kode || "");
-
-            if (["kewajiban", "ekuitas", "pendapatan"].includes(type)) return "K";
-            if (["aset", "hpp", "beban"].includes(type)) return "D";
-            if (type === "lain_lain") return code.startsWith("7.1") ? "K" : "D";
-
-            // Akun kontra aset pada pedoman bersaldo Kredit.
-            if (code.startsWith("1.1.04.") || code.startsWith("1.3.07.") ||
-                code.startsWith("1.4.02.") || code.startsWith("1.9.02.")) return "K";
-
-            return "D";
-        };
 
         // Saldo akun: saldo awal + jurnal tahun berjalan.
         // Saldo dinormalisasi mengikuti saldo normal akun (D/K).
@@ -3874,7 +3873,7 @@
         let liabilities = 0;
         let inventory = 0;
         let totalAssets = 0;
-        let equity = 0;
+        let classifiedEquity = 0;
 
         accountBalances.forEach((balance, accountId) => {
             const account = accountMap.get(accountId);
@@ -3889,7 +3888,7 @@
                 liabilities += value;
             }
             if (account.account_type === "ekuitas" && !code.startsWith("3.9.")) {
-                equity += value;
+                classifiedEquity += value;
             }
 
             if (code.startsWith("1.1.01.") || code.startsWith("1.1.02.")) {
@@ -3916,6 +3915,11 @@
         $("dashReceivables").textContent = dashboardRupiah(receivables);
         $("dashLiabilities").textContent = dashboardRupiah(liabilities);
         $("dashInventory").textContent = dashboardRupiah(inventory);
+        // Total Ekuitas Dashboard harus sama dengan persamaan akuntansi:
+        // Aset = Kewajiban + Ekuitas. Dengan demikian saldo laba yang sudah
+        // dibawa dari tahun sebelumnya otomatis ikut menjadi bagian Ekuitas.
+        const equity = totalAssets - liabilities;
+
         $("dashTotalAssets").textContent = dashboardRupiah(totalAssets);
         $("dashEquity").textContent = dashboardRupiah(equity);
         $("dashNetIncome").textContent = dashboardRupiah(netIncomeYear);
