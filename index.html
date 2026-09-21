@@ -6191,7 +6191,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             allocationAvailableEl && (allocationAvailableEl.textContent = formatMoney(allocationBaseAmount));
 
             const pctOk = Math.abs(roundedPct - 100) < 0.0000001;
-            const valueOk = Math.abs(totalValue - currentProfit) < 0.01;
+            const valueOk = Math.abs(totalValue - allocationBaseAmount) < 0.01;
             const periodOk = currentPeriodStatus === "closed";
             const rowsOk = allocationState.length > 0 && allocationState.every(item =>
                 String(item.nama_alokasi || "").trim() &&
@@ -6226,7 +6226,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 allocationPctMessage.className = `small mt-1 ${pctOk ? "text-success" : "text-danger"}`;
             }
             if (allocationValueMessage) {
-                allocationValueMessage.textContent = balanceError || (valueOk ? "Total alokasi sesuai dengan laba bersih." : "Total alokasi harus sama dengan laba bersih.");
+                allocationValueMessage.textContent = balanceError || (valueOk ? "Total alokasi sesuai dengan saldo yang tersedia." : "Total alokasi harus sama dengan saldo yang tersedia.");
                 allocationValueMessage.className = `small mt-1 ${valueOk && balanceOk ? "text-success" : "text-danger"}`;
             }
 
