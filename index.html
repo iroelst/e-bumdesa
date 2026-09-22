@@ -3008,13 +3008,17 @@
             <div id="dashboardInfoUnit" class="panel mt-3 hidden">
                 <div class="panel-title">Informasi Unit</div>
                 <div class="row">
-                    <div class="col-md-8 mb-2">
+                    <div class="col-md-6 mb-2">
                         <span class="text-secondary small">Nama Unit</span>
                         <div id="infoUnitName" class="fw-semibold">-</div>
                     </div>
-                    <div class="col-md-4 mb-2">
+                    <div class="col-md-3 mb-2">
                         <span class="text-secondary small">Kode Unit</span>
                         <div id="infoUnitCode" class="fw-semibold">-</div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <span class="text-secondary small">Tahun Buku</span>
+                        <div id="infoUnitTahunBuku" class="fw-semibold">-</div>
                     </div>
                 </div>
             </div>
@@ -4189,6 +4193,9 @@
                 ownUnit?.nama_unit || "Unit Usaha";
             $("infoUnitCode").textContent =
                 ownUnit?.kode_unit || "-";
+            if ($("infoUnitTahunBuku")) {
+                $("infoUnitTahunBuku").textContent = activeAppBumdes?.tahun_buku || "-";
+            }
         }
 
         applyRoleBasedMenu();
