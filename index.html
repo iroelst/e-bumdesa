@@ -8372,7 +8372,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     async function renderTransactionsModule() {
         const bumdesId = activeAppProfile.bumdes_id;
-        const canManageTransactions = activeAppProfile.role === "admin_pusat";
+        const canManageTransactions = ["admin_pusat", "admin_unit"].includes(activeAppProfile.role);
+
+        let transactionQuery = supabaseClient.from("transactions")
+            .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
+            .eq("bumdes_id", bumdesId)
+            .order("transaction_date", { ascending:false })
+            .order("created_at", { ascending:false })
+            .limit(200);
+
+        if (activeAppProfile.role === "admin_unit") {
+            if (!activeAppProfile.unit_id) {
+                return showModuleShell("transaksi", moduleEmpty("Akun Admin Unit belum memiliki Unit Usaha."));
+            }
+            transactionQuery = transactionQuery.eq("unit_id", activeAppProfile.unit_id);
+        }
 
         const [
             { data: transactions, error: txError },
@@ -8380,12 +8394,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             { data: accounts, error: accountError },
             { data: units, error: unitError }
         ] = await Promise.all([
-            supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
-                .eq("bumdes_id", bumdesId)
-                .order("transaction_date", { ascending:false })
-                .order("created_at", { ascending:false })
-                .limit(200),
+            transactionQuery,
             supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
                 .eq("bumdes_id", bumdesId)
@@ -8730,7 +8739,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     </table>
                 </div>
                 ${!canManageTransactions
-                    ? `<div class="text-secondary small mt-3"><i class="bi bi-info-circle me-1"></i>Edit dan hapus transaksi saat ini hanya tersedia untuk Admin Pusat sesuai hak akses jurnal.</div>`
+                    ? `<div class="text-secondary small mt-3"><i class="bi bi-info-circle me-1"></i>Edit dan hapus transaksi tersedia selama periode masih terbuka.</div>`
                     : `<div class="text-secondary small mt-3"><i class="bi bi-shield-check me-1"></i>Transaksi pada periode tertutup tidak dapat diedit atau dihapus.</div>`}
               </div>`
             : `<div class="panel"><div class="text-center text-secondary py-4">
