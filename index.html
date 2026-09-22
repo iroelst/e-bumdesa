@@ -9975,6 +9975,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     function resetCustomCOAForm() {
         $("addCustomCOAForm")?.reset();
 
+        if ($("coaCustomShuFunction")) {
+            $("coaCustomShuFunction").value = "normal";
+        }
+
         const parentSelect = $("coaCustomParent");
         if (parentSelect) parentSelect.innerHTML = '<option value="">Memuat kelompok akun...</option>';
 
@@ -10099,6 +10103,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const code = String($("coaCustomCode")?.value || "").trim();
         const name = String($("coaCustomName")?.value || "").trim();
         const normal = String($("coaCustomNormal")?.value || "").trim().toLowerCase();
+        const shuFunction = String($("coaCustomShuFunction")?.value || "normal").trim().toLowerCase();
 
         const parentSelect = $("coaCustomParent");
         const option = parentSelect?.options[parentSelect.selectedIndex];
@@ -10140,6 +10145,22 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (error) throw error;
 
             const created = Array.isArray(data) ? data[0] : data;
+
+            if (!created?.id) {
+                throw new Error("COA berhasil dibuat tetapi ID akun tidak ditemukan.");
+            }
+
+            const { error: shuError } = await supabaseClient.rpc(
+                "set_custom_coa_shu_function",
+                {
+                    p_bumdes_id: activeAppProfile.bumdes_id,
+                    p_coa_id: created.id,
+                    p_shu_function: shuFunction
+                }
+            );
+
+            if (shuError) throw shuError;
+
             closeAddCustomCOAModal();
 
             showAppToast(
@@ -10738,12 +10759,25 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                            placeholder="Contoh: Beban Operasional Digital" required>
                 </div>
 
-                <div class="mb-1">
+                <div class="mb-3">
                     <label class="form-label">Saldo Normal *</label>
                     <select id="coaCustomNormal" class="form-select" required>
                         <option value="debit">Debit</option>
                         <option value="kredit">Kredit</option>
                     </select>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label fw-semibold">Fungsi Akun</label>
+                    <select id="coaCustomShuFunction" class="form-select">
+                        <option value="normal">Akun Biasa</option>
+                        <option value="allocation">Tujuan Alokasi SHU</option>
+                        <option value="payment_desa">Akun Pembayaran SHU Desa</option>
+                        <option value="payment_masyarakat">Akun Pembayaran SHU Masyarakat</option>
+                    </select>
+                    <div class="form-text">
+                        Pilih fungsi khusus jika akun ini digunakan dalam proses alokasi atau pembayaran SHU.
+                    </div>
                 </div>
 
                 <div id="coaCustomValidation" class="small text-danger mt-2 hidden"></div>
