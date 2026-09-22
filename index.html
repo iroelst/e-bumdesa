@@ -8007,15 +8007,262 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     }
 
     async function renderUsersModule() {
-        const { data, error } = await supabaseClient.from("profiles").select("id,nama,email,role,status,unit_id").eq("bumdes_id", activeAppProfile.bumdes_id).order("created_at", { ascending:true });
-        if (error) throw error;
-        if (!data?.length) return showModuleShell("pengguna", moduleEmpty("Belum ada pengguna."));
-        const unitIds=[...new Set(data.map(x=>x.unit_id).filter(Boolean))];
-        let units=[];
-        if(unitIds.length){ const r=await supabaseClient.from("units").select("id,nama_unit").in("id",unitIds); units=r.data||[]; }
-        const um=new Map(units.map(u=>[u.id,u.nama_unit]));
-        const rows=data.map((p,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(p.nama||"-")}</td><td>${escapeHtml(p.email||"-")}</td><td>${escapeHtml(p.role||"-")}</td><td>${escapeHtml(p.unit_id?um.get(p.unit_id)||"-":"Pusat")}</td><td>${escapeHtml(p.status||"-")}</td></tr>`).join("");
-        showModuleShell("pengguna", `<div class="panel"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Unit</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+        if (activeAppProfile?.role !== "admin_pusat") {
+            return showModuleShell("pengguna", `
+                <div class="panel">
+                    <div class="alert alert-warning mb-0">
+                        <i class="bi bi-lock me-1"></i>
+                        Hanya Admin Pusat yang dapat mengelola akun Admin Unit.
+                    </div>
+                </div>`);
+        }
+
+        const { data: units, error: unitError } = await supabaseClient
+            .from("units")
+            .select("id,nama_unit,kode_unit,status")
+            .eq("bumdes_id", activeAppProfile.bumdes_id)
+            .order("created_at", { ascending: true });
+
+        if (unitError) throw unitError;
+
+        const activeUnits = (units || []).filter(u => u.status === "aktif");
+
+        showModuleShell("pengguna", `
+            <div class="panel">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <div class="fw-semibold">Hak Akses Admin Unit</div>
+                        <div class="text-secondary small mt-1">
+                            Setiap Unit Usaha dapat memiliki maksimal satu akun Admin Unit.
+                            Username dibuat permanen oleh sistem, sedangkan password dapat diganti oleh Admin Pusat.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="unitAccountMessage" class="alert hidden mb-3"></div>
+
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Password hanya dapat dibuat, dilihat, dan diganti oleh Admin Pusat.
+                    Admin Unit tidak dapat mengubah passwordnya sendiri.
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:40px">#</th>
+                                <th>Unit Usaha</th>
+                                <th>Username</th>
+                                <th>Password</th>
+                                <th>Status</th>
+                                <th class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitAccountRows">
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary py-4">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Memuat akun Admin Unit...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>`);
+
+        const rowsEl = $("unitAccountRows");
+        const msgEl = $("unitAccountMessage");
+
+        const showAccountMessage = (type, message) => {
+            msgEl.className = `alert alert-${type} mb-3`;
+            msgEl.textContent = message;
+        };
+
+        const invokeUnitAccount = async (action, payload = {}) => {
+            const { data, error } = await supabaseClient.functions.invoke("unit-account", {
+                body: { action, ...payload }
+            });
+            if (error) {
+                let detail = error.message || "Terjadi kesalahan.";
+                try {
+                    if (error.context) {
+                        const body = await error.context.json();
+                        detail = body?.error || body?.message || detail;
+                    }
+                } catch (_) {}
+                throw new Error(detail);
+            }
+            if (data?.error) throw new Error(data.error);
+            return data;
+        };
+
+        const renderRows = async () => {
+            if (!activeUnits.length) {
+                rowsEl.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary py-4">
+                            Belum ada Unit Usaha aktif.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            const accountResults = await Promise.all(activeUnits.map(async unit => {
+                try {
+                    const result = await invokeUnitAccount("view_password", { unit_id: unit.id });
+                    return { unit, account: result };
+                } catch (err) {
+                    return { unit, account: null, error: err };
+                }
+            }));
+
+            rowsEl.innerHTML = accountResults.map((item, index) => {
+                const unit = item.unit;
+                const account = item.account;
+                const username = account?.username || "-";
+                const password = account?.password || "-";
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>
+                            <strong>${escapeHtml(unit.nama_unit || "-")}</strong>
+                            <div class="text-secondary small">${escapeHtml(unit.kode_unit || "-")}</div>
+                        </td>
+                        <td>
+                            ${account ? `<code>${escapeHtml(username)}</code>` : `<span class="text-secondary">Belum dibuat</span>`}
+                        </td>
+                        <td>
+                            ${account
+                                ? `<div class="d-inline-flex align-items-center gap-1">
+                                    <code data-account-password="${escapeHtml(unit.id)}">••••••••••••</code>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1"
+                                            data-toggle-password="${escapeHtml(unit.id)}" title="Tampilkan password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                   </div>`
+                                : `<span class="text-secondary">-</span>`}
+                        </td>
+                        <td>
+                            ${account
+                                ? `<span class="badge text-bg-success">aktif</span>`
+                                : `<span class="badge text-bg-secondary">belum ada akun</span>`}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            ${account
+                                ? `
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                            data-change-password="${escapeHtml(unit.id)}"
+                                            title="Ganti Password">
+                                        <i class="bi bi-key"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-refresh-account="${escapeHtml(unit.id)}"
+                                            title="Muat ulang">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                  `
+                                : `
+                                    <button type="button" class="btn btn-sm btn-primary"
+                                            data-create-account="${escapeHtml(unit.id)}">
+                                        <i class="bi bi-person-plus me-1"></i>Buat Akun
+                                    </button>
+                                  `}
+                        </td>
+                    </tr>`;
+            }).join("");
+
+            accountResults.forEach(item => {
+                const unit = item.unit;
+                const account = item.account;
+
+                const toggle = rowsEl.querySelector(`[data-toggle-password="${unit.id}"]`);
+                if (toggle && account) {
+                    toggle.addEventListener("click", () => {
+                        const code = rowsEl.querySelector(`[data-account-password="${unit.id}"]`);
+                        if (!code) return;
+                        const hidden = code.textContent.includes("•");
+                        code.textContent = hidden ? account.password : "••••••••••••";
+                        toggle.innerHTML = hidden
+                            ? '<i class="bi bi-eye-slash"></i>'
+                            : '<i class="bi bi-eye"></i>';
+                    });
+                }
+
+                const refresh = rowsEl.querySelector(`[data-refresh-account="${unit.id}"]`);
+                if (refresh) {
+                    refresh.addEventListener("click", async () => {
+                        await renderRows();
+                    });
+                }
+
+                const createBtn = rowsEl.querySelector(`[data-create-account="${unit.id}"]`);
+                if (createBtn) {
+                    createBtn.addEventListener("click", async () => {
+                        createBtn.disabled = true;
+                        createBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Membuat...';
+                        msgEl.className = "alert hidden mb-3";
+
+                        try {
+                            const result = await invokeUnitAccount("create", { unit_id: unit.id });
+
+                            msgEl.className = "alert alert-success mb-3";
+                            msgEl.innerHTML = `
+                                <strong>Akun Admin Unit berhasil dibuat.</strong><br>
+                                Unit: <strong>${escapeHtml(unit.nama_unit)}</strong><br>
+                                Username: <code>${escapeHtml(result.username || "-")}</code><br>
+                                Password: <code>${escapeHtml(result.password || "-")}</code>
+                                <div class="small mt-2">Simpan kredensial ini. Password dapat dilihat kembali oleh Admin Pusat melalui tombol mata.</div>`;
+
+                            await renderRows();
+                        } catch (err) {
+                            console.error(err);
+                            showAccountMessage("danger", "Gagal membuat akun: " + (err.message || String(err)));
+                            createBtn.disabled = false;
+                            createBtn.innerHTML = '<i class="bi bi-person-plus me-1"></i>Buat Akun';
+                        }
+                    });
+                }
+
+                const changeBtn = rowsEl.querySelector(`[data-change-password="${unit.id}"]`);
+                if (changeBtn) {
+                    changeBtn.addEventListener("click", async () => {
+                        const newPassword = window.prompt(
+                            `Masukkan password baru untuk ${unit.nama_unit}.\nMinimal 8 karakter.`
+                        );
+
+                        if (newPassword === null) return;
+
+                        if (newPassword.length < 8) {
+                            showAccountMessage("danger", "Password minimal 8 karakter.");
+                            return;
+                        }
+
+                        changeBtn.disabled = true;
+                        try {
+                            const result = await invokeUnitAccount("change_password", {
+                                unit_id: unit.id,
+                                new_password: newPassword
+                            });
+
+                            msgEl.className = "alert alert-success mb-3";
+                            msgEl.innerHTML = `
+                                <strong>Password berhasil diganti.</strong><br>
+                                Username: <code>${escapeHtml(result.username || account?.username || "-")}</code><br>
+                                Password baru: <code>${escapeHtml(result.password || newPassword)}</code>`;
+
+                            await renderRows();
+                        } catch (err) {
+                            console.error(err);
+                            showAccountMessage("danger", "Gagal mengganti password: " + (err.message || String(err)));
+                            changeBtn.disabled = false;
+                        }
+                    });
+                }
+            });
+        };
+
+        await renderRows();
     }
 
     async function renderTransactionsModule() {
