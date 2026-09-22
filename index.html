@@ -2806,7 +2806,7 @@
         <a class="side-link" href="#" data-module="pembayaranshu"><i class="bi bi-cash-coin"></i> Pembayaran SHU</a>
         <a class="side-link" href="#" data-module="aset"><i class="bi bi-box-seam"></i> Aset</a>
 
-        <div class="side-section">UNIT USAHA</div>
+        <div class="side-section" id="sidebarUnitSection">UNIT USAHA</div>
         <a class="side-link" href="#" data-module="unit"><i class="bi bi-buildings"></i> Daftar Unit</a>
         <a class="side-link" href="#" data-module="tambahunit"><i class="bi bi-plus-circle"></i> Tambah Unit</a>
 
@@ -2817,7 +2817,7 @@
         <a class="side-link" href="#" data-module="ekuitas"><i class="bi bi-pie-chart"></i> Perubahan Ekuitas</a>
         <a class="side-link" href="#" data-module="calk"><i class="bi bi-file-text"></i> CALK</a>
 
-        <div class="side-section">SISTEM</div>
+        <div class="side-section" id="sidebarSystemSection">SISTEM</div>
         <a class="side-link" href="#" id="customerSubscriptionMenu">
             <i class="bi bi-credit-card"></i> Langganan
         </a>
@@ -2913,9 +2913,9 @@
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
-                <h5 class="mb-0">Unit Usaha</h5>
-                <span class="badge text-bg-light border">Admin Pusat</span>
+            <div id="dashboardUnitHeader" class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                <h5 id="dashboardUnitTitle" class="mb-0">Unit Usaha</h5>
+                <span id="dashboardUnitBadge" class="badge text-bg-light border">Admin Pusat</span>
             </div>
 
             <div id="unitCards" class="row g-3">
@@ -2987,7 +2987,7 @@
                 </div>
             </div>
 
-            <div class="panel mt-3">
+            <div id="dashboardInfoBumdes" class="panel mt-3">
                 <div class="panel-title">Informasi BUMDes</div>
                 <div class="row">
                     <div class="col-md-6 mb-2">
@@ -3001,6 +3001,20 @@
                     <div class="col-md-3 mb-2">
                         <span class="text-secondary small">Tahun Buku</span>
                         <div id="infoTahunBuku" class="fw-semibold">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboardInfoUnit" class="panel mt-3 hidden">
+                <div class="panel-title">Informasi Unit</div>
+                <div class="row">
+                    <div class="col-md-8 mb-2">
+                        <span class="text-secondary small">Nama Unit</span>
+                        <div id="infoUnitName" class="fw-semibold">-</div>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <span class="text-secondary small">Kode Unit</span>
+                        <div id="infoUnitCode" class="fw-semibold">-</div>
                     </div>
                 </div>
             </div>
@@ -4154,7 +4168,10 @@
         bumdes = bumdesResult.data;
         activeAppBumdes = bumdes;
 
-        $("topUserName").textContent = profile.nama || profile.email || "Admin";
+        $("topUserName").textContent = profile.role === "admin_unit"
+            ? (profile.nama || "Admin Unit")
+            : (profile.nama || profile.email || "Admin");
+
         $("topBumdesName").textContent = bumdes?.nama || "";
         $("infoBumdesName").textContent = bumdes?.nama || "-";
         $("infoBumdesCode").textContent = bumdes?.kode || "-";
@@ -4162,6 +4179,19 @@
 
         const dashboardUnits = await loadUnits(profile.bumdes_id, profile);
         activeDashboardUnits = dashboardUnits || [];
+
+        if (profile.role === "admin_unit") {
+            const ownUnit = activeDashboardUnits.find(
+                unit => String(unit.id) === String(profile.unit_id)
+            );
+
+            $("infoUnitName").textContent =
+                ownUnit?.nama_unit || "Unit Usaha";
+            $("infoUnitCode").textContent =
+                ownUnit?.kode_unit || "-";
+        }
+
+        applyRoleBasedMenu();
         showDashboardModule(false);
 
         try {
@@ -4221,7 +4251,14 @@
                     </div>
                 </div>
             `;
-            return;
+            return [];
+        }
+
+        // Admin Unit tetap menggunakan data unitnya untuk perhitungan dashboard,
+        // tetapi kartu Unit Usaha tidak ditampilkan.
+        if (profile?.role === "admin_unit") {
+            container.innerHTML = "";
+            return visibleUnits;
         }
 
         container.innerHTML = visibleUnits.map(unit => `
@@ -4331,6 +4368,46 @@
         const subscriptionMenu = $("customerSubscriptionMenu");
         if (subscriptionMenu) {
             subscriptionMenu.classList.toggle("d-none", isAdminUnit);
+        }
+
+        // Untuk Admin Unit, seluruh kelompok UNIT USAHA dan SISTEM
+        // disembunyikan karena semua menu di dalamnya tidak tersedia.
+        const unitSection = $("sidebarUnitSection");
+        const systemSection = $("sidebarSystemSection");
+
+        if (unitSection) unitSection.classList.toggle("d-none", isAdminUnit);
+        if (systemSection) systemSection.classList.toggle("d-none", isAdminUnit);
+
+        // Dashboard Admin Unit tidak menampilkan kartu Unit Usaha
+        // dan tidak menampilkan label "Admin Pusat".
+        const dashboardUnitHeader = $("dashboardUnitHeader");
+        const unitCards = $("unitCards");
+        const dashboardUnitBadge = $("dashboardUnitBadge");
+
+        if (dashboardUnitHeader) {
+            dashboardUnitHeader.classList.toggle("d-none", isAdminUnit);
+        }
+
+        if (unitCards) {
+            unitCards.classList.toggle("d-none", isAdminUnit);
+        }
+
+        if (dashboardUnitBadge) {
+            dashboardUnitBadge.classList.toggle("d-none", isAdminUnit);
+        }
+
+        // Informasi bagian bawah dashboard:
+        // Admin Pusat -> Informasi BUMDes
+        // Admin Unit   -> Informasi Unit + Kode Unit
+        const infoBumdes = $("dashboardInfoBumdes");
+        const infoUnit = $("dashboardInfoUnit");
+
+        if (infoBumdes) {
+            infoBumdes.classList.toggle("hidden", isAdminUnit);
+        }
+
+        if (infoUnit) {
+            infoUnit.classList.toggle("hidden", !isAdminUnit);
         }
     }
 
