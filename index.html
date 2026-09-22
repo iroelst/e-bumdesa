@@ -261,7 +261,8 @@
             align-items: center;
             justify-content: center;
             padding: 62px 5.2% 50px 3%;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             background: transparent;
         }
 
@@ -337,6 +338,27 @@
             background: #fff;
             border-radius: 50%;
             padding: 4px;
+        }
+
+
+        .unit-login-box {
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: #f8fafc;
+        }
+
+        .unit-login-box .form-label {
+            color: #475569;
+        }
+
+        .unit-login-box .form-control {
+            min-height: 42px;
+        }
+
+        .unit-login-box .btn {
+            min-height: 42px;
         }
 
         .login-security {
@@ -2333,6 +2355,69 @@
                     <span>Masuk dengan Google</span>
                 </button>
 
+                <div class="text-center my-3">
+                    <div style="display:flex;align-items:center;gap:10px;color:#9aa5b1;font-size:12px;">
+                        <div style="height:1px;background:#e5e7eb;flex:1;"></div>
+                        <span>atau</span>
+                        <div style="height:1px;background:#e5e7eb;flex:1;"></div>
+                    </div>
+                </div>
+
+                <div class="unit-login-box">
+                    <div class="text-center mb-3">
+                        <div style="font-weight:700;color:#334155;">
+                            <i class="bi bi-building me-1"></i>
+                            Login Admin Unit
+                        </div>
+                        <div class="text-secondary small">
+                            Gunakan username dan password yang diberikan Admin Pusat.
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Username</label>
+                        <input
+                            id="unitLoginUsername"
+                            type="text"
+                            class="form-control"
+                            placeholder="Masukkan username"
+                            autocomplete="username"
+                            autocapitalize="characters"
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Password</label>
+                        <div class="input-group">
+                            <input
+                                id="unitLoginPassword"
+                                type="password"
+                                class="form-control"
+                                placeholder="Masukkan password"
+                                autocomplete="current-password"
+                            >
+                            <button
+                                type="button"
+                                id="toggleUnitPassword"
+                                class="btn btn-outline-secondary"
+                                tabindex="-1"
+                                title="Tampilkan password"
+                            >
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        id="unitLoginBtn"
+                        type="button"
+                        class="btn btn-primary w-100"
+                    >
+                        <i class="bi bi-box-arrow-in-right me-1"></i>
+                        Masuk sebagai Admin Unit
+                    </button>
+                </div>
+
                 <div class="login-security">
                     <i class="bi bi-shield-fill-check"></i>
                     <div>
@@ -3058,6 +3143,13 @@
             return;
         }
 
+        if (profile.status !== "aktif") {
+            await supabaseClient.auth.signOut();
+            showError("loginMessage", "Akun Anda sedang tidak aktif.");
+            showOnly("loginPage");
+            return;
+        }
+
         // Super Admin adalah pengelola platform e-BUMDesa, bukan pelanggan BUMDes.
         if (profile.role === "super_admin") {
             await loadSuperAdminDashboard(profile);
@@ -3201,6 +3293,104 @@
                 </svg>
                 <span>Masuk dengan Google</span>
             `;
+        }
+    });
+
+    // =========================================================
+    // LOGIN ADMIN UNIT
+    // =========================================================
+    $("unitLoginBtn").addEventListener("click", async () => {
+        const btn = $("unitLoginBtn");
+        const username = $("unitLoginUsername").value.trim().toUpperCase();
+        const password = $("unitLoginPassword").value;
+
+        hideError("loginMessage");
+
+        if (!username) {
+            showError("loginMessage", "Username Admin Unit wajib diisi.");
+            $("unitLoginUsername").focus();
+            return;
+        }
+
+        if (!password) {
+            showError("loginMessage", "Password Admin Unit wajib diisi.");
+            $("unitLoginPassword").focus();
+            return;
+        }
+
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memeriksa...`;
+
+        try {
+            const { data, error } = await supabaseClient.functions.invoke(
+                "unit-account",
+                {
+                    body: {
+                        action: "login",
+                        username,
+                        password
+                    }
+                }
+            );
+
+            if (error) {
+                console.error("Login Admin Unit error:", error);
+                let message = "Username atau password salah.";
+                if (data?.message) message = data.message;
+                try {
+                    if (error.context) {
+                        const payload = await error.context.clone().json();
+                        if (payload?.message) message = payload.message;
+                    }
+                } catch (_) {}
+                throw new Error(message);
+            }
+
+            if (
+                !data?.success ||
+                !data?.session?.access_token ||
+                !data?.session?.refresh_token
+            ) {
+                throw new Error(data?.message || "Login Admin Unit gagal.");
+            }
+
+            const { data: sessionData, error: sessionError } =
+                await supabaseClient.auth.setSession({
+                    access_token: data.session.access_token,
+                    refresh_token: data.session.refresh_token
+                });
+
+            if (sessionError) throw sessionError;
+            if (!sessionData?.user) {
+                throw new Error("Session Admin Unit tidak dapat dibuat.");
+            }
+
+            await handleUser(sessionData.user);
+        } catch (error) {
+            console.error("Login Admin Unit gagal:", error);
+            showError("loginMessage", error.message || "Login Admin Unit gagal.");
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    });
+
+    $("toggleUnitPassword").addEventListener("click", () => {
+        const input = $("unitLoginPassword");
+        const icon = $("toggleUnitPassword").querySelector("i");
+        if (input.type === "password") {
+            input.type = "text";
+            icon.className = "bi bi-eye-slash";
+        } else {
+            input.type = "password";
+            icon.className = "bi bi-eye";
+        }
+    });
+
+    $("unitLoginPassword").addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            $("unitLoginBtn").click();
         }
     });
 
@@ -3945,6 +4135,7 @@
 
     async function loadDashboard(profile) {
         activeAppProfile = profile;
+        applyRoleBasedMenu();
         let bumdes = null;
 
         const bumdesResult = await supabaseClient
@@ -4109,6 +4300,36 @@
     let activeDashboardUnits = [];
     let activeReportUnits = [];
     let activeReportHistory = null;
+
+    const ADMIN_UNIT_HIDDEN_MODULES = new Set([
+        "coa",
+        "saldoawal",
+        "tutupbuku",
+        "pembagianshu",
+        "pembayaranshu",
+        "unit",
+        "tambahunit",
+        "pengguna",
+        "pengaturan"
+    ]);
+
+    function applyRoleBasedMenu() {
+        const isAdminUnit = activeAppProfile?.role === "admin_unit";
+
+        document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
+            const module = link.dataset.module;
+            if (isAdminUnit && ADMIN_UNIT_HIDDEN_MODULES.has(module)) {
+                link.classList.add("d-none");
+            } else {
+                link.classList.remove("d-none");
+            }
+        });
+
+        const subscriptionMenu = $("customerSubscriptionMenu");
+        if (subscriptionMenu) {
+            subscriptionMenu.classList.toggle("d-none", isAdminUnit);
+        }
+    }
 
     function setActiveMenu(module) {
         document.querySelectorAll("#sidebar .side-link[data-module]").forEach(link => {
@@ -4283,6 +4504,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     async function openAppModule(module, preserveReportHistory = false) {
         if (!activeAppProfile?.bumdes_id) return;
+
+        if (
+            activeAppProfile.role === "admin_unit" &&
+            ADMIN_UNIT_HIDDEN_MODULES.has(module)
+        ) {
+            showAppToast(
+                "error",
+                "Akses Ditolak",
+                "Modul ini tidak tersedia untuk Admin Unit."
+            );
+            return;
+        }
         const reportModules = ["labarugi","neraca","aruskas","ekuitas","calk"];
         if (!reportModules.includes(module) || !preserveReportHistory) activeReportHistory = null;
         if (module === "dashboard") {
