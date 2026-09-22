@@ -4941,23 +4941,32 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
         const canManage = role === "admin_pusat" || role === "admin_unit";
 
-        const [assetRes, txRes, unitRes, accountRes] = await Promise.all([
-            supabaseClient.from("fixed_assets")
-                .select(`
+        let assetQuery = supabaseClient.from("fixed_assets")
+            .select(`
                     id,asset_code,asset_name,acquisition_date,acquisition_cost,
                     useful_life_months,depreciation_method,accumulated_depreciation,
                     status,unit_id,source_transaction_id,depreciation_start_date,
                     asset_account_id,accumulated_depreciation_account_id,
                     depreciation_expense_account_id
                 `)
-                .eq("bumdes_id", bumdesId)
-                .order("acquisition_date", { ascending:false }),
-            supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id")
-                .eq("bumdes_id", bumdesId)
-                .eq("transaction_type", "aset_pembelian")
-                .order("transaction_date", { ascending:false })
-                .limit(500),
+            .eq("bumdes_id", bumdesId)
+            .order("acquisition_date", { ascending:false });
+
+        let assetTxQuery = supabaseClient.from("transactions")
+            .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id")
+            .eq("bumdes_id", bumdesId)
+            .eq("transaction_type", "aset_pembelian")
+            .order("transaction_date", { ascending:false })
+            .limit(500);
+
+        if (ownUnitId) {
+            assetQuery = assetQuery.eq("unit_id", ownUnitId);
+            assetTxQuery = assetTxQuery.eq("unit_id", ownUnitId);
+        }
+
+        const [assetRes, txRes, unitRes, accountRes] = await Promise.all([
+            assetQuery,
+            assetTxQuery,
             supabaseClient.from("units")
                 .select("id,nama_unit,kode_unit,status")
                 .eq("bumdes_id", bumdesId)
@@ -5347,6 +5356,25 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const canManage = role === "admin_pusat" || role === "admin_unit";
         const ownUnitId = role === "admin_unit" ? activeAppProfile.unit_id : null;
 
+        let adjustmentTxQuery = supabaseClient.from("transactions")
+            .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
+            .eq("bumdes_id", bumdesId)
+            .eq("transaction_type", "penyesuaian")
+            .order("transaction_date", { ascending:false })
+            .order("created_at", { ascending:false })
+            .limit(500);
+
+        let adjustmentAssetQuery = supabaseClient.from("fixed_assets")
+            .select("id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status,unit_id,asset_account_id,accumulated_depreciation_account_id,depreciation_expense_account_id")
+            .eq("bumdes_id", bumdesId)
+            .eq("status", "aktif")
+            .order("acquisition_date", { ascending:true });
+
+        if (ownUnitId) {
+            adjustmentTxQuery = adjustmentTxQuery.eq("unit_id", ownUnitId);
+            adjustmentAssetQuery = adjustmentAssetQuery.eq("unit_id", ownUnitId);
+        }
+
         const [periodRes, accountRes, unitRes, txRes, assetRes] = await Promise.all([
             supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
@@ -5362,18 +5390,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .select("id,nama_unit,kode_unit,status")
                 .eq("bumdes_id", bumdesId)
                 .order("created_at", { ascending:true }),
-            supabaseClient.from("transactions")
-                .select("id,transaction_number,transaction_date,description,transaction_type,amount,unit_id,period_id,created_by,created_at,adjustment_type,adjustment_source,adjustment_source_id,adjustment_key")
-                .eq("bumdes_id", bumdesId)
-                .eq("transaction_type", "penyesuaian")
-                .order("transaction_date", { ascending:false })
-                .order("created_at", { ascending:false })
-                .limit(500),
-            supabaseClient.from("fixed_assets")
-                .select("id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status,unit_id,asset_account_id,accumulated_depreciation_account_id,depreciation_expense_account_id")
-                .eq("bumdes_id", bumdesId)
-                .eq("status", "aktif")
-                .order("acquisition_date", { ascending:true })
+            adjustmentTxQuery,
+            adjustmentAssetQuery
         ]);
 
         if (periodRes.error) throw periodRes.error;
@@ -9494,7 +9512,22 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     }
 
     async function renderJournalsModule() {
-        const { data, error } = await supabaseClient.from("journals").select("id,journal_date,journal_number,description,unit_id,account_id,debit,credit").eq("bumdes_id", activeAppProfile.bumdes_id).order("journal_date", {ascending:false}).order("created_at", {ascending:false}).limit(300);
+        let journalQuery = supabaseClient
+            .from("journals")
+            .select("id,journal_date,journal_number,description,unit_id,account_id,debit,credit")
+            .eq("bumdes_id", activeAppProfile.bumdes_id)
+            .order("journal_date", {ascending:false})
+            .order("created_at", {ascending:false})
+            .limit(300);
+
+        if (activeAppProfile.role === "admin_unit") {
+            if (!activeAppProfile.unit_id) {
+                return showModuleShell("jurnal", moduleEmpty("Akun Admin Unit belum memiliki Unit Usaha."));
+            }
+            journalQuery = journalQuery.eq("unit_id", activeAppProfile.unit_id);
+        }
+
+        const { data, error } = await journalQuery;
         if(error) throw error;
         if(!data?.length) return showModuleShell("jurnal", moduleEmpty("Belum ada jurnal."));
         const accIds=[...new Set(data.map(x=>x.account_id).filter(Boolean))]; let acc=[];
@@ -9505,18 +9538,30 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     }
 
     async function renderLedgerModule() {
+        let ledgerJournalQuery = supabaseClient.from("journals")
+            .select("id,journal_date,journal_number,description,unit_id,account_id,debit,credit,created_at")
+            .eq("bumdes_id", activeAppProfile.bumdes_id)
+            .order("journal_date", { ascending:true })
+            .order("created_at", { ascending:true })
+            .limit(2000);
+
+        let ledgerOpeningQuery = supabaseClient.from("opening_balances")
+            .select("id,unit_id,period_id,account_id,debit,credit,created_at")
+            .eq("bumdes_id", activeAppProfile.bumdes_id)
+            .order("created_at", { ascending:true })
+            .limit(2000);
+
+        if (activeAppProfile.role === "admin_unit") {
+            if (!activeAppProfile.unit_id) {
+                return showModuleShell("bukubesar", moduleEmpty("Akun Admin Unit belum memiliki Unit Usaha."));
+            }
+            ledgerJournalQuery = ledgerJournalQuery.eq("unit_id", activeAppProfile.unit_id);
+            ledgerOpeningQuery = ledgerOpeningQuery.eq("unit_id", activeAppProfile.unit_id);
+        }
+
         const [{ data: journals, error: jError }, { data: opening, error: oError }, { data: accounts, error: aError }, { data: units, error: uError }] = await Promise.all([
-            supabaseClient.from("journals")
-                .select("id,journal_date,journal_number,description,unit_id,account_id,debit,credit,created_at")
-                .eq("bumdes_id", activeAppProfile.bumdes_id)
-                .order("journal_date", { ascending:true })
-                .order("created_at", { ascending:true })
-                .limit(2000),
-            supabaseClient.from("opening_balances")
-                .select("id,unit_id,period_id,account_id,debit,credit,created_at")
-                .eq("bumdes_id", activeAppProfile.bumdes_id)
-                .order("created_at", { ascending:true })
-                .limit(2000),
+            ledgerJournalQuery,
+            ledgerOpeningQuery,
             supabaseClient.from("chart_of_accounts")
                 .select("id,kode,nama,level,account_type,report_group,is_active,normal_balance,bumdes_id")
                 .eq("is_active", true)
@@ -9602,8 +9647,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         const accountOptions = buildOptions(accounts || [], "id", a => `${a.kode} — ${a.nama}`);
         const visibleLedgerUnits = (units || []).filter(u => u.status !== "nonaktif");
-        const unitOptions = `<option value="pusat">Pusat / Kantor Pusat</option>` +
-            buildOptions(visibleLedgerUnits, "id", u => `${u.kode_unit} — ${u.nama_unit}`);
+        const isAdminUnitLedger = activeAppProfile.role === "admin_unit";
+        const ownLedgerUnit = isAdminUnitLedger
+            ? visibleLedgerUnits.find(u => u.id === activeAppProfile.unit_id)
+            : null;
+
+        const unitOptions = isAdminUnitLedger
+            ? (ownLedgerUnit
+                ? `<option value="${escapeHtml(ownLedgerUnit.id)}">${escapeHtml(ownLedgerUnit.kode_unit)} — ${escapeHtml(ownLedgerUnit.nama_unit)}</option>`
+                : `<option value="">Unit belum tersedia</option>`)
+            : `<option value="pusat">Pusat / Kantor Pusat</option>` +
+              buildOptions(visibleLedgerUnits, "id", u => `${u.kode_unit} — ${u.nama_unit}`);
 
         const shell = `
             <div class="panel mb-3">
@@ -9648,7 +9702,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         const ledgerUnitFilter = $("ledgerUnitFilter");
         if (ledgerUnitFilter) {
-            ledgerUnitFilter.value = "pusat";
+            ledgerUnitFilter.value = isAdminUnitLedger
+                ? (activeAppProfile.unit_id || "")
+                : "pusat";
+            if (isAdminUnitLedger) ledgerUnitFilter.disabled = true;
         }
 
         const render = () => {
@@ -10181,8 +10238,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 opt.textContent = `${u.nama_unit}${u.kode_unit ? ` (${u.kode_unit})` : ""}`;
                 unitSelect.appendChild(opt);
             });
-            if (typeof isUnitUser !== "undefined" && isUnitUser && typeof allowedUnitId !== "undefined" && allowedUnitId) {
-                unitSelect.value = allowedUnitId;
+            const isAdminUnitCashBank = activeAppProfile.role === "admin_unit";
+            const ownCashBankUnitId = activeAppProfile.unit_id || null;
+            if (isAdminUnitCashBank && ownCashBankUnitId) {
+                unitSelect.value = ownCashBankUnitId;
                 unitSelect.disabled = true;
             }
         }
