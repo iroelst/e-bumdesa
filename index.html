@@ -1622,13 +1622,19 @@
         .coa-code-prefix{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-weight:700}
         .coa-modal-backdrop{position:fixed;inset:0;z-index:10050;pointer-events:auto;background:rgba(19,36,58,.46);display:flex;align-items:center;justify-content:center;padding:12px}
         .coa-modal-backdrop.hidden{display:none!important}
-        .coa-modal-card{width:min(560px,100%);background:#fff;border:1px solid #e5e9ef;border-radius:18px;box-shadow:0 24px 70px rgba(25,45,75,.28);overflow:visible}
-        .coa-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:15px 20px;border-bottom:1px solid #edf1f5}
-        .coa-modal-body{padding:14px 20px 10px}
-        .coa-modal-body .mb-3{margin-bottom:12px!important}
-        .coa-modal-body .form-label{margin-bottom:5px;font-size:13px}
-        .coa-modal-body .form-control,.coa-modal-body .form-select{min-height:38px}
-        .coa-modal-body .coa-form-note{font-size:11px;line-height:1.35}
+        .coa-modal-card{width:min(600px,100%);max-height:calc(100vh - 24px);background:#fff;border:1px solid #e5e9ef;border-radius:18px;box-shadow:0 24px 70px rgba(25,45,75,.28);overflow:hidden;display:flex;flex-direction:column}
+        .coa-modal-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;border-bottom:1px solid #edf1f5;flex:0 0 auto}
+        .coa-modal-body{padding:11px 18px 8px;overflow:auto}
+        .coa-modal-body .mb-3{margin-bottom:8px!important}
+        .coa-modal-body .form-label{margin-bottom:4px;font-size:12px;font-weight:600}
+        .coa-modal-body .form-control,.coa-modal-body .form-select{min-height:36px;height:36px;padding-top:6px;padding-bottom:6px;font-size:13px}
+        .coa-modal-body .coa-form-note{font-size:10.5px;line-height:1.3}
+        .coa-parent-preview{display:flex;align-items:center;gap:10px;margin-top:5px;padding:6px 9px;background:#f7f9fc;border:1px solid #e3e8ef;border-radius:8px;font-size:11.5px;min-height:34px}
+        .coa-parent-preview-main{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .coa-parent-preview-normal{margin-left:auto;flex:0 0 34px;text-align:right;font-weight:800;letter-spacing:.3px}
+        .coa-parent-preview-normal.debit{color:#1769aa}.coa-parent-preview-normal.kredit{color:#8b3d72}
+        .coa-shu-note{font-size:10.5px;color:#718096;line-height:1.3;margin-top:3px}
+        .coa-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 18px;border-top:1px solid #edf1f5;flex:0 0 auto}
         .coa-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #edf1f5}
         .coa-modal-foot button{position:relative;z-index:2;pointer-events:auto;cursor:pointer}
         .coa-modal-close{border:0;background:transparent;color:#7d8996;font-size:24px;line-height:1;cursor:pointer;pointer-events:auto;position:relative;z-index:2}
@@ -9975,10 +9981,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     function resetCustomCOAForm() {
         $("addCustomCOAForm")?.reset();
 
-        if ($("coaCustomShuFunction")) {
-            $("coaCustomShuFunction").value = "normal";
-        }
-
         const parentSelect = $("coaCustomParent");
         if (parentSelect) parentSelect.innerHTML = '<option value="">Memuat kelompok akun...</option>';
 
@@ -9986,6 +9988,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (parentInfo) {
             parentInfo.classList.add("hidden");
             parentInfo.innerHTML = "";
+        }
+
+        if ($("coaCustomShuFunction")) {
+            $("coaCustomShuFunction").value = "normal";
         }
 
         setCustomCOAValidation("");
@@ -10070,14 +10076,19 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
             const normal = String(option.dataset.normal || "").toLowerCase();
             const normalText = normal === "kredit" ? "Kredit" : "Debit";
+            const normalShort = normal === "kredit" ? "K" : "D";
+            const normalClass = normal === "kredit" ? "kredit" : "debit";
 
             box.classList.remove("hidden");
             box.innerHTML = `
-                <strong>${escapeHtml(option.dataset.kode || "")}</strong>
-                — ${escapeHtml(option.dataset.nama || "")}
-                <div class="mt-1 text-secondary">
-                    Kelompok laporan: ${escapeHtml(option.dataset.reportGroup || "-")}
-                    · Saldo normal bawaan: ${escapeHtml(normalText)}
+                <div class="coa-parent-preview">
+                    <div class="coa-parent-preview-main">
+                        <strong>${escapeHtml(option.dataset.kode || "")}</strong> — ${escapeHtml(option.dataset.nama || "")}
+                    </div>
+                    <div class="coa-parent-preview-normal ${normalClass}" title="Saldo normal: ${escapeHtml(normalText)}">${normalShort}</div>
+                </div>
+                <div class="mt-1 text-secondary small">
+                    Kelompok laporan: ${escapeHtml(option.dataset.reportGroup || "-")} · Saldo normal: ${escapeHtml(normalText)}
                 </div>
             `;
 
@@ -10145,19 +10156,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (error) throw error;
 
             const created = Array.isArray(data) ? data[0] : data;
+            if (!created?.id) throw new Error("COA berhasil dibuat tetapi ID akun tidak ditemukan.");
 
-            if (!created?.id) {
-                throw new Error("COA berhasil dibuat tetapi ID akun tidak ditemukan.");
-            }
-
-            const { error: shuError } = await supabaseClient.rpc(
-                "set_custom_coa_shu_function",
-                {
-                    p_bumdes_id: activeAppProfile.bumdes_id,
-                    p_coa_id: created.id,
-                    p_shu_function: shuFunction
-                }
-            );
+            const { error: shuError } = await supabaseClient.rpc("set_custom_coa_shu_function", {
+                p_bumdes_id: activeAppProfile.bumdes_id,
+                p_coa_id: created.id,
+                p_shu_function: shuFunction
+            });
 
             if (shuError) throw shuError;
 
@@ -10729,9 +10734,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         <form id="addCustomCOAForm">
             <div class="coa-modal-body">
-                <div class="alert alert-info py-2 small mb-2">
+                <div class="alert alert-info py-2 px-3 small mb-2">
                     <i class="bi bi-info-circle me-1"></i>
-                    Akun custom dibuat sebagai <strong>Level 4</strong> di bawah akun header Level 3.
+                    Akun custom dibuat sebagai <strong>Level 4</strong> di bawah parent Level 3.
                 </div>
 
                 <div class="mb-3">
@@ -10739,53 +10744,53 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <select id="coaCustomParent" class="form-select" required>
                         <option value="">Memuat kelompok akun...</option>
                     </select>
-                    <div id="coaCustomParentInfo" class="coa-readonly-box mt-2 hidden"></div>
+                    <div id="coaCustomParentInfo" class="hidden"></div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Kode Akun *</label>
-                    <input id="coaCustomCode" class="form-control" maxlength="10"
-                           placeholder="Contoh: 6.2.99.01" required>
-                    <div class="coa-form-note mt-1">
-                        Format <span class="coa-code-prefix">X.X.XX.XX</span>.
-                        Dua digit terakhir tidak boleh <span class="coa-code-prefix">00</span>.
-                        Kode harus berada di bawah parent yang dipilih.
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <label class="form-label">Kode Akun *</label>
+                        <input id="coaCustomCode" class="form-control" maxlength="10"
+                               placeholder="6.2.99.01" required>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label">Nama Akun *</label>
+                        <input id="coaCustomName" class="form-control" maxlength="150"
+                               placeholder="Contoh: Beban Operasional Digital" required>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Nama Akun *</label>
-                    <input id="coaCustomName" class="form-control" maxlength="150"
-                           placeholder="Contoh: Beban Operasional Digital" required>
+                <div class="coa-form-note mt-1 mb-2">
+                    Format <span class="coa-code-prefix">X.X.XX.XX</span>; dua digit terakhir tidak boleh <span class="coa-code-prefix">00</span> dan harus berada di bawah parent.
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Saldo Normal *</label>
-                    <select id="coaCustomNormal" class="form-select" required>
-                        <option value="debit">Debit</option>
-                        <option value="kredit">Kredit</option>
-                    </select>
-                </div>
-
-                <div class="mb-1">
-                    <label class="form-label fw-semibold">Fungsi Akun</label>
-                    <select id="coaCustomShuFunction" class="form-select">
-                        <option value="normal">Akun Biasa</option>
-                        <option value="allocation">Tujuan Alokasi SHU</option>
-                        <option value="payment_desa">Akun Pembayaran SHU Desa</option>
-                        <option value="payment_masyarakat">Akun Pembayaran SHU Masyarakat</option>
-                    </select>
-                    <div class="form-text">
-                        Pilih fungsi khusus jika akun ini digunakan dalam proses alokasi atau pembayaran SHU.
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <label class="form-label">Saldo Normal *</label>
+                        <select id="coaCustomNormal" class="form-select" required>
+                            <option value="debit">Debit (D)</option>
+                            <option value="kredit">Kredit (K)</option>
+                        </select>
                     </div>
+                    <div class="col-md-7">
+                        <label class="form-label">Fungsi Akun</label>
+                        <select id="coaCustomShuFunction" class="form-select">
+                            <option value="normal">Akun Biasa</option>
+                            <option value="allocation">Tujuan Alokasi SHU</option>
+                            <option value="payment_desa">Akun Pembayaran SHU Desa</option>
+                            <option value="payment_masyarakat">Akun Pembayaran SHU Masyarakat</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="coa-shu-note">
+                    Fungsi SHU hanya perlu dipilih jika akun akan digunakan dalam alokasi atau pembayaran SHU.
                 </div>
 
                 <div id="coaCustomValidation" class="small text-danger mt-2 hidden"></div>
             </div>
 
             <div class="coa-modal-foot">
-                <button type="button" id="coaModalCancelBtn" class="btn btn-light border">Batal</button>
-                <button id="coaCustomSaveBtn" type="submit" class="btn btn-primary">
+                <button type="button" id="coaModalCancelBtn" class="btn btn-light border btn-sm px-3">Batal</button>
+                <button id="coaCustomSaveBtn" type="submit" class="btn btn-primary btn-sm px-3">
                     <i class="bi bi-check2-circle me-1"></i> Simpan Akun
                 </button>
             </div>
