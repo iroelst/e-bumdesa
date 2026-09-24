@@ -274,16 +274,24 @@
         }
 
         .login-card {
-            width: min(100%, 550px);
+            width: min(100%, 390px);
             position: relative;
             z-index: 31;
-            background: rgba(255,255,255,.94);
-            border: 1px solid rgba(255,255,255,.90);
+            background: rgba(255,255,255,.96);
+            border: 1px solid rgba(255,255,255,.92);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-radius: 23px;
-            padding: 48px 42px 38px;
-            box-shadow: 0 22px 60px rgba(33,58,92,.14);
+            border-radius: 18px;
+            padding: 26px 26px 22px;
+            box-shadow: 0 18px 45px rgba(33,58,92,.16);
+        }
+
+        /* Ukuran kartu login dibuat ringkas dan konsisten dengan kartu pilihan role. */
+        .login-role-card,
+        .role-card,
+        .login-choice-card {
+            min-height: 0;
+            height: auto;
         }
 
         .login-card .mini-logo {
@@ -297,7 +305,7 @@
         .login-card h2 {
             margin: 0;
             color: #142b4b;
-            font-size: 32px;
+            font-size: 25px;
             line-height: 1.2;
             font-weight: 750;
             text-align: center;
@@ -306,8 +314,8 @@
         .login-card .login-intro {
             color: #73839a;
             text-align: center;
-            margin: 10px 0 28px;
-            font-size: 16px;
+            margin: 7px 0 18px;
+            font-size: 13px;
             line-height: 1.55;
         }
 
@@ -324,7 +332,7 @@
 
         .google-btn {
             width: 100%;
-            height: 62px;
+            height: 46px;
             border: 0;
             background: linear-gradient(180deg, #2e6fd0 0%, #2866c1 100%);
             color: #fff;
@@ -332,9 +340,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             font-weight: 650;
-            font-size: 18px;
+            font-size: 14px;
             transition: .18s ease;
             box-shadow: 0 12px 22px rgba(43,104,195,.18);
         }
@@ -346,8 +354,8 @@
         }
 
         .google-logo {
-            width: 30px;
-            height: 30px;
+            width: 23px;
+            height: 23px;
             background: #fff;
             border-radius: 50%;
             padding: 4px;
@@ -355,8 +363,8 @@
 
 
         .unit-login-box {
-            margin-top: 18px;
-            padding: 16px;
+            margin-top: 12px;
+            padding: 12px;
             border: 1px solid #e5e7eb;
             border-radius: 14px;
             background: #f8fafc;
@@ -376,9 +384,9 @@
 
         .login-security {
             display: flex;
-            gap: 17px;
+            gap: 11px;
             align-items: center;
-            padding: 17px 20px;
+            padding: 11px 13px;
             border-radius: 14px;
             background: #f2f6fc;
             color: #5d718a;
@@ -388,7 +396,7 @@
 
         .login-security i {
             color: #2f6fc9;
-            font-size: 24px;
+            font-size: 19px;
         }
 
         .login-security strong {
@@ -399,10 +407,10 @@
         .login-motto {
             text-align: center;
             color: #8b9aae;
-            font-size: 11px;
+            font-size: 9px;
             letter-spacing: 4px;
             line-height: 1.7;
-            margin-top: 28px;
+            margin-top: 16px;
             text-transform: uppercase;
         }
 
@@ -417,8 +425,8 @@
         .login-footer {
             text-align: center;
             color: #a0acba;
-            font-size: 11px;
-            margin-top: 20px;
+            font-size: 10px;
+            margin-top: 12px;
         }
 
         /* LOGIN VIEWPORT FIX */
