@@ -5972,11 +5972,16 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             preClosingMovements[a.id]=preClosingMoveMap.get(a.id)||0;
         });
         if(isConsolidated){
-            // Sesuai pedoman, akun resiprokal RK Unit Usaha/RK Pusat dieliminasi pada konsolidasi.
+            // Konsolidasi harus mengeliminasi akun resiprokal RK secara konsisten,
+            // bukan hanya saldo akhir. Mutasi berjalan dan mutasi sebelum tutup buku
+            // juga tidak boleh muncul sebagai perubahan antar-entitas.
             leafAccounts.forEach(a=>{
                 const code=String(a.kode||'');
                 if(code.startsWith('1.1.99.')||code.startsWith('3.8.')){
-                    balances[a.id]=0; priors[a.id]=0;
+                    balances[a.id]=0;
+                    priors[a.id]=0;
+                    movements[a.id]=0;
+                    preClosingMovements[a.id]=0;
                 }
             });
         }
@@ -6262,6 +6267,19 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const cash=lines.filter(j=>cashIds.has(j.account_id));
             const others=lines.filter(j=>!cashIds.has(j.account_id));
             if(!cash.length||!others.length)return;
+
+            // Pada laporan Gabungan/Konsolidasian, transfer internal Pusat <-> Unit
+            // bukan arus kas eksternal. Transaksi yang hanya mempertemukan kas dengan
+            // akun RK resiprokal dieliminasi seluruhnya dari Laporan Arus Kas.
+            if(data.isConsolidated){
+                const isReciprocalRK = others.every(j=>{
+                    const a=data.accountMap.get(j.account_id);
+                    const code=String(a?.kode||'');
+                    return code.startsWith('1.1.99.') || code.startsWith('3.8.');
+                });
+                if(isReciprocalRK)return;
+            }
+
             const totalOtherAbs=others.reduce((s,j)=>s+Math.abs(Number(j.debit||0)-Number(j.credit||0)),0)||1;
             cash.forEach(c=>{
                 const cashDelta=Number(c.debit||0)-Number(c.credit||0);
