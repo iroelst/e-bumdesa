@@ -5856,7 +5856,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const isConsolidated=scope==='gabungan';
 
         const {data:accounts,error:accErr}=await supabaseClient.from('chart_of_accounts')
-            .select('id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_active')
+            .select('id,kode,nama,level,account_type,report_group,normal_balance,bumdes_id,is_active,is_shu_payment_account,shu_beneficiary_type')
             .eq('is_active',true).or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`).order('kode',{ascending:true});
         if(accErr) throw accErr;
         const accountMap=new Map(); (accounts||[]).forEach(a=>accountMap.set(a.id,a));
@@ -5993,6 +5993,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         return data.groupAccounts.filter(a=>String(a.kode).startsWith(prefix)).map(g=>({group:g, value:reportGroupTotal(data,g.kode.replace(/\.00$/,''),mapName)}));
     }
 
+    function reportSHUTotal(data, beneficiaryType, mapName='movements'){
+        return data.leafAccounts
+            .filter(a => a.is_shu_payment_account === true && a.shu_beneficiary_type === beneficiaryType)
+            .reduce((sum,a) => sum + Number((data[mapName] || {})[a.id] || 0), 0);
+    }
+
     function buildProfitLossReport(data){
         const grossRevenue=reportGroupTotal(data,'4.','movements');
         const hppGoods=reportGroupTotal(data,'5.1.','movements');
@@ -6014,8 +6020,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // Akun 3.2.xx adalah distribusi/pembagian ekuitas, bukan pendapatan atau
         // beban periode berjalan. Nilainya tetap dikumpulkan sebagai data untuk
         // Laporan Perubahan Ekuitas, tetapi tidak mengurangi laba/rugi periode ini.
-        const bagiDesa=Math.max(0,reportGroupTotal(data,'3.2.01.','movements'));
-        const bagiMasyarakat=Math.max(0,reportGroupTotal(data,'3.2.02.','movements'));
+        const bagiDesa=Math.max(0,reportSHUTotal(data,'desa','movements'));
+        const bagiMasyarakat=Math.max(0,reportSHUTotal(data,'masyarakat','movements'));
         const net=beforeBagiHasil;
 
         const rows=[];
@@ -6230,8 +6236,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if(c.startsWith('3.1.01.')) return 'modalDesa';
             if(c.startsWith('3.1.02.')) return 'modalMasyarakat';
             if(c.startsWith('3.4.')) return 'donasi';
-            if(c.startsWith('3.2.01.')) return 'bagiDesa';
-            if(c.startsWith('3.2.02.')) return 'bagiMasyarakat';
+            if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'desa') return 'bagiDesa';
+            if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'masyarakat') return 'bagiMasyarakat';
             if(c.startsWith('2.2.')) return 'utangJangkaPanjang';
             if(c.startsWith('1.1.03.')||c.startsWith('1.1.04.')||c.startsWith('2.1.')||c.startsWith('4.')||c.startsWith('5.')||c.startsWith('6.')||c.startsWith('7.1.')||c.startsWith('7.2.')||c.startsWith('7.3.')) return 'operasi';
             return 'operasi';
@@ -6268,9 +6274,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         if(incoming) flow.pendanaan.donasi+=amount;
                     } else if(code.startsWith('2.2.')){
                         if(incoming) flow.pendanaan.utangJangkaPanjang+=amount; else flow.pendanaan.pokokUtangJangkaPanjang+=amount;
-                    } else if(code.startsWith('3.2.01.')){
+                    } else if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'desa'){
                         if(!incoming) flow.pendanaan.bagiDesa+=amount;
-                    } else if(code.startsWith('3.2.02.')){
+                    } else if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'masyarakat'){
                         if(!incoming) flow.pendanaan.bagiMasyarakat+=amount;
                     } else if(code.startsWith('4.')){
                         if(incoming) flow.operasi.penjualan+=amount; else flow.operasi.lain+=amount;
@@ -6527,27 +6533,39 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const bumdesId = activeAppProfile.bumdes_id;
         const canManage = activeAppProfile.role === "admin_pusat";
 
-        const [{ data: periods, error: periodError }, { data: accounts, error: accountError }] = await Promise.all([
-            supabaseClient
-                .from("account_periods")
+        const [
+            { data: periods, error: periodError },
+            { data: sourceAccounts, error: sourceError },
+            { data: destinationAccounts, error: destinationError }
+        ] = await Promise.all([
+            supabaseClient.from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
                 .eq("bumdes_id", bumdesId)
                 .eq("period_type", "tahunan")
                 .order("start_date", { ascending: false }),
-            supabaseClient
-                .from("chart_of_accounts")
-                .select("id,kode,nama,account_type,level,is_active,bumdes_id")
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,account_type,level,is_active,bumdes_id,normal_balance,is_shu_allocation_target,is_shu_payment_account,shu_beneficiary_type")
                 .eq("level", 4)
                 .eq("is_active", true)
                 .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .like("kode", "3.3.%")
+                .order("kode", { ascending: true }),
+            supabaseClient.from("chart_of_accounts")
+                .select("id,kode,nama,account_type,level,is_active,bumdes_id,normal_balance,is_shu_allocation_target,is_shu_payment_account,shu_beneficiary_type")
+                .eq("level", 4)
+                .eq("is_active", true)
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .eq("is_shu_allocation_target", true)
                 .order("kode", { ascending: true })
         ]);
 
         if (periodError) throw periodError;
+        if (sourceError) throw sourceError;
+        if (destinationError) throw destinationError;
 
         const annualPeriods = periods || [];
-        const targetAccounts = accounts || [];
+        const sources = sourceAccounts || [];
+        const destinations = destinationAccounts || [];
 
         showModuleShell("pembagianshu", `
             <div class="panel mb-3">
@@ -6555,13 +6573,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <div>
                         <div class="fw-semibold">Alokasi SHU</div>
                         <div class="text-secondary small mt-1">
-                            Buat draf alokasi SHU sebelum Tutup Buku. Draf ini menentukan nama alokasi, persentase, dan akun Saldo Laba yang menjadi tujuan pencatatan.
-                            Setelah Tutup Buku, draf yang sama menjadi dasar pelaksanaan pembayaran. Tahap draf tidak mengurangi Kas/Bank.
+                            Sebelum Tutup Buku, tentukan penempatan laba ke akun Saldo Laba. Setelah Tutup Buku,
+                            tentukan akun tujuan Alokasi SHU. Draf tidak membuat jurnal dan tidak mengurangi Kas/Bank.
                         </div>
                     </div>
-                    ${canManage
-                        ? `<span class="badge text-bg-primary">Admin Pusat</span>`
-                        : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
+                    ${canManage ? `<span class="badge text-bg-primary">Admin Pusat</span>` : `<span class="badge text-bg-secondary">Hanya lihat</span>`}
                 </div>
             </div>
 
@@ -6578,7 +6594,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <div class="border rounded p-3 h-100">
                             <div id="shuProfitLabel" class="text-secondary small">Laba Bersih / Dasar Alokasi</div>
                             <div id="shuProfitValue" class="fs-4 fw-bold">Rp0</div>
-                            <div id="shuProfitStatus" class="small text-secondary">Pilih periode untuk menghitung laba bersih.</div>
+                            <div id="shuProfitStatus" class="small text-secondary">Pilih periode untuk memuat data.</div>
                         </div>
                     </div>
                 </div>
@@ -6587,24 +6603,24 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             <div id="shuEditor" class="panel ${annualPeriods.length ? "" : "d-none"}">
                 <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
                     <div>
-                        <div class="fw-semibold">Rincian Alokasi SHU</div>
-                        <div class="text-secondary small">
-                            Total persentase harus 100%. Satu akun Saldo Laba boleh digunakan pada beberapa baris.
-                            Pada saat Tutup Buku, nilai alokasi akan mengikuti laba bersih yang benar-benar dihitung dari jurnal.
+                        <div id="shuEditorTitle" class="fw-semibold">Penempatan Laba</div>
+                        <div id="shuEditorHelp" class="text-secondary small mt-1">
+                            Total persentase harus 100%. Akun sumber adalah akun Saldo Laba yang digunakan dalam proses Tutup Buku.
                         </div>
                     </div>
-                    ${canManage ? `<button type="button" id="shuAddRow" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>Tambah Alokasi</button>` : ""}
+                    ${canManage ? `<button type="button" id="shuAddRow" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>Tambah Baris</button>` : ""}
                 </div>
 
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-2">
                         <thead class="table-light">
                             <tr>
-                                <th style="min-width:230px">Nama Alokasi</th>
-                                <th style="min-width:330px">Akun Saldo Laba</th>
-                                <th style="width:150px" class="text-end">Persentase</th>
-                                <th style="width:170px" class="text-end">Nilai</th>
-                                ${canManage ? `<th style="width:70px"></th>` : ""}
+                                <th style="min-width:210px">Nama Alokasi</th>
+                                <th style="min-width:310px">Akun Sumber / Saldo Laba</th>
+                                <th id="shuDestinationHeader" style="min-width:330px">Akun Tujuan SHU</th>
+                                <th style="width:145px" class="text-end">Persentase</th>
+                                <th style="width:165px" class="text-end">Nilai</th>
+                                ${canManage ? `<th style="width:55px"></th>` : ""}
                             </tr>
                         </thead>
                         <tbody id="shuItemsBody"></tbody>
@@ -6613,102 +6629,93 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
                 <div class="row g-3 mt-2">
                     <div class="col-md-4">
-                        <div class="border rounded p-3">
-                            <div class="text-secondary small">Dasar Alokasi</div>
-                            <strong id="shuBaseValue">Rp0</strong>
-                            <div id="shuBaseMessage" class="small text-secondary mt-1">Laba bersih periode berjalan.</div>
-                        </div>
+                        <div class="border rounded p-3"><div class="text-secondary small">Dasar Alokasi</div><strong id="shuBaseValue">Rp0</strong><div id="shuBaseMessage" class="small text-secondary mt-1">Laba bersih periode.</div></div>
                     </div>
                     <div class="col-md-4">
-                        <div class="border rounded p-3">
-                            <div class="text-secondary small">Total Persentase</div>
-                            <strong id="shuTotalPct">0%</strong>
-                            <div id="shuPctMessage" class="small text-secondary mt-1">Harus tepat 100%.</div>
-                        </div>
+                        <div class="border rounded p-3"><div class="text-secondary small">Total Persentase</div><strong id="shuTotalPct">0%</strong><div id="shuPctMessage" class="small text-secondary mt-1">Harus tepat 100%.</div></div>
                     </div>
                     <div class="col-md-4">
-                        <div class="border rounded p-3">
-                            <div class="text-secondary small">Total Alokasi</div>
-                            <strong id="shuTotalValue">Rp0</strong>
-                            <div id="shuValueMessage" class="small text-secondary mt-1">Harus sama dengan dasar alokasi.</div>
-                        </div>
+                        <div class="border rounded p-3"><div class="text-secondary small">Total Alokasi</div><strong id="shuTotalValue">Rp0</strong><div id="shuValueMessage" class="small text-secondary mt-1">Harus sama dengan dasar alokasi.</div></div>
                     </div>
                 </div>
 
+                <div id="shuActionNote" class="small text-secondary mt-3"></div>
                 <div class="d-flex justify-content-end gap-2 mt-3">
-                    <button type="button" id="shuPrintReport" class="btn btn-outline-secondary" disabled>
-                        <i class="bi bi-printer me-1"></i>Cetak Laporan
-                    </button>
-                    ${canManage ? `
-                    <button type="button" id="shuSaveDraft" class="btn btn-primary" disabled>
-                        <i class="bi bi-save me-1"></i>Simpan Draf Alokasi
-                    </button>` : ""}
+                    <button type="button" id="shuPrintReport" class="btn btn-outline-secondary" disabled><i class="bi bi-printer me-1"></i>Cetak Laporan</button>
+                    ${canManage ? `<button type="button" id="shuSaveDraft" class="btn btn-primary" disabled><i class="bi bi-save me-1"></i>Simpan Draf</button><button type="button" id="shuSetAllocation" class="btn btn-success d-none"><i class="bi bi-check2-circle me-1"></i>Tetapkan Alokasi SHU</button>` : ""}
                 </div>
             </div>
 
-            ${!annualPeriods.length ? `
-                <div class="panel text-center text-secondary py-5 mt-3">
-                    <i class="bi bi-calendar3 fs-2"></i>
-                    <div class="mt-2 fw-semibold">Belum ada periode tahunan</div>
-                    <div class="small mt-1">Buat periode tahunan terlebih dahulu untuk mengatur alokasi SHU.</div>
-                </div>` : ""}
+            ${!annualPeriods.length ? `<div class="panel text-center text-secondary py-5 mt-3"><i class="bi bi-calendar3 fs-2"></i><div class="mt-2 fw-semibold">Belum ada periode tahunan</div><div class="small mt-1">Buat periode tahunan terlebih dahulu.</div></div>` : ""}
         `);
 
         const periodSelect = $("shuPeriodSelect");
         const body = $("shuItemsBody");
         const profitValue = $("shuProfitValue");
         const profitStatus = $("shuProfitStatus");
+        const editorTitle = $("shuEditorTitle");
+        const editorHelp = $("shuEditorHelp");
+        const destinationHeader = $("shuDestinationHeader");
         const baseValueEl = $("shuBaseValue");
         const baseMessageEl = $("shuBaseMessage");
         const totalPctEl = $("shuTotalPct");
         const totalValueEl = $("shuTotalValue");
         const pctMessage = $("shuPctMessage");
         const valueMessage = $("shuValueMessage");
+        const actionNote = $("shuActionNote");
         const saveButton = $("shuSaveDraft");
+        const setButton = $("shuSetAllocation");
         const addButton = $("shuAddRow");
         const printButton = $("shuPrintReport");
 
         let currentProfit = 0;
         let currentPeriodStatus = "";
-        let loadedDistributionId = null;
+        let currentAllocationStatus = null;
         let itemState = [];
         let displayBaseAmount = 0;
         let displayMode = "open";
-        let allocationSource = "distribution";
 
         const formatMoney = value => rupiah(Number(value || 0));
+        const isClosedEditable = () => canManage && currentPeriodStatus === "closed" && currentAllocationStatus !== "posted";
 
-        const accountSelectHtml = selectedId => `
-            <select class="form-select form-select-sm shu-account" ${!canManage || currentPeriodStatus === "closed" ? "disabled" : ""}>
+        const sourceSelectHtml = selectedId => `
+            <select class="form-select form-select-sm shu-source" ${!canManage || currentPeriodStatus === "closed" && currentAllocationStatus === "posted" ? "disabled" : ""}>
                 <option value="">Pilih akun...</option>
-                ${targetAccounts.map(a => `<option value="${escapeHtml(a.id)}" ${String(a.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`).join("")}
+                ${sources.map(a => `<option value="${escapeHtml(a.id)}" ${String(a.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`).join("")}
+            </select>`;
+
+        const destinationSelectHtml = selectedId => `
+            <select class="form-select form-select-sm shu-destination" ${!isClosedEditable() ? "disabled" : ""}>
+                <option value="">Pilih tujuan SHU...</option>
+                ${destinations.map(a => `<option value="${escapeHtml(a.id)}" ${String(a.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}${a.is_shu_payment_account ? ` (${escapeHtml(a.shu_beneficiary_type || "SHU")})` : " (Cadangan/Ekuitas)"}</option>`).join("")}
             </select>`;
 
         const renderRows = () => {
             if (!body) return;
-            body.innerHTML = itemState.length
-                ? itemState.map((item, index) => `
-                    <tr data-index="${index}">
-                        <td><input type="text" class="form-control form-control-sm shu-name" value="${escapeHtml(item.nama_pos || "")}" placeholder="Contoh: PADes" ${!canManage || currentPeriodStatus === "closed" ? "disabled" : ""}></td>
-                        <td>${accountSelectHtml(item.account_id)}</td>
-                        <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}" ${!canManage || currentPeriodStatus === "closed" ? "disabled" : ""}><span class="input-group-text">%</span></div></td>
-                        <td class="text-end fw-semibold shu-value">${formatMoney(item.nilai || 0)}</td>
-                        ${canManage ? `<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-remove" title="Hapus" ${currentPeriodStatus === "closed" ? "disabled" : ""}><i class="bi bi-trash"></i></button></td>` : ""}
-                    </tr>
-                `).join("")
-                : `<tr><td colspan="${canManage ? 5 : 4}" class="text-center text-secondary py-4">Belum ada alokasi.</td></tr>`;
+            body.innerHTML = itemState.length ? itemState.map((item, index) => `
+                <tr data-index="${index}">
+                    <td><input type="text" class="form-control form-control-sm shu-name" value="${escapeHtml(item.nama_pos || "")}" placeholder="Contoh: Bagi Hasil Desa" ${!canManage || (currentPeriodStatus === "closed" && currentAllocationStatus === "posted") ? "disabled" : ""}></td>
+                    <td>${sourceSelectHtml(item.source_account_id)}</td>
+                    <td>${currentPeriodStatus === "closed" ? destinationSelectHtml(item.destination_account_id) : `<span class="text-secondary small">Ditentukan setelah Tutup Buku</span>`}</td>
+                    <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}" ${!canManage || (currentPeriodStatus === "closed" && currentAllocationStatus === "posted") ? "disabled" : ""}><span class="input-group-text">%</span></div></td>
+                    <td class="text-end fw-semibold shu-value">${formatMoney(item.nilai || 0)}</td>
+                    ${canManage ? `<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-remove" ${currentPeriodStatus === "closed" && currentAllocationStatus === "posted" ? "disabled" : ""}><i class="bi bi-trash"></i></button></td>` : ""}
+                </tr>`).join("") : `<tr><td colspan="${canManage ? 6 : 5}" class="text-center text-secondary py-4">Belum ada baris alokasi.</td></tr>`;
         };
 
         const recalc = () => {
             const totalPct = itemState.reduce((sum, item) => sum + (Number(item.persentase) || 0), 0);
             const roundedPct = Math.round(totalPct * 10000) / 10000;
-            const values = itemState.map(item => Math.round((displayBaseAmount * (Number(item.persentase) || 0) / 100) * 100) / 100);
-            const totalValue = Math.round(values.reduce((sum, value) => sum + value, 0) * 100) / 100;
-            const pctOk = Math.abs(roundedPct - 100) < 0.0000001;
+            const values = itemState.map(item => Math.round(displayBaseAmount * (Number(item.persentase) || 0) / 100 * 100) / 100);
+            if (values.length) {
+                let running = values.slice(0, -1).reduce((a,b) => a + b, 0);
+                values[values.length - 1] = Math.round((displayBaseAmount - running) * 100) / 100;
+            }
+            const totalValue = values.reduce((a,b) => a + b, 0);
+            itemState.forEach((item, i) => item.nilai = values[i] || 0);
+            const pctOk = Math.abs(roundedPct - 100) < 0.0001;
             const valueOk = Math.abs(totalValue - displayBaseAmount) < 0.01;
-            const rowsOk = itemState.length > 0 && itemState.every(item =>
-                String(item.nama_pos || "").trim() && item.account_id && Number(item.persentase) > 0 && Number(item.persentase) <= 100
-            );
+            const rowsOk = itemState.length > 0 && itemState.every(item => String(item.nama_pos || "").trim() && item.source_account_id && Number(item.persentase) > 0 && Number(item.persentase) <= 100 && (currentPeriodStatus !== "closed" || item.destination_account_id));
 
             totalPctEl && (totalPctEl.textContent = `${roundedPct}%`);
             totalValueEl && (totalValueEl.textContent = formatMoney(totalValue));
@@ -6719,21 +6726,21 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             pctMessage && (pctMessage.className = `small mt-1 ${pctOk ? "text-success" : "text-danger"}`);
             valueMessage && (valueMessage.textContent = valueOk ? "Total alokasi sesuai dengan dasar alokasi." : "Total alokasi harus sama dengan dasar alokasi.");
             valueMessage && (valueMessage.className = `small mt-1 ${valueOk ? "text-success" : "text-danger"}`);
-
             body?.querySelectorAll(".shu-value").forEach((el, index) => { el.textContent = formatMoney(values[index] || 0); });
 
-            const editable = canManage && currentPeriodStatus === "open" && displayBaseAmount > 0;
+            const editable = currentPeriodStatus === "open" ? (canManage && displayBaseAmount > 0) : isClosedEditable() && displayBaseAmount > 0;
             const canSave = editable && pctOk && valueOk && rowsOk;
-            const canPrint = displayBaseAmount > 0 && pctOk && valueOk && rowsOk;
             if (saveButton) saveButton.disabled = !canSave;
-            if (printButton) printButton.disabled = !canPrint;
+            if (printButton) printButton.disabled = !(displayBaseAmount > 0 && pctOk && valueOk && rowsOk);
             if (addButton) addButton.disabled = !editable;
+            if (setButton) setButton.classList.toggle("d-none", !(currentPeriodStatus === "closed" && currentAllocationStatus === "draft" && canManage));
         };
 
         const addRow = (item = {}) => {
             itemState.push({
                 nama_pos: item.nama_pos || "",
-                account_id: item.account_id || "",
+                source_account_id: item.source_account_id || item.account_id || "",
+                destination_account_id: item.destination_account_id || "",
                 persentase: item.persentase ?? "",
                 nilai: item.nilai || 0
             });
@@ -6744,40 +6751,24 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const loadPeriod = async periodId => {
             currentProfit = 0;
             currentPeriodStatus = "";
-            loadedDistributionId = null;
+            currentAllocationStatus = null;
             itemState = [];
             displayBaseAmount = 0;
             displayMode = "open";
-            allocationSource = "distribution";
             renderRows();
             recalc();
             profitValue.textContent = formatMoney(0);
-            profitStatus.textContent = "Memuat laba bersih...";
+            profitStatus.textContent = "Memuat data...";
 
-            if (!periodId) {
-                profitStatus.textContent = "Pilih periode untuk menghitung laba bersih.";
-                return;
-            }
-
+            if (!periodId) return;
             const selectedPeriod = annualPeriods.find(p => String(p.id) === String(periodId));
             currentPeriodStatus = selectedPeriod?.status || "";
 
             const [{ data: profitRows, error: profitError }, { data: distribution, error: distributionError }, { data: allocation, error: allocationError }] = await Promise.all([
                 supabaseClient.rpc("preview_period_profit", { p_period_id: periodId }),
-                supabaseClient
-                    .from("profit_distributions")
-                    .select("id,total_profit,total_percentage,status")
-                    .eq("period_id", periodId)
-                    .eq("bumdes_id", bumdesId)
-                    .maybeSingle(),
-                supabaseClient
-                    .from("profit_allocations")
-                    .select("id,total_amount,total_percentage,status")
-                    .eq("period_id", periodId)
-                    .eq("bumdes_id", bumdesId)
-                    .maybeSingle()
+                supabaseClient.from("profit_distributions").select("id,total_profit,total_percentage,status").eq("period_id", periodId).eq("bumdes_id", bumdesId).maybeSingle(),
+                supabaseClient.from("profit_allocations").select("id,total_amount,total_percentage,status").eq("period_id", periodId).eq("bumdes_id", bumdesId).maybeSingle()
             ]);
-
             if (profitError) throw profitError;
             if (distributionError) throw distributionError;
             if (allocationError) throw allocationError;
@@ -6787,70 +6778,51 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             profitValue.textContent = formatMoney(currentProfit);
 
             if (currentPeriodStatus === "open") {
-                displayBaseAmount = currentProfit;
                 displayMode = "open";
-                allocationSource = "distribution";
+                displayBaseAmount = currentProfit;
+                editorTitle.textContent = "Penempatan Laba Sebelum Tutup Buku";
+                editorHelp.textContent = "Pilih akun Saldo Laba yang akan menerima laba saat Tutup Buku. Tujuan pembayaran SHU ditentukan setelah periode ditutup.";
+                destinationHeader.textContent = "Akun Tujuan SHU";
                 baseMessageEl.textContent = "Laba bersih periode berjalan.";
-                profitStatus.textContent = currentProfit > 0
-                    ? `Laba bersih periode: ${formatMoney(currentProfit)}.`
-                    : currentProfit < 0
-                        ? "Periode mengalami rugi. Alokasi SHU tidak dapat dibuat."
-                        : "Laba bersih periode adalah Rp0. Alokasi SHU belum dapat dibuat.";
+                profitStatus.textContent = currentProfit > 0 ? `Laba bersih periode: ${formatMoney(currentProfit)}.` : currentProfit < 0 ? "Periode mengalami rugi." : "Laba bersih periode adalah Rp0.";
                 profitStatus.className = currentProfit > 0 ? "small text-success" : currentProfit < 0 ? "small text-danger" : "small text-secondary";
 
                 if (distribution) {
-                    loadedDistributionId = distribution.id;
-                    const { data: items, error: itemError } = await supabaseClient
-                        .from("profit_distribution_items")
-                        .select("id,account_id,nama_pos,persentase,nilai,urutan")
-                        .eq("distribution_id", distribution.id)
-                        .order("urutan", { ascending: true });
-                    if (itemError) throw itemError;
-                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, account_id:item.account_id, persentase:item.persentase, nilai:item.nilai }));
+                    const { data: items, error } = await supabaseClient.from("profit_distribution_items").select("id,account_id,nama_pos,persentase,nilai,urutan").eq("distribution_id", distribution.id).order("urutan", { ascending: true });
+                    if (error) throw error;
+                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, source_account_id:item.account_id, destination_account_id:"", persentase:item.persentase, nilai:item.nilai }));
                 }
-
                 if (!itemState.length && canManage && currentProfit > 0) {
-                    const defaultAccount = targetAccounts.find(account => String(account.kode || "") === "3.3.01.01");
-                    itemState = [{ nama_pos:"BUM Desa / Saldo Laba", account_id:defaultAccount?.id || "", persentase:100, nilai:currentProfit }];
+                    const defaultAccount = sources.find(a => String(a.kode || "") === "3.3.01.01");
+                    itemState = [{ nama_pos:"Saldo Laba Tidak Dicadangkan", source_account_id:defaultAccount?.id || "", destination_account_id:"", persentase:100, nilai:currentProfit }];
                 }
+                actionNote.textContent = "Draf penempatan laba akan digunakan oleh proses Tutup Buku. Belum ada jurnal pembayaran SHU pada tahap ini.";
             } else {
                 displayMode = "closed";
-                // Untuk periode yang sudah ditutup, gunakan Alokasi SHU yang sudah tersimpan.
-                // Ini menjaga draf/alokasi yang sudah dibuat tetap tampil tanpa membuat input kedua.
+                editorTitle.textContent = "Alokasi SHU Setelah Tutup Buku";
+                editorHelp.textContent = "Pilih akun sumber Saldo Laba dan akun tujuan SHU. Akun tujuan berasal dari COA yang telah diaktifkan sebagai tujuan SHU.";
+                destinationHeader.textContent = "Akun Tujuan SHU";
+                displayBaseAmount = Number(allocation?.total_amount || distribution?.total_profit || 0);
+                currentAllocationStatus = allocation?.status || null;
+                profitValue.textContent = formatMoney(displayBaseAmount);
+                baseMessageEl.textContent = "Laba yang tersedia untuk Alokasi SHU.";
+
                 if (allocation) {
-                    allocationSource = "allocation";
-                    displayBaseAmount = Number(allocation.total_amount || distribution?.total_profit || 0);
-                    const { data: items, error: itemError } = await supabaseClient
-                        .from("profit_allocation_items")
-                        .select("id,source_account_id,nama_alokasi,persentase,nilai,urutan")
-                        .eq("allocation_id", allocation.id)
-                        .order("urutan", { ascending: true });
-                    if (itemError) throw itemError;
-                    itemState = (items || []).map(item => ({ nama_pos:item.nama_alokasi, account_id:item.source_account_id, persentase:item.persentase, nilai:item.nilai }));
-                    profitValue.textContent = formatMoney(displayBaseAmount);
-                    baseMessageEl.textContent = "Laba yang telah dialokasikan setelah Tutup Buku.";
-                    profitStatus.textContent = `Periode sudah ditutup. Alokasi SHU tersimpan sebesar ${formatMoney(displayBaseAmount)}.`;
-                    profitStatus.className = "small text-success";
+                    const { data: items, error } = await supabaseClient.from("profit_allocation_items").select("id,source_account_id,destination_account_id,nama_alokasi,persentase,nilai,urutan").eq("allocation_id", allocation.id).order("urutan", { ascending: true });
+                    if (error) throw error;
+                    itemState = (items || []).map(item => ({ nama_pos:item.nama_alokasi, source_account_id:item.source_account_id, destination_account_id:item.destination_account_id || "", persentase:item.persentase, nilai:item.nilai }));
                 } else if (distribution) {
-                    allocationSource = "distribution";
-                    displayBaseAmount = Number(distribution.total_profit || 0);
-                    const { data: items, error: itemError } = await supabaseClient
-                        .from("profit_distribution_items")
-                        .select("id,account_id,nama_pos,persentase,nilai,urutan")
-                        .eq("distribution_id", distribution.id)
-                        .order("urutan", { ascending: true });
-                    if (itemError) throw itemError;
-                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, account_id:item.account_id, persentase:item.persentase, nilai:item.nilai }));
-                    profitValue.textContent = formatMoney(displayBaseAmount);
-                    baseMessageEl.textContent = "Laba yang telah ditetapkan pada saat Tutup Buku.";
-                    profitStatus.textContent = `Periode sudah ditutup. Alokasi SHU sebesar ${formatMoney(displayBaseAmount)}.`;
-                    profitStatus.className = "small text-success";
-                } else {
-                    displayBaseAmount = 0;
-                    baseMessageEl.textContent = "Belum ada alokasi SHU.";
-                    profitStatus.textContent = "Periode sudah ditutup, tetapi belum terdapat alokasi SHU.";
-                    profitStatus.className = "small text-warning";
+                    const { data: items, error } = await supabaseClient.from("profit_distribution_items").select("id,account_id,nama_pos,persentase,nilai,urutan").eq("distribution_id", distribution.id).order("urutan", { ascending: true });
+                    if (error) throw error;
+                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, source_account_id:item.account_id, destination_account_id:"", persentase:item.persentase, nilai:item.nilai }));
+                    currentAllocationStatus = "draft";
                 }
+
+                profitStatus.textContent = currentAllocationStatus === "posted"
+                    ? `Alokasi SHU sudah ditetapkan sebesar ${formatMoney(displayBaseAmount)}.`
+                    : `Periode sudah ditutup. Draf Alokasi SHU sebesar ${formatMoney(displayBaseAmount)} siap dilengkapi dan ditetapkan.`;
+                profitStatus.className = currentAllocationStatus === "posted" ? "small text-success" : "small text-warning";
+                actionNote.textContent = currentAllocationStatus === "posted" ? "Alokasi sudah ditetapkan. Pembayaran dilakukan pada modul Pembayaran SHU." : "Simpan draf terlebih dahulu, kemudian klik Tetapkan Alokasi SHU. Penetapan membuat jurnal alokasi; pembayaran Kas/Bank dilakukan terpisah.";
             }
 
             renderRows();
@@ -6858,74 +6830,62 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         };
 
         periodSelect?.addEventListener("change", async () => {
-            try {
-                await loadPeriod(periodSelect.value);
-            } catch (err) {
-                console.error(err);
-                profitStatus.textContent = err.message || String(err);
-                profitStatus.className = "small text-danger";
-                showAppToast("error", "Gagal memuat Alokasi SHU", err.message || String(err));
-            }
+            try { await loadPeriod(periodSelect.value); }
+            catch (err) { console.error(err); profitStatus.textContent = err.message || String(err); profitStatus.className = "small text-danger"; showAppToast("error", "Gagal memuat Alokasi SHU", err.message || String(err)); }
         });
-
         addButton?.addEventListener("click", () => addRow());
 
         body?.addEventListener("input", event => {
-            const row = event.target.closest("tr[data-index]");
-            if (!row) return;
-            const index = Number(row.dataset.index);
-            if (!itemState[index]) return;
+            const row = event.target.closest("tr[data-index]"); if (!row) return;
+            const index = Number(row.dataset.index); if (!itemState[index]) return;
             if (event.target.classList.contains("shu-name")) itemState[index].nama_pos = event.target.value;
             if (event.target.classList.contains("shu-pct")) itemState[index].persentase = event.target.value;
             recalc();
         });
-
         body?.addEventListener("change", event => {
-            const row = event.target.closest("tr[data-index]");
-            if (!row) return;
-            const index = Number(row.dataset.index);
-            if (!itemState[index]) return;
-            if (event.target.classList.contains("shu-account")) itemState[index].account_id = event.target.value;
+            const row = event.target.closest("tr[data-index]"); if (!row) return;
+            const index = Number(row.dataset.index); if (!itemState[index]) return;
+            if (event.target.classList.contains("shu-source")) itemState[index].source_account_id = event.target.value;
+            if (event.target.classList.contains("shu-destination")) itemState[index].destination_account_id = event.target.value;
             recalc();
         });
-
         body?.addEventListener("click", event => {
-            const button = event.target.closest(".shu-remove");
-            if (!button) return;
-            const row = button.closest("tr[data-index]");
-            const index = Number(row?.dataset.index);
+            const button = event.target.closest(".shu-remove"); if (!button) return;
+            const row = button.closest("tr[data-index]"); const index = Number(row?.dataset.index);
             if (!Number.isInteger(index)) return;
-            itemState.splice(index, 1);
-            renderRows();
-            recalc();
+            itemState.splice(index, 1); renderRows(); recalc();
         });
 
         saveButton?.addEventListener("click", async () => {
             if (saveButton.disabled || !periodSelect.value) return;
-            const payload = itemState.map(item => ({
-                account_id: item.account_id,
-                nama_pos: String(item.nama_pos || "").trim(),
-                persentase: Number(item.persentase)
-            }));
-            const original = saveButton.innerHTML;
-            saveButton.disabled = true;
-            saveButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...`;
+            const original = saveButton.innerHTML; saveButton.disabled = true; saveButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...`;
             try {
-                const { data, error } = await supabaseClient.rpc("save_profit_distribution_draft", {
-                    p_period_id: periodSelect.value,
-                    p_items: payload
-                });
-                if (error) throw error;
-                loadedDistributionId = data?.id || loadedDistributionId;
-                showAppToast("success", "Draf Alokasi SHU tersimpan", "Draf alokasi SHU berhasil disimpan. Setelah Tutup Buku, data ini menjadi dasar pelaksanaan pembayaran.");
+                if (currentPeriodStatus === "open") {
+                    const payload = itemState.map(item => ({ account_id:item.source_account_id, nama_pos:String(item.nama_pos || "").trim(), persentase:Number(item.persentase) }));
+                    const { error } = await supabaseClient.rpc("save_profit_distribution_draft", { p_period_id:periodSelect.value, p_items:payload });
+                    if (error) throw error;
+                    showAppToast("success", "Penempatan laba tersimpan", "Draf penempatan laba berhasil disimpan.");
+                } else {
+                    const payload = itemState.map(item => ({ source_account_id:item.source_account_id, destination_account_id:item.destination_account_id, nama_alokasi:String(item.nama_pos || "").trim(), persentase:Number(item.persentase) }));
+                    const { error } = await supabaseClient.rpc("save_profit_allocation", { p_period_id:periodSelect.value, p_items:payload });
+                    if (error) throw error;
+                    showAppToast("success", "Draf Alokasi SHU tersimpan", "Draf Alokasi SHU berhasil disimpan dan belum membuat jurnal.");
+                }
                 await loadPeriod(periodSelect.value);
-            } catch (err) {
-                console.error(err);
-                showAppToast("error", "Gagal menyimpan Draf Alokasi SHU", err.message || String(err));
-            } finally {
-                saveButton.innerHTML = original;
-                recalc();
-            }
+            } catch (err) { console.error(err); showAppToast("error", "Gagal menyimpan", err.message || String(err)); }
+            finally { saveButton.innerHTML = original; recalc(); }
+        });
+
+        setButton?.addEventListener("click", async () => {
+            if (!periodSelect.value || currentPeriodStatus !== "closed" || currentAllocationStatus !== "draft") return;
+            const original = setButton.innerHTML; setButton.disabled = true; setButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menetapkan...`;
+            try {
+                const { error } = await supabaseClient.rpc("set_profit_allocation", { p_period_id:periodSelect.value });
+                if (error) throw error;
+                showAppToast("success", "Alokasi SHU ditetapkan", "Jurnal Alokasi SHU berhasil dibuat. Pembayaran Kas/Bank dilakukan terpisah.");
+                await loadPeriod(periodSelect.value);
+            } catch (err) { console.error(err); showAppToast("error", "Gagal menetapkan Alokasi SHU", err.message || String(err)); }
+            finally { setButton.disabled = false; setButton.innerHTML = original; }
         });
 
         const printReport = () => {
@@ -6933,40 +6893,23 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const bumdesName = activeAppBumdes?.nama || "BUM Desa";
             const period = annualPeriods.find(p => String(p.id) === String(periodSelect.value));
             const year = period?.start_date ? String(period.start_date).slice(0,4) : "-";
-            const startDate = period?.start_date ? fmtDate(period.start_date) : "-";
-            const endDate = period?.end_date ? fmtDate(period.end_date) : "-";
             const rows = itemState.map((item,index) => {
-                const account = targetAccounts.find(a => String(a.id) === String(item.account_id));
+                const source = sources.find(a => String(a.id) === String(item.source_account_id));
+                const destination = destinations.find(a => String(a.id) === String(item.destination_account_id));
                 const pct = Number(item.persentase) || 0;
-                const value = Math.round((displayBaseAmount * pct / 100) * 100) / 100;
-                return `<tr><td class="center">${index+1}</td><td>${escapeHtml(item.nama_pos || "-")}</td><td>${escapeHtml(account?.kode || "-")} — ${escapeHtml(account?.nama || "-")}</td><td class="right">${pct.toLocaleString("id-ID",{maximumFractionDigits:4})}%</td><td class="right">${formatMoney(value)}</td></tr>`;
+                const value = Number(item.nilai || Math.round(displayBaseAmount * pct / 100 * 100) / 100);
+                return `<tr><td class="center">${index+1}</td><td>${escapeHtml(item.nama_pos || "-")}</td><td>${escapeHtml(source?.kode || "-")} — ${escapeHtml(source?.nama || "-")}</td><td>${escapeHtml(destination?.kode || "-")} — ${escapeHtml(destination?.nama || "-")}</td><td class="right">${pct.toLocaleString("id-ID",{maximumFractionDigits:4})}%</td><td class="right">${formatMoney(value)}</td></tr>`;
             }).join("");
-            const report = document.createElement("div");
-            report.id = "shuAllocationPrintPage";
-            report.innerHTML = `<div class="shu-allocation-print-sheet">
-                <div class="shu-print-kop"><div class="shu-print-logo-wrap"><img src="${escapeHtml(activeAppBumdes?.logo_kop || "e-bumdesa-logo.png")}" class="shu-print-logo" alt="Logo"></div><div class="shu-print-head-text"><div class="shu-print-org">BADAN USAHA MILIK DESA</div><div class="shu-print-name">${escapeHtml(bumdesName)}</div><div class="shu-print-location">${escapeHtml([activeAppBumdes?.desa,activeAppBumdes?.kecamatan,activeAppBumdes?.kabupaten].filter(Boolean).join(", "))}</div></div></div>
-                <div class="shu-print-divider"></div><div class="shu-print-title">LAPORAN ALOKASI SISA HASIL USAHA (SHU)</div>
-                <div class="shu-print-period">Tahun Buku ${escapeHtml(year)} &nbsp; | &nbsp; Periode ${escapeHtml(startDate)} s.d. ${escapeHtml(endDate)}</div>
-                <table class="shu-print-table"><thead><tr><th style="width:45px">No.</th><th>Alokasi SHU</th><th>Akun Saldo Laba</th><th style="width:105px">Persentase</th><th style="width:145px">Nilai</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="3" class="right"><strong>TOTAL</strong></td><td class="right"><strong>100%</strong></td><td class="right"><strong>${formatMoney(displayBaseAmount)}</strong></td></tr></tfoot></table>
-                <div class="shu-print-note">Laporan ini memuat alokasi SHU berdasarkan laba tahun buku. Laporan alokasi bukan bukti pembayaran dan tidak menunjukkan status pembayaran.</div>
-                <div class="shu-print-footer"><span>e-BUMDesa</span><span>Dicetak: ${escapeHtml(fmtDateTime(new Date()))}</span></div>
-            </div>`;
-            document.body.appendChild(report);
-            const cleanup=()=>{report.remove();window.removeEventListener("afterprint",cleanup);};
-            window.addEventListener("afterprint",cleanup);
-            window.setTimeout(()=>window.print(),120);
+            const report = document.createElement("div"); report.id = "shuAllocationPrintPage";
+            report.innerHTML = `<div class="shu-allocation-print-sheet"><div class="shu-print-kop"><div class="shu-print-logo-wrap"><img src="${escapeHtml(activeAppBumdes?.logo_kop || "e-bumdesa-logo.png")}" class="shu-print-logo" alt="Logo"></div><div class="shu-print-head-text"><div class="shu-print-org">BADAN USAHA MILIK DESA</div><div class="shu-print-name">${escapeHtml(bumdesName)}</div></div></div><div class="shu-print-divider"></div><div class="shu-print-title">LAPORAN ALOKASI SISA HASIL USAHA (SHU)</div><div class="shu-print-period">Tahun Buku ${escapeHtml(year)}</div><table class="shu-print-table"><thead><tr><th>No.</th><th>Alokasi SHU</th><th>Akun Sumber</th><th>Akun Tujuan</th><th>Persentase</th><th>Nilai</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="4" class="right"><strong>TOTAL</strong></td><td class="right"><strong>100%</strong></td><td class="right"><strong>${formatMoney(displayBaseAmount)}</strong></td></tr></tfoot></table><div class="shu-print-note">Laporan alokasi SHU bukan bukti pembayaran. Pembayaran dicatat terpisah pada modul Pembayaran SHU.</div><div class="shu-print-footer"><span>e-BUMDesa</span><span>Dicetak: ${escapeHtml(fmtDateTime(new Date()))}</span></div></div>`;
+            document.body.appendChild(report); const cleanup=()=>{report.remove();window.removeEventListener("afterprint",cleanup);}; window.addEventListener("afterprint",cleanup); window.setTimeout(()=>window.print(),120);
         };
         printButton?.addEventListener("click", printReport);
 
         if (annualPeriods.length) {
             const firstOpen = annualPeriods.find(p => p.status === "open");
             periodSelect.value = firstOpen?.id || annualPeriods[0].id;
-            try { await loadPeriod(periodSelect.value); }
-            catch (err) {
-                console.error(err);
-                profitStatus.textContent = err.message || String(err);
-                profitStatus.className = "small text-danger";
-            }
+            try { await loadPeriod(periodSelect.value); } catch (err) { console.error(err); profitStatus.textContent = err.message || String(err); profitStatus.className = "small text-danger"; }
         }
     }
 
