@@ -6499,6 +6499,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     : scope==='gabungan'
                         ? 'Gabungan/Konsolidasian'
                         : (selectedUnit?.nama_unit ? `Unit Usaha — ${selectedUnit.nama_unit}` : 'Unit Usaha');
+                // Setelah Tutup Buku, movements pendapatan/beban sudah tertutup.
+                // CALK mengambil laba periode berjalan dari Perubahan Ekuitas yang
+                // memakai preClosingMovements, sehingga laba tetap tampil pada laporan
+                // tahunan/semester meskipun buku sudah ditutup.
+                const calkProfitRow=e.rows.find(r=>r.name==='Laba (Rugi) periode berjalan');
+                const calkBagiDesaRow=e.rows.find(r=>r.name==='Bagi Hasil Penyertaan Modal Desa');
+                const calkBagiMasyRow=e.rows.find(r=>r.name==='Bagi Hasil Penyertaan Modal Masyarakat');
+                const calkProfitBersih=Number(calkProfitRow?.value||0);
+                const calkBagiDesa=Math.abs(Number(calkBagiDesaRow?.value||0));
+                const calkBagiMasyarakat=Math.abs(Number(calkBagiMasyRow?.value||0));
+                const calkBeforeBagiHasil=calkProfitBersih+calkBagiDesa+calkBagiMasyarakat;
                 const balanceCheck=b.totalAssets-(b.totalLiab+b.equity);
                 html+=`<div class="calk-wrap">
                     <div class="calk-section"><div class="calk-heading">A. PERNYATAAN LAPORAN KEUANGAN</div><div class="calk-note">Laporan keuangan ${escapeHtml(scopeText)} untuk periode ${fmtDate(data.startDate)} s/d ${fmtDate(data.endDate)} disusun dengan mengacu pada Panduan Penyusunan Laporan Keuangan BUM Desa sebagaimana Keputusan Menteri Desa, Pembangunan Daerah Tertinggal, dan Transmigrasi Republik Indonesia Nomor 136 Tahun 2022, dengan akun yang bersumber dari COA e-BUMDesa.</div></div>
@@ -6522,10 +6533,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         <tr><td>Beban Usaha</td><td class="num">${calkMoney(-p.opExpense)}</td></tr>
                         <tr><td>Pendapatan Lain-lain</td><td class="num">${calkMoney(p.otherIncome)}</td></tr>
                         <tr><td>Beban Lain-lain dan Pajak</td><td class="num">${calkMoney(-(p.otherExpense+p.taxExpense))}</td></tr>
-                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(p.beforeBagiHasil)}</td></tr>
-                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-p.bagiDesa)}</td></tr>
-                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-p.bagiMasyarakat)}</td></tr>
-                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(p.net)}</td></tr>
+                        <tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td class="num">${calkMoney(calkBeforeBagiHasil)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Desa</td><td class="num">${calkMoney(-calkBagiDesa)}</td></tr>
+                        <tr><td>Bagi Hasil Penyertaan Modal Masyarakat</td><td class="num">${calkMoney(-calkBagiMasyarakat)}</td></tr>
+                        <tr class="grand"><td>Laba/Rugi Bersih Setelah Bagi Hasil ke Pemilik</td><td class="num">${calkMoney(calkProfitBersih-calkBagiDesa-calkBagiMasyarakat)}</td></tr>
                     </tbody></table></div>
                     <div class="calk-section"><div class="calk-heading">E. PENGUNGKAPAN LAIN</div><div class="calk-note">Lingkup laporan: <strong>${escapeHtml(scopeText)}</strong>. Sistem menghasilkan laporan berdasarkan jurnal dan saldo awal yang tersedia. Untuk laporan gabungan/konsolidasian, akun resiprokal Kantor Pusat dan Unit Usaha diperlakukan sebagai akun eliminasi sesuai mekanisme penggabungan yang digunakan sistem.</div><div class="calk-check ${Math.abs(balanceCheck)<0.01?'ok':'warn'}"><span>Selisih pemeriksaan Total Aset − (Total Kewajiban + Ekuitas)</span><strong>${calkMoney(balanceCheck)}</strong></div></div>
                 </div>`;
