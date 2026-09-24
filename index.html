@@ -5999,6 +5999,15 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             .reduce((sum,a) => sum + Number((data[mapName] || {})[a.id] || 0), 0);
     }
 
+    // Seluruh akun yang ditandai sebagai akun pembayaran SHU merupakan pengurang
+    // ekuitas pada Neraca, tanpa bergantung pada prefix kode 3.2.xx. Dengan cara
+    // ini COA Level 4 tambahan tetap ikut masuk ke laporan selama metadata SHU-nya benar.
+    function reportSHUPaymentTotal(data, mapName='balances'){
+        return data.leafAccounts
+            .filter(a => a.is_shu_payment_account === true)
+            .reduce((sum,a) => sum + Number((data[mapName] || {})[a.id] || 0), 0);
+    }
+
     function buildProfitLossReport(data){
         const grossRevenue=reportGroupTotal(data,'4.','movements');
         const hppGoods=reportGroupTotal(data,'5.1.','movements');
@@ -6132,8 +6141,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // Akun 3.2.xx adalah bagi hasil/pengambilan pemilik dengan saldo normal
         // Debit, sehingga menjadi pengurang ekuitas. Jangan memasukkannya sebagai
         // beban laba rugi; pengurangannya dilakukan langsung pada total ekuitas.
-        const bagiHasilEkuitas=reportGroupTotal(data,'3.2.','balances');
-        const bagiHasilEkuitasPrior=reportGroupTotal(data,'3.2.','priors');
+        const bagiHasilEkuitas=reportSHUPaymentTotal(data,'balances');
+        const bagiHasilEkuitasPrior=reportSHUPaymentTotal(data,'priors');
         const equityBase=(reportGroupTotal(data,'3.1.','balances')+
             reportGroupTotal(data,'3.3.','balances')+
             reportGroupTotal(data,'3.4.','balances')-
