@@ -6527,7 +6527,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const bumdesId = activeAppProfile.bumdes_id;
         const canManage = activeAppProfile.role === "admin_pusat";
 
-        const [{ data: periods, error: periodError }, { data: accounts, error: accountError }, { data: allocationTargetAccounts, error: allocationTargetError }] = await Promise.all([
+        const [{ data: periods, error: periodError }, { data: accounts, error: accountError }] = await Promise.all([
             supabaseClient
                 .from("account_periods")
                 .select("id,period_type,start_date,end_date,status")
@@ -6541,24 +6541,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("is_active", true)
                 .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .like("kode", "3.3.%")
-                .order("kode", { ascending: true }),
-            supabaseClient
-                .from("chart_of_accounts")
-                .select("id,kode,nama,account_type,level,is_active,bumdes_id,normal_balance,is_shu_allocation_target")
-                .eq("level", 4)
-                .eq("is_active", true)
-                .eq("is_shu_allocation_target", true)
-                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
                 .order("kode", { ascending: true })
         ]);
-
-        if (allocationTargetError) throw allocationTargetError;
 
         if (periodError) throw periodError;
 
         const annualPeriods = periods || [];
         const targetAccounts = accounts || [];
-        const shuAllocationTargetAccounts = allocationTargetAccounts || [];
 
         showModuleShell("pembagianshu", `
             <div class="panel mb-3">
@@ -6566,7 +6555,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <div>
                         <div class="fw-semibold">Alokasi SHU</div>
                         <div class="text-secondary small mt-1">
-                            Sebelum Tutup Buku, tentukan penempatan laba ke akun Saldo Laba. Setelah Tutup Buku, Alokasi SHU ditetapkan ke akun tujuan yang telah diaktifkan sebagai tujuan SHU. Tahap draf tidak mengurangi Kas/Bank.
+                            Buat draf alokasi SHU sebelum Tutup Buku. Draf ini menentukan nama alokasi, persentase, dan akun Saldo Laba yang menjadi tujuan pencatatan.
+                            Setelah Tutup Buku, draf yang sama menjadi dasar pelaksanaan pembayaran. Tahap draf tidak mengurangi Kas/Bank.
                         </div>
                     </div>
                     ${canManage
@@ -6651,10 +6641,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     </button>
                     ${canManage ? `
                     <button type="button" id="shuSaveDraft" class="btn btn-primary" disabled>
-                        <i class="bi bi-save me-1"></i>Simpan Draf
-                    </button>
-                    <button type="button" id="shuSetAllocation" class="btn btn-success d-none" disabled>
-                        <i class="bi bi-check2-circle me-1"></i>Tetapkan Alokasi SHU
+                        <i class="bi bi-save me-1"></i>Simpan Draf Alokasi
                     </button>` : ""}
                 </div>
             </div>
@@ -6678,7 +6665,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const pctMessage = $("shuPctMessage");
         const valueMessage = $("shuValueMessage");
         const saveButton = $("shuSaveDraft");
-        const setAllocationButton = $("shuSetAllocation");
         const addButton = $("shuAddRow");
         const printButton = $("shuPrintReport");
 
@@ -6689,31 +6675,14 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         let displayBaseAmount = 0;
         let displayMode = "open";
         let allocationSource = "distribution";
-        let allocationStatus = "";
 
         const formatMoney = value => rupiah(Number(value || 0));
 
-        const destinationSelectHtml = (selectedId) => `
-            <select class="form-select form-select-sm shu-destination" ${!canManage || allocationStatus === "posted" ? "disabled" : ""}>
-                <option value="">Pilih tujuan SHU...</option>
-                ${shuAllocationTargetAccounts.map(a => `<option value="${escapeHtml(a.id)}" ${String(a.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`).join("")}
-            </select>`;
-
-        const accountSelectHtml = (selectedId, destinationId) => {
-            const source = targetAccounts.find(a => String(a.id) === String(selectedId || ""));
-            if (currentPeriodStatus === "closed") {
-                const sourceHtml = `<div class="small mb-1"><span class="text-secondary">Sumber:</span> ${escapeHtml(source ? `${source.kode} — ${source.nama}` : "-")}</div>`;
-                if (allocationStatus === "posted") {
-                    const destination = shuAllocationTargetAccounts.find(a => String(a.id) === String(destinationId || ""));
-                    return `${sourceHtml}<div class="small"><span class="text-secondary">Tujuan:</span> ${escapeHtml(destination ? `${destination.kode} — ${destination.nama}` : "-")}</div>`;
-                }
-                return `${sourceHtml}${destinationSelectHtml(destinationId)}`;
-            }
-            return `<select class="form-select form-select-sm shu-account" ${!canManage ? "disabled" : ""}>
-                <option value="">Pilih akun Saldo Laba...</option>
+        const accountSelectHtml = selectedId => `
+            <select class="form-select form-select-sm shu-account" ${!canManage || currentPeriodStatus === "closed" ? "disabled" : ""}>
+                <option value="">Pilih akun...</option>
                 ${targetAccounts.map(a => `<option value="${escapeHtml(a.id)}" ${String(a.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(a.kode)} — ${escapeHtml(a.nama)}</option>`).join("")}
             </select>`;
-        };
 
         const renderRows = () => {
             if (!body) return;
@@ -6721,7 +6690,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 ? itemState.map((item, index) => `
                     <tr data-index="${index}">
                         <td><input type="text" class="form-control form-control-sm shu-name" value="${escapeHtml(item.nama_pos || "")}" placeholder="Contoh: PADes" ${!canManage || currentPeriodStatus === "closed" ? "disabled" : ""}></td>
-                        <td>${accountSelectHtml(item.account_id, item.destination_account_id)}</td>
+                        <td>${accountSelectHtml(item.account_id)}</td>
                         <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end shu-pct" min="0.0001" max="100" step="0.0001" value="${escapeHtml(item.persentase ?? "")}" ${!canManage || currentPeriodStatus === "closed" ? "disabled" : ""}><span class="input-group-text">%</span></div></td>
                         <td class="text-end fw-semibold shu-value">${formatMoney(item.nilai || 0)}</td>
                         ${canManage ? `<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger shu-remove" title="Hapus" ${currentPeriodStatus === "closed" ? "disabled" : ""}><i class="bi bi-trash"></i></button></td>` : ""}
@@ -6753,22 +6722,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
             body?.querySelectorAll(".shu-value").forEach((el, index) => { el.textContent = formatMoney(values[index] || 0); });
 
-            const closedDraftEditable = canManage && currentPeriodStatus === "closed" && allocationStatus === "draft" && displayBaseAmount > 0;
             const editable = canManage && currentPeriodStatus === "open" && displayBaseAmount > 0;
-            const destinationRowsOk = currentPeriodStatus === "closed" ? itemState.every(item => item.destination_account_id) : true;
-            const canSave = (editable || closedDraftEditable) && pctOk && valueOk && rowsOk && destinationRowsOk;
+            const canSave = editable && pctOk && valueOk && rowsOk;
             const canPrint = displayBaseAmount > 0 && pctOk && valueOk && rowsOk;
-            if (saveButton) {
-                saveButton.disabled = !canSave;
-                saveButton.innerHTML = currentPeriodStatus === "closed"
-                    ? '<i class="bi bi-save me-1"></i>Simpan Draf Alokasi SHU'
-                    : '<i class="bi bi-save me-1"></i>Simpan Draf Penempatan Laba';
-            }
-            if (setAllocationButton) {
-                const canSet = closedDraftEditable && pctOk && valueOk && rowsOk && destinationRowsOk;
-                setAllocationButton.disabled = !canSet;
-                setAllocationButton.classList.toggle("d-none", !(currentPeriodStatus === "closed" && allocationStatus === "draft"));
-            }
+            if (saveButton) saveButton.disabled = !canSave;
+            if (printButton) printButton.disabled = !canPrint;
             if (addButton) addButton.disabled = !editable;
         };
 
@@ -6777,8 +6735,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 nama_pos: item.nama_pos || "",
                 account_id: item.account_id || "",
                 persentase: item.persentase ?? "",
-                nilai: item.nilai || 0,
-                destination_account_id: item.destination_account_id || ""
+                nilai: item.nilai || 0
             });
             renderRows();
             recalc();
@@ -6792,7 +6749,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             displayBaseAmount = 0;
             displayMode = "open";
             allocationSource = "distribution";
-            allocationStatus = "";
             renderRows();
             recalc();
             profitValue.textContent = formatMoney(0);
@@ -6825,7 +6781,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if (profitError) throw profitError;
             if (distributionError) throw distributionError;
             if (allocationError) throw allocationError;
-            allocationStatus = allocation?.status || "";
 
             const profitRow = Array.isArray(profitRows) ? profitRows[0] : profitRows;
             currentProfit = Number(profitRow?.laba_bersih || 0);
@@ -6851,7 +6806,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         .eq("distribution_id", distribution.id)
                         .order("urutan", { ascending: true });
                     if (itemError) throw itemError;
-                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, account_id:item.account_id, destination_account_id:"", persentase:item.persentase, nilai:item.nilai }));
+                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, account_id:item.account_id, persentase:item.persentase, nilai:item.nilai }));
                 }
 
                 if (!itemState.length && canManage && currentProfit > 0) {
@@ -6867,18 +6822,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     displayBaseAmount = Number(allocation.total_amount || distribution?.total_profit || 0);
                     const { data: items, error: itemError } = await supabaseClient
                         .from("profit_allocation_items")
-                        .select("id,source_account_id,destination_account_id,nama_alokasi,persentase,nilai,urutan")
+                        .select("id,source_account_id,nama_alokasi,persentase,nilai,urutan")
                         .eq("allocation_id", allocation.id)
                         .order("urutan", { ascending: true });
                     if (itemError) throw itemError;
-                    itemState = (items || []).map(item => ({ nama_pos:item.nama_alokasi, account_id:item.source_account_id, destination_account_id:item.destination_account_id || "", persentase:item.persentase, nilai:item.nilai }));
+                    itemState = (items || []).map(item => ({ nama_pos:item.nama_alokasi, account_id:item.source_account_id, persentase:item.persentase, nilai:item.nilai }));
                     profitValue.textContent = formatMoney(displayBaseAmount);
                     baseMessageEl.textContent = "Laba yang telah dialokasikan setelah Tutup Buku.";
                     profitStatus.textContent = `Periode sudah ditutup. Alokasi SHU tersimpan sebesar ${formatMoney(displayBaseAmount)}.`;
                     profitStatus.className = "small text-success";
                 } else if (distribution) {
                     allocationSource = "distribution";
-                    allocationStatus = "draft";
                     displayBaseAmount = Number(distribution.total_profit || 0);
                     const { data: items, error: itemError } = await supabaseClient
                         .from("profit_distribution_items")
@@ -6886,7 +6840,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         .eq("distribution_id", distribution.id)
                         .order("urutan", { ascending: true });
                     if (itemError) throw itemError;
-                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, account_id:item.account_id, destination_account_id:"", persentase:item.persentase, nilai:item.nilai }));
+                    itemState = (items || []).map(item => ({ nama_pos:item.nama_pos, account_id:item.account_id, persentase:item.persentase, nilai:item.nilai }));
                     profitValue.textContent = formatMoney(displayBaseAmount);
                     baseMessageEl.textContent = "Laba yang telah ditetapkan pada saat Tutup Buku.";
                     profitStatus.textContent = `Periode sudah ditutup. Alokasi SHU sebesar ${formatMoney(displayBaseAmount)}.`;
@@ -6932,7 +6886,6 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const index = Number(row.dataset.index);
             if (!itemState[index]) return;
             if (event.target.classList.contains("shu-account")) itemState[index].account_id = event.target.value;
-            if (event.target.classList.contains("shu-destination")) itemState[index].destination_account_id = event.target.value;
             recalc();
         });
 
@@ -6949,58 +6902,28 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         saveButton?.addEventListener("click", async () => {
             if (saveButton.disabled || !periodSelect.value) return;
-            const payload = currentPeriodStatus === "closed"
-                ? itemState.map(item => ({
-                    source_account_id: item.account_id,
-                    destination_account_id: item.destination_account_id,
-                    nama_alokasi: String(item.nama_pos || "").trim(),
-                    persentase: Number(item.persentase)
-                }))
-                : itemState.map(item => ({
-                    account_id: item.account_id,
-                    nama_pos: String(item.nama_pos || "").trim(),
-                    persentase: Number(item.persentase)
-                }));
+            const payload = itemState.map(item => ({
+                account_id: item.account_id,
+                nama_pos: String(item.nama_pos || "").trim(),
+                persentase: Number(item.persentase)
+            }));
             const original = saveButton.innerHTML;
             saveButton.disabled = true;
             saveButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...`;
             try {
-                const rpcName = currentPeriodStatus === "closed" ? "save_profit_allocation" : "save_profit_distribution_draft";
-                const { data, error } = await supabaseClient.rpc(rpcName, {
+                const { data, error } = await supabaseClient.rpc("save_profit_distribution_draft", {
                     p_period_id: periodSelect.value,
                     p_items: payload
                 });
                 if (error) throw error;
-                if (currentPeriodStatus === "closed") allocationStatus = data?.status || "draft";
-                else loadedDistributionId = data?.id || loadedDistributionId;
-                showAppToast("success", "Draf tersimpan", currentPeriodStatus === "closed" ? "Draf Alokasi SHU berhasil disimpan." : "Draf penempatan laba berhasil disimpan.");
+                loadedDistributionId = data?.id || loadedDistributionId;
+                showAppToast("success", "Draf Alokasi SHU tersimpan", "Draf alokasi SHU berhasil disimpan. Setelah Tutup Buku, data ini menjadi dasar pelaksanaan pembayaran.");
                 await loadPeriod(periodSelect.value);
             } catch (err) {
                 console.error(err);
                 showAppToast("error", "Gagal menyimpan Draf Alokasi SHU", err.message || String(err));
             } finally {
                 saveButton.innerHTML = original;
-                recalc();
-            }
-        });
-
-        setAllocationButton?.addEventListener("click", async () => {
-            if (setAllocationButton.disabled || !periodSelect.value) return;
-            const original = setAllocationButton.innerHTML;
-            setAllocationButton.disabled = true;
-            setAllocationButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menetapkan...';
-            try {
-                const { error } = await supabaseClient.rpc("set_profit_allocation", {
-                    p_period_id: periodSelect.value
-                });
-                if (error) throw error;
-                showAppToast("success", "Alokasi SHU ditetapkan", "Alokasi SHU telah diposting dan siap diproses pada modul Pembayaran SHU.");
-                await loadPeriod(periodSelect.value);
-            } catch (err) {
-                console.error(err);
-                showAppToast("error", "Gagal menetapkan Alokasi SHU", err.message || String(err));
-            } finally {
-                setAllocationButton.innerHTML = original;
                 recalc();
             }
         });
@@ -7085,8 +7008,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .select("id,kode,nama,level,account_type,normal_balance,is_active,bumdes_id,is_shu_payment_account,shu_beneficiary_type")
                 .eq("level", 4)
                 .eq("is_active", true)
-                .eq("is_shu_payment_account", true)
                 .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`)
+                .eq("is_shu_payment_account", true)
                 .order("kode", { ascending: true }),
         ]);
 
@@ -7100,11 +7023,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const allocationMap = new Map((allocations || []).map(v => [String(v.id), v]));
         const periodMap = new Map((periods || []).map(v => [String(v.id), v]));
         const paymentMap = new Map();
-        (payments || []).forEach(payment => {
-            const key = String(payment.allocation_item_id);
-            const current = paymentMap.get(key) || { total: 0, rows: [] };
-            current.total += Number(payment.amount || 0);
-            current.rows.push(payment);
+        (payments || []).forEach(v => {
+            const key = String(v.allocation_item_id);
+            const current = paymentMap.get(key) || { amount: 0, paid_at: null, payments: [] };
+            current.amount += Number(v.amount || 0);
+            current.paid_at = v.paid_at || current.paid_at;
+            current.payments.push(v);
             paymentMap.set(key, current);
         });
 
@@ -7162,17 +7086,23 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         });
 
         const rows = [];
+        const paymentAccountIds = new Set((paymentAccounts || []).map(account => String(account.id)));
         (allocationItems || []).forEach(item => {
             const allocation = allocationMap.get(String(item.allocation_id));
             if (!allocation || allocation.status !== "posted") return;
             const period = periodMap.get(String(allocation.period_id));
             if (!period || period.status !== "closed") return;
 
-            const paid = paymentMap.get(String(item.id)) || { total: 0, rows: [] };
-            const itemAmount = Number(item.nilai || 0);
-            const remaining = Math.max(0, Math.round((itemAmount - paid.total) * 100) / 100);
-            const status = remaining <= 0.009 ? "lunas" : paid.total > 0 ? "sebagian" : "belum";
-            rows.push({ item, allocation, period, paid, paidTotal: paid.total, remaining, status });
+            // Hanya alokasi yang tujuannya memang akun pembayaran SHU
+            // yang muncul di modul pembayaran. Cadangan/saldo laba tetap
+            // tercatat sebagai alokasi, tetapi tidak memiliki pembayaran kas.
+            if (!item.destination_account_id || !paymentAccountIds.has(String(item.destination_account_id))) return;
+
+            const paid = paymentMap.get(String(item.id)) || { amount: 0, paid_at: null, payments: [] };
+            const allocationAmount = Number(item.nilai || 0);
+            const paidTotal = Math.min(allocationAmount, Number(paid.amount || 0));
+            const remaining = Math.max(0, allocationAmount - paidTotal);
+            rows.push({ item, allocation, period, paid, paidTotal, remaining });
         });
 
         showModuleShell("pembayaranshu", `
@@ -7216,20 +7146,19 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         </thead>
                         <tbody>
                             ${rows.map(r => {
-                                const statusBadge = r.status === "lunas"
+                                const status = r.remaining <= 0 ? "lunas" : (r.paidTotal > 0 ? "sebagian" : "belum");
+                                const action = status === "lunas"
                                     ? `<span class="badge text-bg-success">Lunas</span>`
-                                    : r.status === "sebagian"
-                                        ? `<span class="badge text-bg-info">Sebagian Dibayar</span>`
-                                        : `<span class="badge text-bg-warning">Belum Dibayar</span>`;
-                                const action = r.status === "lunas"
-                                    ? `<span class="text-success small"><i class="bi bi-check-circle me-1"></i>Terbayar penuh</span>`
-                                    : (canManage ? `<button type="button" class="btn btn-sm btn-primary shu-pay-btn" data-id="${escapeHtml(r.item.id)}"><i class="bi bi-cash-coin me-1"></i>${r.paidTotal > 0 ? "Bayar Sisa" : "Bayar"}</button>` : `<span class="text-secondary small">Hanya lihat</span>`);
+                                    : (canManage ? `<button type="button" class="btn btn-sm btn-primary shu-pay-btn" data-id="${escapeHtml(r.item.id)}"><i class="bi bi-cash-coin me-1"></i>${status === "sebagian" ? "Bayar Sisa" : "Bayar"}</button>` : `<span class="text-secondary small">Hanya lihat</span>`);
+                                const destinationLabel = r.item.destination_account_id
+                                    ? ((paymentAccounts || []).find(a => String(a.id) === String(r.item.destination_account_id)) || null)
+                                    : null;
                                 return `<tr>
                                     <td class="fw-semibold">${fmtDate(r.period.start_date)} s/d ${fmtDate(r.period.end_date)}</td>
                                     <td>${escapeHtml(r.item.nama_alokasi || "-")}</td>
-                                    <td class="text-end fw-semibold">${rupiah(Number(r.item.nilai || 0))}<div class="small text-secondary">Dibayar: ${rupiah(r.paidTotal)} · Sisa: ${rupiah(r.remaining)}</div></td>
-                                    <td>${escapeHtml(r.item.destination_account_id ? "COA tujuan alokasi tersimpan" : "COA pembayaran dipilih saat pembayaran")}</td>
-                                    <td>${statusBadge}</td>
+                                    <td class="text-end fw-semibold">${rupiah(Number(r.item.nilai || 0))}</td>
+                                    <td>${destinationLabel ? `${escapeHtml(destinationLabel.kode)} — ${escapeHtml(destinationLabel.nama)}` : '<span class="text-danger small">Belum ditetapkan</span>'}</td>
+                                    <td>${status === "lunas" ? '<span class="badge text-bg-success">Lunas</span>' : status === "sebagian" ? `<span class="badge text-bg-info">Sebagian dibayar</span><div class="small text-secondary mt-1">Sisa ${rupiah(r.remaining)}</div>` : '<span class="badge text-bg-warning">Belum dibayar</span>'}</td>
                                     <td class="text-end">${action}</td>
                                 </tr>`;
                             }).join("")}
@@ -7249,20 +7178,22 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             button.addEventListener("click", async () => {
                 const itemId = button.dataset.id;
                 const row = rows.find(r => String(r.item.id) === String(itemId));
-                if (!row || row.status === "lunas") return;
+                if (!row || row.remaining <= 0) return;
 
-                const maxPayment = row.remaining;
-                const destinationChoices = (paymentAccounts || []).map(account => {
-                    return `<option value="${escapeHtml(account.id)}">${escapeHtml(account.kode)} — ${escapeHtml(account.nama)}</option>`;
-                }).join("");
+                const destinationAccount = (paymentAccounts || []).find(account => String(account.id) === String(row.item.destination_account_id));
+                if (!destinationAccount) {
+                    showAppToast("error", "Akun tujuan tidak tersedia", "COA tujuan alokasi SHU belum aktif sebagai akun pembayaran SHU.");
+                    return;
+                }
+                const destinationChoices = `<option value="${escapeHtml(destinationAccount.id)}" selected>${escapeHtml(destinationAccount.kode)} — ${escapeHtml(destinationAccount.nama)}</option>`;
 
                 const cashChoices = (cashAccounts || []).map(account => {
                     const saldo = Number(balances.get(String(account.id)) || 0);
-                    const disabled = saldo <= 0;
-                    return `<option value="${escapeHtml(account.id)}" ${disabled ? "disabled" : ""}>${escapeHtml(account.kode)} — ${escapeHtml(account.nama)} (Saldo ${escapeHtml(rupiah(saldo))})${disabled ? " — saldo tidak cukup" : ""}</option>`;
+                    return `<option value="${escapeHtml(account.id)}">${escapeHtml(account.kode)} — ${escapeHtml(account.nama)} (Saldo ${escapeHtml(rupiah(saldo))})</option>`;
                 }).join("");
 
-                const defaultDate = new Date().toISOString().slice(0, 10);
+                const now = new Date();
+                const defaultDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
                 const html = `
                     <div class="modal fade" id="shuPaymentModal" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
@@ -7273,10 +7204,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                 </div>
                                 <div class="modal-body">
                                     <div class="mb-3"><div class="small text-secondary">Alokasi</div><div class="fw-semibold">${escapeHtml(row.item.nama_alokasi)}</div></div>
-                                    <div class="mb-3"><div class="small text-secondary">Nilai ditetapkan</div><div class="fw-semibold">${rupiah(Number(row.item.nilai || 0))}</div><div class="small text-secondary mt-1">Sudah dibayar: ${rupiah(row.paidTotal)} · Sisa: ${rupiah(maxPayment)}</div></div>
-                                    <div class="mb-3"><label class="form-label">Nilai pembayaran sekarang</label><input id="shuPaymentAmount" type="number" class="form-control text-end" min="0.01" max="${maxPayment}" step="0.01" value="${maxPayment}"><div class="form-text">Pembayaran dapat dilakukan bertahap. Maksimal ${rupiah(maxPayment)}.</div></div>
+                                    <div class="mb-3"><div class="small text-secondary">Nilai alokasi</div><div class="fs-5 fw-bold">${rupiah(Number(row.item.nilai || 0))}</div><div class="small text-secondary mt-1">Sudah dibayar: ${rupiah(row.paidTotal)} · Sisa: ${rupiah(row.remaining)}</div></div>
+                                    <div class="mb-3"><label class="form-label">Nilai pembayaran sekarang</label><input id="shuPaymentAmount" type="number" class="form-control text-end" min="0.01" step="0.01" max="${escapeHtml(String(row.remaining))}" value="${escapeHtml(String(row.remaining))}"><div class="form-text">Maksimal sebesar sisa alokasi SHU.</div></div>
                                     <div class="mb-3"><label class="form-label">Tanggal pembayaran</label><input id="shuPaymentDate" type="date" class="form-control" value="${defaultDate}"></div>
-                                    <div class="mb-3"><label class="form-label">Akun tujuan pembayaran</label><select id="shuPaymentDestination" class="form-select"><option value="">Pilih akun tujuan</option>${destinationChoices}</select><div class="form-text">Pilih akun tujuan pembayaran dari akun Bagi Hasil SHU yang tersedia. Contoh untuk PADes: Bagi Hasil Penyertaan Modal Desa.</div></div>
+                                    <div class="mb-3"><label class="form-label">Akun tujuan pembayaran</label><select id="shuPaymentDestination" class="form-select" disabled>${destinationChoices}</select><div class="form-text">Akun tujuan mengikuti COA yang telah ditetapkan pada Alokasi SHU dan tidak dapat diganti saat pembayaran.</div></div>
                                     <div><label class="form-label">Dibayar dari</label><select id="shuPaymentCash" class="form-select"><option value="">Pilih Kas/Bank</option>${cashChoices}</select></div>
                                     <div class="alert alert-info small mt-3 mb-0">Saldo Kas/Bank dihitung dari saldo awal tahun ditambah mutasi Kantor Pusat. Tanggal pembayaran fleksibel dan mengikuti tanggal transaksi pembayaran sebenarnya.</div>
                                 </div>
@@ -7311,10 +7242,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     if (!date) { showAppToast("error", "Tanggal belum dipilih", "Silakan pilih tanggal pembayaran."); return; }
                     if (!destinationId) { showAppToast("error", "Akun tujuan belum dipilih", "Silakan pilih akun tujuan pembayaran."); return; }
                     if (!cashId) { showAppToast("error", "Kas/Bank belum dipilih", "Silakan pilih sumber pembayaran."); return; }
-                    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0 || paymentAmount > maxPayment + 0.009) { showAppToast("error", "Nilai pembayaran tidak valid", `Masukkan nilai antara Rp0,01 sampai ${rupiah(maxPayment)}.`); return; }
-                    const selectedCash = (cashAccounts || []).find(account => String(account.id) === String(cashId));
-                    const selectedCashBalance = Number(balances.get(String(cashId)) || 0);
-                    if (!selectedCash || selectedCashBalance + 0.009 < paymentAmount) { showAppToast("error", "Saldo Kas/Bank tidak cukup", `Saldo ${selectedCash?.nama || "Kas/Bank"} hanya ${rupiah(selectedCashBalance)}.`); return; }
+                    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) { showAppToast("error", "Nilai pembayaran tidak valid", "Masukkan nilai pembayaran lebih besar dari nol."); return; }
+                    if (paymentAmount > Number(row.remaining) + 0.009) { showAppToast("error", "Nilai pembayaran melebihi sisa", `Sisa pembayaran hanya ${rupiah(row.remaining)}.`); return; }
                     const original = modalEl.querySelector("#shuPaymentConfirm").innerHTML;
                     const confirmBtn = modalEl.querySelector("#shuPaymentConfirm");
                     confirmBtn.disabled = true;
