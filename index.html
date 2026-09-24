@@ -6143,15 +6143,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // beban laba rugi; pengurangannya dilakukan langsung pada total ekuitas.
         const bagiHasilEkuitas=reportSHUPaymentTotal(data,'balances');
         const bagiHasilEkuitasPrior=reportSHUPaymentTotal(data,'priors');
+        // Akun 3.2 tidak dikurangkan lagi di sini. Pada alokasi SHU, jurnal
+        // Dr Saldo Laba / Cr 3.2 sudah mengurangi saldo 3.3 secara langsung.
+        // Mengurangkan saldo 3.2 sekali lagi akan menghitung distribusi SHU dua kali.
+        // Saat pembayaran, Dr 3.2 / Cr Kas hanya menyelesaikan akun distribusi dan
+        // tidak boleh mengubah total ekuitas.
         const equityBase=(reportGroupTotal(data,'3.1.','balances')+
             reportGroupTotal(data,'3.3.','balances')+
-            reportGroupTotal(data,'3.4.','balances')-
-            bagiHasilEkuitas+
+            reportGroupTotal(data,'3.4.','balances')+
             (String(data.scope).startsWith('unit:') ? reportGroupTotal(data,'3.8.','balances') : 0));
         const priorEquityBase=(reportGroupTotal(data,'3.1.','priors')+
             reportGroupTotal(data,'3.3.','priors')+
-            reportGroupTotal(data,'3.4.','priors')-
-            bagiHasilEkuitasPrior+
+            reportGroupTotal(data,'3.4.','priors')+
             (String(data.scope).startsWith('unit:') ? reportGroupTotal(data,'3.8.','priors') : 0));
         const p=buildProfitLossReport(data);
         // Jika laporan belum melalui jurnal penutup, laba/rugi bersih periode berjalan
