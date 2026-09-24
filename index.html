@@ -5971,6 +5971,14 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             priors[a.id]=priorMap.get(a.id)||0;
             preClosingMovements[a.id]=preClosingMoveMap.get(a.id)||0;
         });
+        const {data:shuAllocationTransactions,error:shuAllocationTxError}=await supabaseClient
+            .from('transactions')
+            .select('id')
+            .eq('bumdes_id',bumdesId)
+            .eq('transaction_type','alokasi_shu');
+        if(shuAllocationTxError) throw shuAllocationTxError;
+        const shuAllocationTransactionIds=new Set((shuAllocationTransactions||[]).map(x=>x.id).filter(Boolean));
+
         if(isConsolidated){
             // Konsolidasi harus mengeliminasi akun resiprokal RK secara konsisten,
             // bukan hanya saldo akhir. Mutasi berjalan dan mutasi sebelum tutup buku
@@ -5985,7 +5993,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 }
             });
         }
-        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,preClosingMovements,journals,startDate,endDate,scope,isConsolidated};
+        return {accounts:accounts||[],leafAccounts,groupAccounts,accountMap,balances,movements,priors,preClosingMovements,journals,startDate,endDate,scope,isConsolidated,shuAllocationTransactionIds};
     }
 
     function reportGroupTotal(data, prefix, mapName='balances'){
@@ -6002,6 +6010,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         return data.leafAccounts
             .filter(a => a.is_shu_payment_account === true && a.shu_beneficiary_type === beneficiaryType)
             .reduce((sum,a) => sum + Number((data[mapName] || {})[a.id] || 0), 0);
+    }
+
+    function reportSHUAllocationTotal(data, beneficiaryType){
+        const txIds=data.shuAllocationTransactionIds instanceof Set
+            ? data.shuAllocationTransactionIds
+            : new Set(data.shuAllocationTransactionIds||[]);
+        if(!txIds.size)return 0;
+        return (data.journals||[]).filter(j=>txIds.has(j.transaction_id)).reduce((sum,j)=>{
+            const a=data.accountMap.get(j.account_id);
+            if(!a || a.is_shu_payment_account!==true || a.shu_beneficiary_type!==beneficiaryType)return sum;
+            return sum + Math.max(0,Number(j.credit||0)-Number(j.debit||0));
+        },0);
     }
 
     // Seluruh akun yang ditandai sebagai akun pembayaran SHU merupakan pengurang
@@ -6034,9 +6054,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         // Akun 3.2.xx adalah distribusi/pembagian ekuitas, bukan pendapatan atau
         // beban periode berjalan. Nilainya tetap dikumpulkan sebagai data untuk
         // Laporan Perubahan Ekuitas, tetapi tidak mengurangi laba/rugi periode ini.
-        const bagiDesa=Math.max(0,reportSHUTotal(data,'desa','movements'));
-        const bagiMasyarakat=Math.max(0,reportSHUTotal(data,'masyarakat','movements'));
-        const net=beforeBagiHasil;
+        // Bagi hasil berasal dari jurnal penetapan Alokasi SHU, bukan dari saldo
+        // berjalan akun 3.2.xx. Dengan demikian pembayaran sebagian/bertahap tidak
+        // mengubah nilai bagi hasil yang telah ditetapkan.
+        const bagiDesa=reportSHUAllocationTotal(data,'desa');
+        const bagiMasyarakat=reportSHUAllocationTotal(data,'masyarakat');
+        const net=beforeBagiHasil-bagiDesa-bagiMasyarakat;
 
         const rows=[];
         rows.push({type:'section',name:'PENDAPATAN USAHA'});
@@ -6087,7 +6110,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         rows.push({type:'subtotal',name:'Total Beban Pajak',value:-taxExpense});
         rows.push({type:'grand',name:'Total Pendapatan dan Beban Lain-lain',value:otherNet});
 
-        rows.push({type:'grand',name:'LABA (RUGI) BERSIH',value:net});
+        rows.push({type:'grand',name:'LABA (RUGI) SEBELUM BAGI HASIL',value:beforeBagiHasil});
+        rows.push({type:'group',name:'BAGI HASIL KEPADA PEMILIK'});
+        rows.push({name:'Bagi Hasil Penyertaan Modal Desa',value:-bagiDesa,indent:2});
+        rows.push({name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-bagiMasyarakat,indent:2});
+        rows.push({type:'grand',name:'LABA (RUGI) BERSIH SETELAH BAGI HASIL KE PEMILIK',value:net});
         return {rows,net,beforeBagiHasil,bagiDesa,bagiMasyarakat,grossRevenue,hpp,opExpense,otherIncome,otherExpense,taxExpense,otherNet};
     }
     function rptGroup(data,prefix,mapName){return reportGroupTotal(data,prefix,mapName);}
