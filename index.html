@@ -10833,10 +10833,46 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (cancel) await cancelInvoicePayment(cancel.dataset.cancelInvoice, cancel);
     });
     $("customerSubBackBtn").addEventListener("click", async () => {
-        if (customerSubscriptionContext?.profile) {
-            await loadDashboard(customerSubscriptionContext.profile);
-        } else {
+        // Jangan langsung membuka Dashboard. Periksa ulang subscription terlebih dahulu.
+        // Jika masih pending/cancelled/expired, pengguna tetap berada di halaman Langganan.
+        const profile = customerSubscriptionContext?.profile;
+        if (!profile?.id || !profile?.bumdes_id) {
             showOnly("appPage");
+            return;
+        }
+
+        try {
+            const { data: subscription, error } = await supabaseClient
+                .from("subscriptions")
+                .select("id, plan_name, amount, billing_period_months, status, started_at, expires_at")
+                .eq("bumdes_id", profile.bumdes_id)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            const expiresAt = subscription?.expires_at ? new Date(subscription.expires_at) : null;
+            const isActive = subscription?.status === "active" && expiresAt && expiresAt > new Date();
+
+            if (isActive) {
+                await loadDashboard(profile);
+                return;
+            }
+
+            customerSubscriptionContext.subscription = subscription;
+            $("customerSubStatus").textContent = subscription?.status === "active"
+                ? "Aktif"
+                : (subscription?.status || "Belum aktif");
+            $("customerSubExpires").textContent = subscription?.expires_at
+                ? fmtDate(subscription.expires_at)
+                : "-";
+            $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
+
+            showOnly("customerSubscriptionPage");
+            await loadCustomerInvoices(profile.bumdes_id);
+        } catch (error) {
+            console.error("Gagal memeriksa status langganan:", error);
+            showOnly("customerSubscriptionPage");
+            await loadCustomerInvoices(profile.bumdes_id);
         }
     });
     $("invoiceBackBtn").addEventListener("click", async () => {
