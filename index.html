@@ -10775,7 +10775,23 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             // dimuat ulang tanpa menjalankan callback onClose.
             sessionStorage.setItem("midtrans_return_invoice_id", invoiceId);
 
+            let returnedToInvoice = false;
+            let snapWatchTimer = null;
+            let snapObserver = null;
+
             async function returnToCustomerInvoice() {
+                if (returnedToInvoice) return;
+                returnedToInvoice = true;
+
+                if (snapWatchTimer) {
+                    clearInterval(snapWatchTimer);
+                    snapWatchTimer = null;
+                }
+                if (snapObserver) {
+                    snapObserver.disconnect();
+                    snapObserver = null;
+                }
+
                 if (!customerSubscriptionContext?.profile?.bumdes_id) {
                     await openCustomerSubscription();
                 }
@@ -10785,6 +10801,47 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 }
             }
 
+            // Midtrans mendokumentasikan onClose untuk popup Snap. Sebagai fallback
+            // untuk kasus browser/Sandbox tertentu yang menutup popup tanpa memanggil
+            // callback tersebut, pantau keberadaan iframe Snap di DOM. Begitu popup
+            // yang sudah pernah muncul hilang, buka detail invoice tanpa reload.
+            function startSnapCloseWatcher() {
+                let snapWasVisible = false;
+                const isSnapVisible = () => {
+                    const frames = Array.from(document.querySelectorAll("iframe"));
+                    return frames.some(frame => {
+                        const src = frame.getAttribute("src") || "";
+                        const rect = frame.getBoundingClientRect();
+                        return /midtrans|snap/i.test(src) && rect.width > 0 && rect.height > 0;
+                    });
+                };
+
+                snapObserver = new MutationObserver(() => {
+                    if (!snapWasVisible) {
+                        if (isSnapVisible()) snapWasVisible = true;
+                        return;
+                    }
+                    if (!isSnapVisible()) {
+                        void returnToCustomerInvoice();
+                    }
+                });
+
+                snapObserver.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ["src", "style", "class"]
+                });
+
+                snapWatchTimer = setInterval(() => {
+                    if (!snapWasVisible) {
+                        if (isSnapVisible()) snapWasVisible = true;
+                    } else if (!isSnapVisible()) {
+                        void returnToCustomerInvoice();
+                    }
+                }, 250);
+            }
+
             window.snap.pay(snapToken, {
                 onSuccess: async (result) => {
                     console.log("Midtrans Snap success:", result);
@@ -10792,7 +10849,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 },
                 onPending: async (result) => {
                     // Indomaret memang berstatus pending setelah kode pembayaran dibuat.
-                    // Jangan menutup/navigasi dari callback ini; biarkan Snap tetap terbuka.
+                    // Snap harus tetap terbuka.
                     console.log("Midtrans Snap pending:", result);
                 },
                 onError: async (result) => {
@@ -10800,11 +10857,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     await returnToCustomerInvoice();
                 },
                 onClose: async () => {
-                    // X hanya menutup Snap. Status transaksi tidak diubah.
+                    // X menutup Snap. Tidak membatalkan transaksi.
                     console.log("Midtrans Snap closed by customer");
                     await returnToCustomerInvoice();
                 }
             });
+
+            startSnapCloseWatcher();
 
             return true;
         } catch (error) {
