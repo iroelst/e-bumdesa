@@ -10710,11 +10710,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (pay) await openCustomerInvoice(pay.dataset.payInvoice);
     });
     $("customerSubBackBtn").addEventListener("click", async () => {
-        if (customerSubscriptionContext?.profile) {
-            await loadDashboard(customerSubscriptionContext.profile);
-        } else {
-            showOnly("appPage");
+        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+
+        if (sessionError || !sessionData?.session) {
+            showOnly("loginPage");
+            return;
         }
+
+        // Jangan langsung membuka Dashboard. Periksa kembali status
+        // langganan dari database agar pending/expired/cancelled tetap
+        // kembali ke halaman Langganan, sedangkan yang sudah aktif
+        // baru boleh masuk Dashboard.
+        await handleUser(sessionData.session.user);
     });
     $("invoiceBackBtn").addEventListener("click", async () => {
         showOnly("customerSubscriptionPage");
