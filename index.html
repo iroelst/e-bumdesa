@@ -2316,6 +2316,8 @@
 <style>
 .cashbank-detail-filter{display:grid;grid-template-columns:1fr 1fr 150px;gap:10px;padding:12px 14px;border-bottom:1px solid #edf1f5;background:#fbfcfe}.cashbank-detail-filter .form-label{font-size:10px;font-weight:700;color:#68788b;margin-bottom:4px}.cashbank-detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;border-bottom:1px solid #edf1f5}.cashbank-detail-summary>div{padding:9px 10px;border:1px solid #e5eaf0;border-radius:9px;background:#fff}.cashbank-detail-summary span{display:block;font-size:9px;color:#8793a1;margin-bottom:4px}.cashbank-detail-summary strong{font-size:12px;color:#26374c}@media(max-width:700px){.cashbank-detail-filter{grid-template-columns:1fr 1fr}.cashbank-detail-filter>div:last-child{grid-column:1/-1}.cashbank-detail-summary{grid-template-columns:1fr 1fr}}
 </style>
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-_McO0oBNksRNwDb1"></script>
+
 </head>
 
 <body>
@@ -10746,25 +10748,48 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
 
         try {
-            // Selalu panggil Edge Function. Jangan menggunakan payment_url lama
-            // dari browser karena URL tersebut bisa sudah expired di Midtrans.
             const { data, error } = await supabaseClient.functions.invoke(
                 "create-midtrans-payment",
                 { body: { invoice_id: invoiceId } }
             );
 
             if (error) throw error;
+
             if (data?.already_paid) {
                 alert("Invoice ini sudah dibayar.");
                 return false;
             }
 
-            const paymentUrl = data?.payment_url;
-            if (!paymentUrl) {
-                throw new Error(data?.message || "Tautan pembayaran Midtrans belum tersedia.");
+            const snapToken = data?.snap_token;
+            if (!snapToken) {
+                throw new Error(data?.message || "Token pembayaran Midtrans belum tersedia.");
             }
 
-            window.location.href = paymentUrl;
+            if (typeof window.snap?.pay !== "function") {
+                throw new Error("Midtrans Snap belum siap. Silakan refresh halaman.");
+            }
+
+            window.snap.pay(snapToken, {
+                onSuccess: async (result) => {
+                    console.log("Midtrans Snap success:", result);
+                    await openCustomerInvoice(invoiceId);
+                },
+                onPending: async (result) => {
+                    // Indomaret memang berstatus pending setelah kode pembayaran dibuat.
+                    // Jangan menutup/navigasi dari callback ini; biarkan Snap tetap terbuka.
+                    console.log("Midtrans Snap pending:", result);
+                },
+                onError: async (result) => {
+                    console.error("Midtrans Snap error:", result);
+                    await openCustomerInvoice(invoiceId);
+                },
+                onClose: async () => {
+                    // X hanya menutup Snap. Status transaksi tidak diubah.
+                    // Kembali ke halaman status invoice e-BUMDesa.
+                    await openCustomerInvoice(invoiceId);
+                }
+            });
+
             return true;
         } catch (error) {
             console.error("Gagal menyiapkan pembayaran:", error);
