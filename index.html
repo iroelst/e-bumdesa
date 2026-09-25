@@ -10724,6 +10724,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 await loadCustomerInvoices(customerSubscriptionContext.profile.bumdes_id);
             }
 
+            // Baca ulang invoice langsung dari database setelah cancel agar label
+            // segera berubah menjadi Dibatalkan tanpa reload halaman.
             if (currentInvoice?.id === invoiceId) {
                 await openCustomerInvoice(invoiceId);
             }
@@ -10968,6 +10970,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
 
             showOnly("customerSubscriptionPage");
+            // Refresh data langsung dari Supabase; tidak reload browser.
             await loadCustomerInvoices(profile.bumdes_id);
         } catch (error) {
             console.error("Gagal memeriksa status langganan:", error);
