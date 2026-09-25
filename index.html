@@ -10769,10 +10769,24 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 throw new Error("Midtrans Snap belum siap. Silakan refresh halaman.");
             }
 
+            async function returnToCustomerInvoice() {
+                // Pastikan context langganan tersedia. Jika context hilang setelah
+                // popup Snap ditutup, muat ulang context lalu buka invoice.
+                if (!customerSubscriptionContext?.profile?.bumdes_id) {
+                    await openCustomerSubscription();
+                }
+
+                if (customerSubscriptionContext?.profile?.bumdes_id) {
+                    await openCustomerInvoice(invoiceId);
+                } else {
+                    console.error("Context langganan tidak tersedia saat kembali dari Midtrans.");
+                }
+            }
+
             window.snap.pay(snapToken, {
                 onSuccess: async (result) => {
                     console.log("Midtrans Snap success:", result);
-                    await openCustomerInvoice(invoiceId);
+                    await returnToCustomerInvoice();
                 },
                 onPending: async (result) => {
                     // Indomaret memang berstatus pending setelah kode pembayaran dibuat.
@@ -10781,12 +10795,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 },
                 onError: async (result) => {
                     console.error("Midtrans Snap error:", result);
-                    await openCustomerInvoice(invoiceId);
+                    await returnToCustomerInvoice();
                 },
                 onClose: async () => {
                     // X hanya menutup Snap. Status transaksi tidak diubah.
-                    // Kembali ke halaman status invoice e-BUMDesa.
-                    await openCustomerInvoice(invoiceId);
+                    // Setelah X, selalu kembali ke halaman status invoice.
+                    await returnToCustomerInvoice();
                 }
             });
 
