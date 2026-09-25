@@ -3227,6 +3227,7 @@
         const paymentReturn = new URLSearchParams(window.location.search).get("payment_return");
         const returnInvoiceId = new URLSearchParams(window.location.search).get("invoice_id");
         if (paymentReturn && profile.role === "admin_pusat" && profile.bumdes_id) {
+            // Selalu siapkan context langganan terlebih dahulu.
             await openCustomerSubscription();
 
             const returnMessage = {
@@ -3237,14 +3238,12 @@
 
             if (returnMessage) alert(returnMessage);
 
-            if (returnInvoiceId) {
-                setTimeout(async () => {
-                    try {
-                        await loadCustomerInvoices(profile.bumdes_id);
-                    } catch (e) {
-                        console.warn("Gagal refresh invoice setelah return Midtrans:", e);
-                    }
-                }, 700);
+            // Jika Midtrans mengembalikan browser melalui Finish/Unfinish/Error URL,
+            // jangan berhenti di halaman Langganan. Buka langsung detail invoice.
+            if (returnInvoiceId && customerSubscriptionContext?.profile?.bumdes_id) {
+                await openCustomerInvoice(returnInvoiceId);
+            } else if (customerSubscriptionContext?.profile?.bumdes_id) {
+                await loadCustomerInvoices(profile.bumdes_id);
             }
 
             // Bersihkan parameter return agar refresh browser tidak mengulang pesan.
@@ -10799,7 +10798,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 },
                 onClose: async () => {
                     // X hanya menutup Snap. Status transaksi tidak diubah.
-                    // Setelah X, selalu kembali ke halaman status invoice.
+                    console.log("Midtrans Snap closed by customer");
                     await returnToCustomerInvoice();
                 }
             });
