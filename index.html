@@ -2316,6 +2316,7 @@
 <style>
 .cashbank-detail-filter{display:grid;grid-template-columns:1fr 1fr 150px;gap:10px;padding:12px 14px;border-bottom:1px solid #edf1f5;background:#fbfcfe}.cashbank-detail-filter .form-label{font-size:10px;font-weight:700;color:#68788b;margin-bottom:4px}.cashbank-detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;border-bottom:1px solid #edf1f5}.cashbank-detail-summary>div{padding:9px 10px;border:1px solid #e5eaf0;border-radius:9px;background:#fff}.cashbank-detail-summary span{display:block;font-size:9px;color:#8793a1;margin-bottom:4px}.cashbank-detail-summary strong{font-size:12px;color:#26374c}@media(max-width:700px){.cashbank-detail-filter{grid-template-columns:1fr 1fr}.cashbank-detail-filter>div:last-child{grid-column:1/-1}.cashbank-detail-summary{grid-template-columns:1fr 1fr}}
 </style>
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-_McO0oBNksRNwDb1"></script>
 </head>
 
 <body>
@@ -10759,12 +10760,30 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 return false;
             }
 
-            const paymentUrl = data?.payment_url;
-            if (!paymentUrl) {
-                throw new Error(data?.message || "Tautan pembayaran Midtrans belum tersedia.");
+            const snapToken = data?.snap_token;
+            if (!snapToken) {
+                throw new Error(data?.message || "Token pembayaran Midtrans belum tersedia.");
+            }
+            if (typeof window.snap?.pay !== "function") {
+                throw new Error("Midtrans Snap belum siap. Silakan refresh halaman.");
             }
 
-            window.location.href = paymentUrl;
+            window.snap.pay(snapToken, {
+                onSuccess: async () => {
+                    await handleUser();
+                },
+                onPending: async () => {
+                    await handleUser();
+                },
+                onError: async (result) => {
+                    console.error("Midtrans Snap error:", result);
+                    await handleUser();
+                },
+                onClose: async () => {
+                    // Klik X: tetap di e-BUMDesa. Tidak melakukan redirect.
+                    await handleUser();
+                }
+            });
             return true;
         } catch (error) {
             console.error("Gagal menyiapkan pembayaran:", error);
@@ -10833,10 +10852,46 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (cancel) await cancelInvoicePayment(cancel.dataset.cancelInvoice, cancel);
     });
     $("customerSubBackBtn").addEventListener("click", async () => {
-        if (customerSubscriptionContext?.profile) {
-            await loadDashboard(customerSubscriptionContext.profile);
-        } else {
+        // Jangan langsung membuka Dashboard. Periksa ulang subscription terlebih dahulu.
+        // Jika masih pending/cancelled/expired, pengguna tetap berada di halaman Langganan.
+        const profile = customerSubscriptionContext?.profile;
+        if (!profile?.id || !profile?.bumdes_id) {
             showOnly("appPage");
+            return;
+        }
+
+        try {
+            const { data: subscription, error } = await supabaseClient
+                .from("subscriptions")
+                .select("id, plan_name, amount, billing_period_months, status, started_at, expires_at")
+                .eq("bumdes_id", profile.bumdes_id)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            const expiresAt = subscription?.expires_at ? new Date(subscription.expires_at) : null;
+            const isActive = subscription?.status === "active" && expiresAt && expiresAt > new Date();
+
+            if (isActive) {
+                await loadDashboard(profile);
+                return;
+            }
+
+            customerSubscriptionContext.subscription = subscription;
+            $("customerSubStatus").textContent = subscription?.status === "active"
+                ? "Aktif"
+                : (subscription?.status || "Belum aktif");
+            $("customerSubExpires").textContent = subscription?.expires_at
+                ? fmtDate(subscription.expires_at)
+                : "-";
+            $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
+
+            showOnly("customerSubscriptionPage");
+            await loadCustomerInvoices(profile.bumdes_id);
+        } catch (error) {
+            console.error("Gagal memeriksa status langganan:", error);
+            showOnly("customerSubscriptionPage");
+            await loadCustomerInvoices(profile.bumdes_id);
         }
     });
     $("invoiceBackBtn").addEventListener("click", async () => {
