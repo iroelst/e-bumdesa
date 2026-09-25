@@ -10738,6 +10738,57 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
     }
 
+    let midtransSnapPromise = null;
+
+    async function ensureMidtransSnap(clientKey) {
+        if (window.snap && typeof window.snap.pay === "function") return window.snap;
+        if (!clientKey) {
+            throw new Error("MIDTRANS_CLIENT_KEY belum dikonfigurasi pada Edge Function.");
+        }
+        if (midtransSnapPromise) return midtransSnapPromise;
+
+        midtransSnapPromise = new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[data-midtrans-snap="true"]');
+            if (existing) {
+                existing.addEventListener("load", () => resolve(window.snap));
+                existing.addEventListener("error", () => reject(new Error("Gagal memuat Snap Midtrans.")));
+                return;
+            }
+
+            const script = document.createElement("script");
+            script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+            script.setAttribute("data-client-key", clientKey);
+            script.setAttribute("data-midtrans-snap", "true");
+            script.onload = () => {
+                if (window.snap && typeof window.snap.pay === "function") {
+                    resolve(window.snap);
+                } else {
+                    reject(new Error("Snap Midtrans berhasil dimuat tetapi API Snap tidak tersedia."));
+                }
+            };
+            script.onerror = () => reject(new Error("Gagal memuat Snap Midtrans. Periksa koneksi internet atau konfigurasi Client Key."));
+            document.head.appendChild(script);
+        }).catch((error) => {
+            midtransSnapPromise = null;
+            throw error;
+        });
+
+        return midtransSnapPromise;
+    }
+
+    async function refreshInvoiceAfterSnap(invoiceId) {
+        try {
+            if (customerSubscriptionContext?.profile?.bumdes_id) {
+                await loadCustomerInvoices(customerSubscriptionContext.profile.bumdes_id);
+            }
+            if (currentInvoice?.id === invoiceId && !$("invoicePrintPage").classList.contains("hidden")) {
+                await openCustomerInvoice(invoiceId);
+            }
+        } catch (error) {
+            console.warn("Gagal menyegarkan status invoice setelah Snap:", error);
+        }
+    }
+
     async function startInvoicePayment(invoiceId, button = null) {
         const originalHtml = button ? button.innerHTML : null;
         if (button) {
@@ -10746,8 +10797,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
 
         try {
-            // Selalu panggil Edge Function. Jangan menggunakan payment_url lama
-            // dari browser karena URL tersebut bisa sudah expired di Midtrans.
+            // Selalu minta backend mengecek status transaksi dan mendapatkan Snap Token terbaru.
             const { data, error } = await supabaseClient.functions.invoke(
                 "create-midtrans-payment",
                 { body: { invoice_id: invoiceId } }
@@ -10759,12 +10809,41 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 return false;
             }
 
-            const paymentUrl = data?.payment_url;
-            if (!paymentUrl) {
-                throw new Error(data?.message || "Tautan pembayaran Midtrans belum tersedia.");
+            const snapToken = data?.snap_token;
+            const clientKey = data?.client_key;
+            if (!snapToken) {
+                throw new Error(
+                    "Snap Token belum tersedia. Jika invoice ini berasal dari transaksi lama, batalkan transaksi tersebut lalu pilih Bayar Lagi."
+                );
             }
 
-            window.location.href = paymentUrl;
+            const snap = await ensureMidtransSnap(clientKey);
+
+            // Gunakan Snap Popup agar tombol X ditangani oleh onClose
+            // dan pengguna tetap berada di e-BUMDesa.
+            snap.pay(snapToken, {
+                language: "id",
+                onSuccess: async (result) => {
+                    console.log("Midtrans onSuccess:", result);
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    await refreshInvoiceAfterSnap(invoiceId);
+                    await openCustomerSubscription();
+                },
+                onPending: async (result) => {
+                    console.log("Midtrans onPending:", result);
+                    await refreshInvoiceAfterSnap(invoiceId);
+                },
+                onError: async (result) => {
+                    console.error("Midtrans onError:", result);
+                    await refreshInvoiceAfterSnap(invoiceId);
+                    alert("Pembayaran belum berhasil diproses. Silakan periksa status invoice.");
+                },
+                onClose: async () => {
+                    console.log("Midtrans onClose: pengguna menutup Snap sebelum menyelesaikan pembayaran.");
+                    await refreshInvoiceAfterSnap(invoiceId);
+                }
+            });
+
             return true;
         } catch (error) {
             console.error("Gagal menyiapkan pembayaran:", error);
