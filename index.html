@@ -2761,7 +2761,7 @@
             Invoice ini diterbitkan secara otomatis oleh sistem e-BUMDesa. Simpan invoice ini sebagai bukti tagihan layanan.
         </div>
         <div class="invoice-print-actions no-print">
-            <button id="invoiceBackBtn" class="invoice-btn" type="button">Kembali</button>
+            <button id="invoiceBackBtn" class="invoice-btn" type="button"><i class="bi bi-arrow-left me-1"></i> Kembali ke Metode Pembayaran</button>
             <button id="invoicePrintBtn" class="invoice-btn primary" type="button">
                 <i class="bi bi-printer me-1"></i> Cetak / Simpan PDF
             </button>
@@ -3216,6 +3216,37 @@
             return;
         }
 
+        // Return dari Midtrans: selalu kembalikan Admin Pusat ke halaman
+        // metode/invoice pembayaran. Ini menjadi jalur keluar jika user
+        // salah memilih metode, membatalkan pembayaran, atau transaksi error.
+        const paymentReturn = new URLSearchParams(window.location.search).get("payment_return");
+        const returnInvoiceId = new URLSearchParams(window.location.search).get("invoice_id");
+        if (paymentReturn && profile.role === "admin_pusat" && profile.bumdes_id) {
+            await openCustomerSubscription();
+
+            const returnMessage = {
+                finish: "Anda kembali dari halaman pembayaran. Status pembayaran sedang disinkronkan.",
+                unfinish: "Pembayaran belum selesai. Silakan pilih pembayaran lagi jika ingin melanjutkan.",
+                error: "Pembayaran tidak dapat diselesaikan. Silakan pilih pembayaran lagi."
+            }[paymentReturn];
+
+            if (returnMessage) alert(returnMessage);
+
+            if (returnInvoiceId) {
+                setTimeout(async () => {
+                    try {
+                        await loadCustomerInvoices(profile.bumdes_id);
+                    } catch (e) {
+                        console.warn("Gagal refresh invoice setelah return Midtrans:", e);
+                    }
+                }, 700);
+            }
+
+            // Bersihkan parameter return agar refresh browser tidak mengulang pesan.
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+
         // Semua pengguna BUMDes harus memiliki langganan aktif.
         const { data: subscription, error: subscriptionError } = await supabaseClient
             .from("subscriptions")
@@ -3288,16 +3319,18 @@
         if (messageEl) messageEl.textContent = message;
         payBtn.innerHTML = `<i class="bi bi-credit-card-2-front me-2"></i>${buttonLabel}`;
 
-        // Invoice dibuat otomatis oleh sistem. Ambil invoice pending terbaru
-        // milik BUMDes ini agar tombol langsung menuju pembayaran Midtrans.
+        // Invoice dibuat otomatis oleh sistem. Ambil invoice terbaru yang
+        // masih dapat dibayar ulang. URL Midtrans lama TIDAK digunakan langsung;
+        // Edge Function akan memeriksa status transaksi dan membuat transaksi baru
+        // bila transaksi sebelumnya sudah expired/cancelled/failed.
         let pendingInvoice = null;
         if (profile?.bumdes_id && status !== "suspended") {
             const { data: invoice, error: invoiceError } = await supabaseClient
                 .from("payments")
-                .select("id, invoice_number, amount, status, payment_url, expired_at, created_at")
+                .select("id, invoice_number, amount, status, payment_url, expired_at, created_at, metadata")
                 .eq("bumdes_id", profile.bumdes_id)
-                .eq("status", "pending")
                 .eq("payment_provider", "midtrans")
+                .in("status", ["pending", "expired", "cancelled", "failed"])
                 .order("created_at", { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -10638,11 +10671,51 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 <div class="invoice-meta">${p.paid_at ? "Dibayar " + fmtDateTime(p.paid_at) : (p.expired_at ? "Jatuh tempo " + fmtDateTime(p.expired_at) : "")}</div>
                 <div>
                     <button class="invoice-btn" type="button" data-view-invoice="${escapeHtml(p.id)}">Lihat</button>
-                    ${p.status === "pending" ? `<button class="invoice-btn primary" type="button" data-pay-invoice="${escapeHtml(p.id)}">Bayar</button>` : ""}
+                    ${["pending", "expired", "cancelled", "failed"].includes(p.status) ? `<button class="invoice-btn primary" type="button" data-pay-invoice="${escapeHtml(p.id)}">${p.status === "pending" ? "Bayar" : "Bayar Lagi"}</button>` : ""}
                 </div>
             </div>
         `).join("");
     }
+    async function startInvoicePayment(invoiceId, button = null) {
+        const originalHtml = button ? button.innerHTML : null;
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menyiapkan...`;
+        }
+
+        try {
+            // Selalu panggil Edge Function. Jangan menggunakan payment_url lama
+            // dari browser karena URL tersebut bisa sudah expired di Midtrans.
+            const { data, error } = await supabaseClient.functions.invoke(
+                "create-midtrans-payment",
+                { body: { invoice_id: invoiceId } }
+            );
+
+            if (error) throw error;
+            if (data?.already_paid) {
+                alert("Invoice ini sudah dibayar.");
+                return false;
+            }
+
+            const paymentUrl = data?.payment_url;
+            if (!paymentUrl) {
+                throw new Error(data?.message || "Tautan pembayaran Midtrans belum tersedia.");
+            }
+
+            window.location.href = paymentUrl;
+            return true;
+        } catch (error) {
+            console.error("Gagal menyiapkan pembayaran:", error);
+            alert("Gagal menyiapkan pembayaran: " + (error?.message || "Terjadi kesalahan."));
+            return false;
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            }
+        }
+    }
+
     async function openCustomerInvoice(invoiceId) {
         const ctx = customerSubscriptionContext;
         if (!ctx?.profile?.bumdes_id) return;
@@ -10668,8 +10741,16 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         $("invoicePrintPeriod").textContent = `${p.metadata?.billing_period_months || ctx.subscription?.billing_period_months || 1} Bulan`;
         $("invoicePrintAmount").textContent = rupiah(p.amount);
         $("invoicePrintTotal").textContent = rupiah(p.amount);
-        $("invoicePrintStatus").textContent = "Status: " + (p.status || "pending");
+        $("invoicePrintStatus").textContent = "Status: " + invoiceStatusLabel(p.status);
         currentInvoice = p;
+
+        const invoicePayBtn = $("invoicePayBtn");
+        const canPay = ["pending", "expired", "cancelled", "failed"].includes(p.status);
+        invoicePayBtn.disabled = !canPay;
+        invoicePayBtn.innerHTML = canPay
+            ? `<i class="bi bi-credit-card me-1"></i>${p.status === "pending" ? "Bayar Sekarang" : "Bayar Lagi"}`
+            : `<i class="bi bi-check-circle me-1"></i>Lunas`;
+
         showOnly("invoicePrintPage");
     }
 
@@ -10695,12 +10776,9 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (customerSubscriptionContext?.profile?.bumdes_id) await loadCustomerInvoices(customerSubscriptionContext.profile.bumdes_id);
     });
     $("invoicePrintBtn").addEventListener("click", () => window.print());
-    $("invoicePayBtn").addEventListener("click", () => {
-        if (currentInvoice?.payment_url) {
-            window.location.href = currentInvoice.payment_url;
-        } else {
-            alert("Invoice ini belum memiliki tautan pembayaran. Integrasi Midtrans akan mengisinya secara otomatis.");
-        }
+    $("invoicePayBtn").addEventListener("click", async () => {
+        if (!currentInvoice?.id) return;
+        await startInvoicePayment(currentInvoice.id, $("invoicePayBtn"));
     });
 
     $("superAdminLogoutBtn").addEventListener("click", async () => {
@@ -10732,44 +10810,14 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     });
 
     $("subscriptionPayBtn").addEventListener("click", async () => {
-        const btn = $("subscriptionPayBtn");
         const invoice = window.pendingSubscriptionInvoice;
 
-        if (!invoice) {
+        if (!invoice?.id) {
             alert("Invoice pembayaran belum tersedia. Silakan coba lagi beberapa saat lagi.");
             return;
         }
 
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyiapkan pembayaran...`;
-
-        try {
-            let paymentUrl = invoice.payment_url;
-
-            // Jika invoice belum mempunyai payment_url, minta Edge Function
-            // membuat transaksi Snap Midtrans untuk invoice tersebut.
-            if (!paymentUrl) {
-                const { data, error } = await supabaseClient.functions.invoke(
-                    "create-midtrans-payment",
-                    { body: { invoice_id: invoice.id } }
-                );
-
-                if (error) throw error;
-                paymentUrl = data?.payment_url;
-            }
-
-            if (!paymentUrl) {
-                throw new Error("Tautan pembayaran Midtrans belum tersedia.");
-            }
-
-            window.location.href = paymentUrl;
-        } catch (error) {
-            console.error("Gagal menyiapkan pembayaran:", error);
-            alert("Gagal menyiapkan pembayaran: " + (error.message || "Terjadi kesalahan."));
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        }
+        await startInvoicePayment(invoice.id, $("subscriptionPayBtn"));
     });
 
     // =========================================================
