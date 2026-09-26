@@ -5882,21 +5882,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     // MODUL LAPORAN KEUANGAN — FORMAT PEDOMAN 42–55
     // =========================================================
     function reportPeriodPreset(type){
+        // Laporan sepenuhnya berbasis rentang tanggal.
+        // Tahun buku tetap mengikuti kalender 1 Januari–31 Desember.
         const now = new Date();
         const y = now.getFullYear();
-        const m = now.getMonth()+1;
-        const d = now.getDate();
-        if(type === 'bulanan'){
-            const last = new Date(y,m,0).getDate();
-            return {start:`${y}-${String(m).padStart(2,'0')}-01`, end:`${y}-${String(m).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`, label:'Bulan Berjalan'};
-        }
-        if(type === 'semester'){
-            const s = m <= 6 ? 1 : 7;
-            const e = s === 1 ? 6 : 12;
-            const last = new Date(y,e,0).getDate();
-            return {start:`${y}-${String(s).padStart(2,'0')}-01`, end:`${y}-${String(e).padStart(2,'0')}-${String(last).padStart(2,'0')}`, label:s===1?'Semester I':'Semester II'};
-        }
-        return {start:`${y}-01-01`, end:`${y}-12-31`, label:'Tahunan'};
+        return {start:`${y}-01-01`, end:`${y}-12-31`, label:'Tahun Buku Berjalan'};
     }
 
     function reportScopeOptions(profile, units){
@@ -6583,9 +6573,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     ${Object.entries(reportNames).map(([k,v])=>`<button class="report-tab ${k===module?'active':''}" data-report-tab="${k}">${escapeHtml(v.replace('Laporan ',''))}</button>`).join('')}
                 </div>
                 <div class="report-control-grid">
-                    <div><div class="report-control-label">Periode</div><select id="reportPreset" class="form-select"><option value="bulanan">Bulanan</option><option value="semester">Semester</option><option value="tahunan" ${activeReportHistory?'':'selected'}>Tahunan</option><option value="custom" ${activeReportHistory?'selected':''}>Custom</option></select></div>
-                    <div><div class="report-control-label">Dari</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
-                    <div><div class="report-control-label">Sampai</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
+                    <div><div class="report-control-label">Tanggal Mulai</div><input id="reportStart" type="date" class="form-control" value="${preset.start}"></div>
+                    <div><div class="report-control-label">Tanggal Akhir</div><input id="reportEnd" type="date" class="form-control" value="${preset.end}"></div>
                     <div><div class="report-control-label">Lingkup Laporan</div><select id="reportScope" class="form-select">${scopeOptions}</select></div>
                     <div class="report-actions"><button id="btnGenerateReport" class="report-btn report-btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Tampilkan</button><button id="btnPrintReport" class="report-btn report-btn-light"><i class="bi bi-printer me-1"></i>Cetak / Simpan PDF</button></div>
                 </div>
@@ -6595,8 +6584,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             <div id="financialReportOutput" class="report-card"><div class="report-empty"><div class="spinner-border spinner-border-sm me-2"></div>Menyiapkan laporan...</div></div>
         </div>`);
 
-        const presetEl=$('reportPreset'), startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
-        presetEl.addEventListener('change',()=>{if(presetEl.value!=='custom'){const p=reportPeriodPreset(presetEl.value);startEl.value=p.start;endEl.value=p.end;}});
+        const startEl=$('reportStart'), endEl=$('reportEnd'), scopeEl=$('reportScope');
         document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.addEventListener('click',()=>openAppModule(btn.dataset.reportTab, true)));
         $('btnPrintReport').addEventListener('click', async ()=>{
             try{
