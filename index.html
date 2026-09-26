@@ -1565,6 +1565,19 @@
         .invoice-status-box { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-top:16px; padding:11px 13px; border-radius:9px; background:#f8fafc; border:1px solid #e7edf3; }
         .invoice-status-label { color:#7b8da1; font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
         .invoice-status-value { font-size:11px; font-weight:850; color:#9a6a00; }
+        .payment-attempt-history { margin-top:16px; padding:14px; border:1px solid #e7edf3; border-radius:10px; background:#fff; }
+        .payment-attempt-history-title { margin-bottom:10px; font-size:10px; font-weight:850; color:#52667d; text-transform:uppercase; letter-spacing:.5px; }
+        .payment-attempt-item { display:grid; grid-template-columns:28px 1fr auto; gap:10px; align-items:center; padding:9px 0; border-top:1px solid #edf1f5; }
+        .payment-attempt-item:first-child { border-top:0; padding-top:0; }
+        .payment-attempt-number { width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#edf4ff; color:#2f67b7; font-size:10px; font-weight:850; }
+        .payment-attempt-main { min-width:0; }
+        .payment-attempt-method { color:#34495e; font-size:10px; font-weight:750; }
+        .payment-attempt-meta { margin-top:2px; color:#8a98a8; font-size:8.5px; line-height:1.45; overflow-wrap:anywhere; }
+        .payment-attempt-status { white-space:nowrap; padding:4px 7px; border-radius:999px; background:#f5f7fa; color:#69798a; font-size:8.5px; font-weight:800; }
+        .payment-attempt-status.pending { background:#fff6dc; color:#9a6900; }
+        .payment-attempt-status.paid { background:#eaf6e5; color:#4e7c31; }
+        .payment-attempt-status.cancelled, .payment-attempt-status.failed { background:#fdecec; color:#a54848; }
+        .payment-attempt-status.expired { background:#f1f3f5; color:#68798a; }
         .invoice-print-note { margin-top:20px; padding-top:14px; border-top:1px dashed #dfe6ee; color:#7b8998; font-size:9px; line-height:1.55; }
         .invoice-print-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
         @media print {
@@ -2758,6 +2771,10 @@
         <div class="invoice-status-box">
             <div class="invoice-status-label">Status Pembayaran</div>
             <div id="invoicePrintStatus" class="invoice-status-value">Pending</div>
+        </div>
+        <div id="paymentAttemptHistory" class="payment-attempt-history hidden">
+            <div class="payment-attempt-history-title">Riwayat Percobaan Pembayaran</div>
+            <div id="paymentAttemptHistoryList"></div>
         </div>
         <div class="invoice-print-note">
             Invoice ini diterbitkan secara otomatis oleh sistem e-BUMDesa. Simpan invoice ini sebagai bukti tagihan layanan.
@@ -10703,45 +10720,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 { body: { invoice_id: invoiceId } }
             );
 
-            if (error) {
-                // Supabase FunctionsHttpError menyimpan response asli Edge Function
-                // di error.context. Tampilkan isi response agar error Midtrans
-                // tidak tertutup oleh pesan generik "non-2xx status code".
-                let detail = error?.message || "Terjadi kesalahan.";
-
-                try {
-                    if (error?.context && typeof error.context.json === "function") {
-                        const body = await error.context.json();
-
-                        if (body?.message) {
-                            detail = body.message;
-                        } else if (body?.error) {
-                            detail = typeof body.error === "string"
-                                ? body.error
-                                : (body.error?.message || JSON.stringify(body.error));
-                        }
-
-                        const extra = [];
-                        if (body?.midtrans_status_code) {
-                            extra.push(`Kode Midtrans: ${body.midtrans_status_code}`);
-                        }
-                        if (body?.payment_status) {
-                            extra.push(`Status Midtrans: ${body.payment_status}`);
-                        }
-                        if (body?.order_id) {
-                            extra.push(`Order ID: ${body.order_id}`);
-                        }
-
-                        if (extra.length) {
-                            detail += "\n\n" + extra.join("\n");
-                        }
-                    }
-                } catch (parseError) {
-                    console.warn("Tidak dapat membaca response error Edge Function:", parseError);
-                }
-
-                throw new Error(detail);
-            }
+            if (error) throw error;
 
             if (data?.already_paid) {
                 alert("Pembayaran sudah berhasil sehingga tidak dapat dibatalkan.");
@@ -10944,13 +10923,78 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
     }
 
+    function paymentAttemptStatusLabel(status) {
+        const map = {
+            pending: "Menunggu Pembayaran",
+            paid: "Lunas",
+            cancelled: "Dibatalkan",
+            expired: "Kedaluwarsa",
+            failed: "Gagal",
+            deny: "Gagal"
+        };
+        return map[status] || status || "-";
+    }
+
+    function paymentMethodLabel(method) {
+        const map = {
+            cstore: "Indomaret / Retail",
+            bank_transfer: "Transfer Bank",
+            bca_va: "BCA Virtual Account",
+            bni_va: "BNI Virtual Account",
+            bri_va: "BRI Virtual Account",
+            permata_va: "Permata Virtual Account",
+            gopay: "GoPay",
+            qris: "QRIS",
+            credit_card: "Kartu"
+        };
+        return map[method] || method || "Metode pembayaran";
+    }
+
+    function renderPaymentAttemptHistory(payment) {
+        const box = $("paymentAttemptHistory");
+        const list = $("paymentAttemptHistoryList");
+        if (!box || !list) return;
+
+        const attempts = Array.isArray(payment?.metadata?.payment_attempts)
+            ? payment.metadata.payment_attempts.filter(v => v && typeof v === "object")
+            : [];
+
+        if (!attempts.length) {
+            box.classList.add("hidden");
+            list.innerHTML = "";
+            return;
+        }
+
+        const activeOrderId = payment.external_payment_id || payment.metadata?.order_id || null;
+        const sorted = [...attempts].sort((a,b) => Number(b.attempt || 0) - Number(a.attempt || 0));
+
+        list.innerHTML = sorted.map(a => {
+            const status = String(a.status || "-").toLowerCase();
+            const active = activeOrderId && a.order_id === activeOrderId;
+            const dateText = a.created_at ? fmtDateTime(a.created_at) : "-";
+            const expiryText = a.expiry_time ? ` · Jatuh tempo ${fmtDateTime(a.expiry_time)}` : "";
+            const activeText = active ? " · Transaksi aktif" : "";
+            return `
+                <div class="payment-attempt-item">
+                    <div class="payment-attempt-number">${escapeHtml(a.attempt || "-")}</div>
+                    <div class="payment-attempt-main">
+                        <div class="payment-attempt-method">${escapeHtml(paymentMethodLabel(a.payment_method))}</div>
+                        <div class="payment-attempt-meta">${escapeHtml(dateText + expiryText + activeText)}<br>${escapeHtml(a.order_id || "-")}</div>
+                    </div>
+                    <div class="payment-attempt-status ${escapeHtml(status)}">${escapeHtml(paymentAttemptStatusLabel(status))}</div>
+                </div>`;
+        }).join("");
+
+        box.classList.remove("hidden");
+    }
+
     async function openCustomerInvoice(invoiceId) {
         const ctx = customerSubscriptionContext;
         if (!ctx?.profile?.bumdes_id) return;
 
         const { data:p, error } = await supabaseClient
             .from("payments")
-            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
+            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,external_payment_id,metadata")
             .eq("id",invoiceId).eq("bumdes_id",ctx.profile.bumdes_id).maybeSingle();
 
         if (error || !p) { alert("Invoice tidak ditemukan."); return; }
@@ -10970,6 +11014,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         $("invoicePrintAmount").textContent = rupiah(p.amount);
         $("invoicePrintTotal").textContent = rupiah(p.amount);
         $("invoicePrintStatus").textContent = "Status: " + invoiceStatusLabel(p.status);
+        renderPaymentAttemptHistory(p);
         currentInvoice = p;
 
         const invoicePayBtn = $("invoicePayBtn");
