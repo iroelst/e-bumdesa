@@ -10777,14 +10777,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             // dimuat ulang tanpa menjalankan callback onClose.
             sessionStorage.setItem("midtrans_return_invoice_id", invoiceId);
 
-            let returnedToInvoice = false;
+            let returnedFromSnap = false;
+            let paymentFlowStarted = false;
             let snapWatchTimer = null;
             let snapObserver = null;
 
-            async function returnToCustomerInvoice() {
-                if (returnedToInvoice) return;
-                returnedToInvoice = true;
-
+            function stopSnapWatcher() {
                 if (snapWatchTimer) {
                     clearInterval(snapWatchTimer);
                     snapWatchTimer = null;
@@ -10793,6 +10791,20 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     snapObserver.disconnect();
                     snapObserver = null;
                 }
+            }
+
+            async function returnToCustomerSubscription() {
+                if (returnedFromSnap) return;
+                returnedFromSnap = true;
+                stopSnapWatcher();
+                sessionStorage.removeItem("midtrans_return_invoice_id");
+                await openCustomerSubscription();
+            }
+
+            async function returnToCustomerInvoice() {
+                if (returnedFromSnap) return;
+                returnedFromSnap = true;
+                stopSnapWatcher();
 
                 if (!customerSubscriptionContext?.profile?.bumdes_id) {
                     await openCustomerSubscription();
@@ -10800,6 +10812,17 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 if (customerSubscriptionContext?.profile?.bumdes_id) {
                     await openCustomerInvoice(invoiceId);
                     sessionStorage.removeItem("midtrans_return_invoice_id");
+                }
+            }
+
+            async function handleSnapClosed() {
+                // Ada dua posisi X yang berbeda:
+                // 1. X pada halaman pemilihan metode pembayaran -> Langganan.
+                // 2. X setelah metode dipilih dan transaksi sudah pending -> Invoice.
+                if (paymentFlowStarted) {
+                    await returnToCustomerInvoice();
+                } else {
+                    await returnToCustomerSubscription();
                 }
             }
 
@@ -10824,7 +10847,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                         return;
                     }
                     if (!isSnapVisible()) {
-                        void returnToCustomerInvoice();
+                        void handleSnapClosed();
                     }
                 });
 
@@ -10839,7 +10862,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     if (!snapWasVisible) {
                         if (isSnapVisible()) snapWasVisible = true;
                     } else if (!isSnapVisible()) {
-                        void returnToCustomerInvoice();
+                        void handleSnapClosed();
                     }
                 }, 250);
             }
@@ -10850,8 +10873,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     await returnToCustomerInvoice();
                 },
                 onPending: async (result) => {
-                    // Indomaret memang berstatus pending setelah kode pembayaran dibuat.
-                    // Snap harus tetap terbuka.
+                    // Callback pending berarti metode pembayaran sudah dipilih dan
+                    // transaksi sudah dibuat/menunggu pembayaran. Jika setelah ini
+                    // pengguna menekan X, kembalikan ke halaman Invoice.
+                    paymentFlowStarted = true;
                     console.log("Midtrans Snap pending:", result);
                 },
                 onError: async (result) => {
@@ -10859,9 +10884,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     await returnToCustomerInvoice();
                 },
                 onClose: async () => {
-                    // X menutup Snap. Tidak membatalkan transaksi.
-                    console.log("Midtrans Snap closed by customer");
-                    await returnToCustomerInvoice();
+                    // X pada tahap awal kembali ke Langganan.
+                    // X setelah metode dipilih/pending kembali ke Invoice.
+                    console.log("Midtrans Snap closed by customer", { paymentFlowStarted });
+                    await handleSnapClosed();
                 }
             });
 
