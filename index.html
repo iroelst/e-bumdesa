@@ -4055,6 +4055,9 @@
             const addDerived = (row) => {
                 const account = accountMap.get(row.account_id);
                 if (!account) return;
+                // Hanya akun posisi keuangan yang dibawa menjadi saldo awal tahun berikutnya.
+                const accountType = String(account.account_type || '').toLowerCase();
+                if (!['aset','kewajiban','ekuitas'].includes(accountType)) return;
                 const d = Number(row.debit || 0);
                 const c = Number(row.credit || 0);
                 const delta = getNormalBalance(account) === "K" ? (c - d) : (d - c);
@@ -5881,12 +5884,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     // =========================================================
     // MODUL LAPORAN KEUANGAN — FORMAT PEDOMAN 42–55
     // =========================================================
-    function reportPeriodPreset(type){
-        // Laporan sepenuhnya berbasis rentang tanggal.
-        // Tahun buku tetap mengikuti kalender 1 Januari–31 Desember.
-        const now = new Date();
-        const y = now.getFullYear();
-        return {start:`${y}-01-01`, end:`${y}-12-31`, label:'Tahun Buku Berjalan'};
+    // Default laporan hanya menentukan tanggal awal/akhir buku berjalan.
+    // Jenis laporan tidak lagi memakai preset Bulanan/Semester/Tahunan/Custom;
+    // pengguna selalu menentukan rentang tanggal secara langsung.
+    function defaultAnnualReportRange(){
+        const y = new Date().getFullYear();
+        return {start:`${y}-01-01`, end:`${y}-12-31`, label:'Tahunan'};
     }
 
     function reportScopeOptions(profile, units){
@@ -6021,7 +6024,14 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 const prevJournals=await fetchReportRows(prevJQuery);
                 const add=(map,id,val)=>map.set(id,(map.get(id)||0)+Number(val||0));
                 const derived=new Map();
-                const addDerived=(r)=>{const a=accountMap.get(r.account_id);if(a)add(derived,r.account_id,reportNormalBalance(a,r.debit,r.credit));};
+                const addDerived=(r)=>{
+                    const a=accountMap.get(r.account_id);
+                    // Saldo awal tahun berikutnya hanya membawa akun posisi keuangan.
+                    // Pendapatan/HPP/beban tidak boleh terbawa ke tahun baru, bahkan jika
+                    // periode sebelumnya belum memiliki jurnal penutupan yang lengkap.
+                    const t=String(a?.account_type||'').toLowerCase();
+                    if(a && ['aset','kewajiban','ekuitas'].includes(t)) add(derived,r.account_id,reportNormalBalance(a,r.debit,r.credit));
+                };
                 prevOpenings.forEach(addDerived); prevJournals.forEach(addDerived);
                 openings=[...derived.entries()].map(([account_id,val])=>{const a=accountMap.get(account_id); const n=Number(val||0); const creditNormal=reportNormalBalance(a,0,1)>0; return {account_id,debit:creditNormal?(n<0?-n:0):(n>0?n:0),credit:creditNormal?(n>0?n:0):(n<0?-n:0)};});
             }
@@ -6053,10 +6063,11 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }
 
         const balances={}; const movements={}; const priors={}; const preClosingMovements={};
-        // Mutasi sebelum jurnal Tutup Buku dipertahankan khusus untuk Laporan Perubahan Ekuitas.
-        // Laporan tersebut mengikuti format resmi: laba/rugi periode berjalan tetap menjadi
-        // unsur pembentuk Saldo Laba Akhir, meskipun pada saldo akun berjalan laba sudah
-        // ditutup ke akun Saldo Laba. Dashboard/Laba Rugi berjalan tetap menggunakan movements.
+        // Mutasi sebelum jurnal Tutup Buku dipertahankan khusus untuk laporan berbasis
+        // aktivitas periode (Laba/Rugi dan Perubahan Ekuitas). Saldo Neraca tetap memakai
+        // jurnal penutupan karena jurnal tersebut memang mengubah saldo akun pada akhir tahun.
+        // Dengan demikian, setelah Tutup Buku laporan 1 Jan–31 Des tetap menunjukkan laba
+        // yang benar, bukan Rp0 akibat jurnal penutupan.
         const preClosingMoveMap=new Map();
         journals.forEach(j=>{
             if(excludedIds.includes(j.transaction_id)) return;
@@ -6065,9 +6076,20 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 add(preClosingMoveMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
             }
         });
+        // Untuk laporan aktivitas, keluarkan jurnal penutupan/pembukaan kembali dari mutasi.
+        // Ini berlaku baik saat membuka riwayat maupun saat pengguna memasukkan rentang tanggal
+        // yang sama secara manual setelah tahun buku ditutup.
+        const reportMovementMap=new Map();
+        journals.forEach(j=>{
+            if(excludedIds.includes(j.transaction_id)) return;
+            const a=accountMap.get(j.account_id); if(!a) return;
+            if(j.journal_date>=startDate && j.journal_date<=endDate){
+                add(reportMovementMap,j.account_id,reportNormalBalance(a,j.debit,j.credit));
+            }
+        });
         leafAccounts.forEach(a=>{
             balances[a.id]=balanceMap.get(a.id)||0;
-            movements[a.id]=moveMap.get(a.id)||0;
+            movements[a.id]=reportMovementMap.get(a.id)||0;
             priors[a.id]=priorMap.get(a.id)||0;
             preClosingMovements[a.id]=preClosingMoveMap.get(a.id)||0;
         });
@@ -6544,7 +6566,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const [{data:units,error:uErr}]=await Promise.all([supabaseClient.from('units').select('id,nama_unit,kode_unit,status').eq('bumdes_id',bumdesId).order('created_at',{ascending:true})]);
         if(uErr) throw uErr;
         activeReportUnits = units || [];
-        let defaultPreset=reportPeriodPreset('tahunan');
+        let defaultPreset=defaultAnnualReportRange();
         // Setelah tahun buku terakhir ditutup, laporan berjalan berpindah ke tahun berikutnya.
         // Riwayat tetap menggunakan periode lama melalui activeReportHistory.
         if(!activeReportHistory){
@@ -6622,7 +6644,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             if(module==='labarugi'){
                 const p=buildProfitLossReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Pendapatan</div><div class="report-mini-value">${reportSigned(p.grossRevenue)}</div></div><div class="report-mini-card"><div class="report-mini-label">HPP</div><div class="report-mini-value">${reportSigned(p.hpp)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Sebelum Bagi Hasil</div><div class="report-mini-value ${p.beforeBagiHasil<0?'report-negative':'report-positive'}">${reportSigned(p.beforeBagiHasil)}</div></div><div class="report-mini-card"><div class="report-mini-label">Laba Bersih Setelah Bagi Hasil</div><div class="report-mini-value ${p.net<0?'report-negative':'report-positive'}">${reportSigned(p.net)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(p.rows)}</tbody></table></div>`;
             } else if(module==='neraca'){
-                const b=buildBalanceSheetReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Total Aset</div><div class="report-mini-value">${reportSigned(b.totalAssets)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban</div><div class="report-mini-value">${reportSigned(b.totalLiab)}</div></div><div class="report-mini-card"><div class="report-mini-label">Ekuitas</div><div class="report-mini-value">${reportSigned(b.equity)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban + Ekuitas</div><div class="report-mini-value">${reportSigned(b.totalLiab+b.equity)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">${escapeHtml(String(Number(start.slice(0,4))-1))}</th><th class="num current-year">${escapeHtml(start.slice(0,4))}</th></tr></thead><tbody>${renderBalanceRows(b.rows,data,true)}</tbody></table></div>`;
+                const b=buildBalanceSheetReport(data); html+=`<div class="report-summary-strip"><div class="report-mini-card"><div class="report-mini-label">Total Aset</div><div class="report-mini-value">${reportSigned(b.totalAssets)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban</div><div class="report-mini-value">${reportSigned(b.totalLiab)}</div></div><div class="report-mini-card"><div class="report-mini-label">Ekuitas</div><div class="report-mini-value">${reportSigned(b.equity)}</div></div><div class="report-mini-card"><div class="report-mini-label">Kewajiban + Ekuitas</div><div class="report-mini-value">${reportSigned(b.totalLiab+b.equity)}</div></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Saldo Awal Periode</th><th class="num current-year">Saldo Akhir Periode</th></tr></thead><tbody>${renderBalanceRows(b.rows,data,true)}</tbody></table></div>`;
             } else if(module==='ekuitas'){
                 const p=buildProfitLossReport(data), e=buildEquityReport(data,p); html+=`<div class="report-table-wrap"><table class="report-table"><thead><tr><th class="no">No.</th><th>Uraian</th><th class="num">Jumlah (Rp)</th></tr></thead><tbody>${renderReportRows(e.rows)}</tbody></table></div>`;
             } else if(module==='aruskas'){
@@ -7385,6 +7407,133 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         });
     }
 
+    async function prepareNextAnnualPeriod(previousPeriodId) {
+        const bumdesId = activeAppProfile?.bumdes_id;
+        if (!bumdesId || !previousPeriodId) throw new Error("Periode sebelumnya tidak ditemukan.");
+
+        const { data: previousPeriod, error: previousPeriodError } = await supabaseClient
+            .from("account_periods")
+            .select("id,start_date,end_date,status")
+            .eq("id", previousPeriodId)
+            .eq("bumdes_id", bumdesId)
+            .maybeSingle();
+        if (previousPeriodError) throw previousPeriodError;
+        if (!previousPeriod) throw new Error("Periode sebelumnya tidak ditemukan.");
+
+        const previousYear = Number(String(previousPeriod.start_date).slice(0,4));
+        const nextYear = previousYear + 1;
+        const nextStart = `${nextYear}-01-01`;
+        const nextEnd = `${nextYear}-12-31`;
+
+        let { data: nextPeriod, error: nextPeriodError } = await supabaseClient
+            .from("account_periods")
+            .select("id,start_date,end_date,status")
+            .eq("bumdes_id", bumdesId)
+            .eq("period_type", "tahunan")
+            .eq("start_date", nextStart)
+            .eq("end_date", nextEnd)
+            .limit(1)
+            .maybeSingle();
+        if (nextPeriodError) throw nextPeriodError;
+
+        if (!nextPeriod) {
+            const { data: created, error: createError } = await supabaseClient
+                .from("account_periods")
+                .insert({
+                    bumdes_id: bumdesId,
+                    period_type: "tahunan",
+                    start_date: nextStart,
+                    end_date: nextEnd,
+                    status: "open"
+                })
+                .select("id,start_date,end_date,status")
+                .single();
+            if (createError) throw createError;
+            nextPeriod = created;
+        }
+
+        // Saldo awal tahun berikutnya dibuat otomatis dari saldo akhir tahun sebelumnya.
+        // Hanya akun Neraca (Aset, Kewajiban, Ekuitas) yang dibawa ke tahun berikutnya.
+        const { data: existingOpening, error: existingOpeningError } = await supabaseClient
+            .from("opening_balances")
+            .select("id")
+            .eq("bumdes_id", bumdesId)
+            .eq("period_id", nextPeriod.id)
+            .limit(1);
+        if (existingOpeningError) throw existingOpeningError;
+
+        if (!existingOpening?.length) {
+            const { data: accounts, error: accountError } = await supabaseClient
+                .from("chart_of_accounts")
+                .select("id,account_type,normal_balance,kode,level,is_active,bumdes_id")
+                .eq("level",4)
+                .eq("is_active",true)
+                .in("account_type",["aset","kewajiban","ekuitas"])
+                .or(`bumdes_id.is.null,bumdes_id.eq.${bumdesId}`);
+            if (accountError) throw accountError;
+
+            const accountMap = new Map((accounts || []).map(a => [a.id,a]));
+            const { data: previousOpening, error: openingError } = await supabaseClient
+                .from("opening_balances")
+                .select("account_id,unit_id,debit,credit")
+                .eq("bumdes_id",bumdesId)
+                .eq("period_id",previousPeriodId);
+            if (openingError) throw openingError;
+
+            const { data: journals, error: journalError } = await supabaseClient
+                .from("journals")
+                .select("account_id,unit_id,debit,credit,journal_date")
+                .eq("bumdes_id",bumdesId)
+                .gte("journal_date",String(previousPeriod.start_date))
+                .lte("journal_date",String(previousPeriod.end_date));
+            if (journalError) throw journalError;
+
+            const balances = new Map();
+            const addBalance = (row) => {
+                const account = accountMap.get(row.account_id);
+                if (!account) return;
+                const key = `${row.unit_id || "pusat"}|${row.account_id}`;
+                const debit = Number(row.debit || 0);
+                const credit = Number(row.credit || 0);
+                const normal = String(account.normal_balance || "").toLowerCase();
+                const delta = (normal === "kredit" || normal === "k") ? credit - debit : debit - credit;
+                balances.set(key,(balances.get(key) || 0) + delta);
+            };
+            (previousOpening || []).forEach(addBalance);
+            (journals || []).forEach(addBalance);
+
+            const rows = [];
+            balances.forEach((value,key) => {
+                if (Math.abs(value) < 0.005) return;
+                const [unitKey, accountId] = key.split("|");
+                const account = accountMap.get(accountId);
+                if (!account) return;
+                const normal = String(account.normal_balance || "").toLowerCase();
+                const creditNormal = normal === "kredit" || normal === "k";
+                const debit = creditNormal ? (value < 0 ? -value : 0) : (value > 0 ? value : 0);
+                const credit = creditNormal ? (value > 0 ? value : 0) : (value < 0 ? -value : 0);
+                rows.push({
+                    bumdes_id: bumdesId,
+                    unit_id: unitKey === "pusat" ? null : unitKey,
+                    period_id: nextPeriod.id,
+                    account_id: accountId,
+                    debit,
+                    credit,
+                    created_by: activeAppProfile.id
+                });
+            });
+
+            if (rows.length) {
+                const { error: insertOpeningError } = await supabaseClient
+                    .from("opening_balances")
+                    .insert(rows);
+                if (insertOpeningError) throw insertOpeningError;
+            }
+        }
+
+        return nextPeriod;
+    }
+
     async function renderBookClosingModule() {
         const bumdesId = activeAppProfile.bumdes_id;
         const canManage = activeAppProfile.role === "admin_pusat";
@@ -7468,6 +7617,19 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         }).join("");
 
         showModuleShell("tutupbuku", `
+            <div class="panel mb-3">
+                <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap">
+                    <div>
+                        <div class="fw-semibold"><i class="bi bi-calendar-plus me-1"></i>Periode Buku Tahunan</div>
+                        <div class="text-secondary small mt-1">Periode selalu 1 Januari sampai 31 Desember. Tahun awal dapat dibuat mulai 2025 atau tahun sebelumnya. Saldo awal hanya diisi manual pada periode pertama; tahun berikutnya dibuat otomatis setelah Tutup Buku.</div>
+                    </div>
+                    ${canManage ? `<div class="d-flex gap-2 align-items-end">
+                        <div><label class="form-label small mb-1">Tahun awal / berikutnya</label><input id="newBookYear" type="number" min="1900" max="2100" class="form-control form-control-sm" style="width:150px" placeholder="2025"></div>
+                        <button id="btnCreateBookYear" type="button" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Buat Periode</button>
+                    </div>` : ``}
+                </div>
+            </div>
+
             <div class="panel mb-3">
                 <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                     <div>
@@ -7581,6 +7743,61 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         if (!canManage) return;
 
+        $("btnCreateBookYear")?.addEventListener("click", async () => {
+            const year = Number($("newBookYear")?.value || 0);
+            if (!Number.isInteger(year) || year < 1900 || year > 2100) {
+                showAppToast("error","Tahun tidak valid","Masukkan tahun buku antara 1900 dan 2100.");
+                return;
+            }
+            const start = `${year}-01-01`, end = `${year}-12-31`;
+            try {
+                const { data: existing, error: existingError } = await supabaseClient
+                    .from("account_periods").select("id,status,start_date,end_date")
+                    .eq("bumdes_id",activeAppProfile.bumdes_id)
+                    .eq("period_type","tahunan")
+                    .eq("start_date",start).eq("end_date",end)
+                    .limit(1).maybeSingle();
+                if (existingError) throw existingError;
+                if (existing) {
+                    showAppToast("info","Periode sudah ada",`Periode ${year} sudah tersedia dengan status ${existing.status}.`);
+                    return;
+                }
+
+                const { data: allPeriods, error: allPeriodsError } = await supabaseClient
+                    .from("account_periods").select("start_date,end_date,status")
+                    .eq("bumdes_id",activeAppProfile.bumdes_id)
+                    .eq("period_type","tahunan").order("start_date",{ascending:true});
+                if (allPeriodsError) throw allPeriodsError;
+
+                if ((allPeriods || []).length) {
+                    const latest = allPeriods[allPeriods.length - 1];
+                    const latestYear = Number(String(latest.start_date).slice(0,4));
+                    if (year !== latestYear + 1) {
+                        showAppToast("error","Urutan periode tidak valid",`Periode berikutnya harus ${latestYear + 1}. Jika ingin memulai dari tahun lain, buat itu sebagai periode pertama.`);
+                        return;
+                    }
+                    if (latest.status !== "closed") {
+                        showAppToast("error","Periode sebelumnya belum ditutup",`Tutup buku ${latestYear} terlebih dahulu sebelum membuat ${year}.`);
+                        return;
+                    }
+                }
+
+                const { error: insertError } = await supabaseClient.from("account_periods").insert({
+                    bumdes_id:activeAppProfile.bumdes_id,
+                    period_type:"tahunan",
+                    start_date:start,
+                    end_date:end,
+                    status:"open"
+                });
+                if (insertError) throw insertError;
+                showAppToast("success","Periode berhasil dibuat",`Periode ${year} aktif dari 1 Januari sampai 31 Desember.`);
+                await renderBookClosingModule();
+            } catch(err) {
+                console.error(err);
+                showAppToast("error","Gagal membuat periode",err.message || String(err));
+            }
+        });
+
         const setBusy = (button, busy, label) => {
             if (!button) return;
             button.disabled = busy;
@@ -7615,7 +7832,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     });
                     if (rpcError) throw rpcError;
 
-                    showAppToast("success", "Buku berhasil ditutup", "Pendapatan, HPP, dan beban telah ditutup serta laba telah dialokasikan sesuai pembagian SHU.");
+                    const nextPeriod = await prepareNextAnnualPeriod(periodId);
+                    showAppToast("success", "Buku berhasil ditutup", `Pendapatan, HPP, dan beban telah ditutup. Periode ${String(nextPeriod.start_date).slice(0,4)} otomatis dibuka dan saldo awalnya berasal dari saldo akhir periode sebelumnya.`);
                     await renderBookClosingModule();
                 } catch (err) {
                     console.error(err);
@@ -7791,6 +8009,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         const totalDebitEl = $("obTotalDebit");
         const totalCreditEl = $("obTotalCredit");
         const differenceEl = $("obDifference");
+        let selectedSetHasOpening = false;
 
         function selectedKey(accountId) {
             return `${periodEl.value}|${unitEl.value || "pusat"}|${accountId}`;
@@ -7810,21 +8029,30 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 return;
             }
 
+            selectedSetHasOpening = (opening || []).some(o => String(o.period_id) === String(periodId) && String(o.unit_id || "") === String(unitEl.value || ""));
             rowsEl.innerHTML = accounts.map(a => {
                 const v = openingMap.get(selectedKey(a.id)) || { debit: 0, credit: 0 };
+                const readonly = selectedSetHasOpening ? "readonly" : "";
                 return `
                     <tr data-account-id="${a.id}">
                         <td class="fw-semibold">${escapeHtml(a.kode)}</td>
                         <td>${escapeHtml(a.nama)}</td>
                         <td>
-                            <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end ob-debit" value="${v.debit || ""}" placeholder="0">
+                            <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end ob-debit" value="${v.debit || ""}" placeholder="0" ${readonly}>
                         </td>
                         <td>
-                            <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end ob-credit" value="${v.credit || ""}" placeholder="0">
+                            <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end ob-credit" value="${v.credit || ""}" placeholder="0" ${readonly}>
                         </td>
                     </tr>
                 `;
             }).join("");
+            if (selectedSetHasOpening) {
+                msgEl.className = "alert alert-success py-2 small";
+                msgEl.innerHTML = '<i class="bi bi-lock-fill me-1"></i>Saldo awal periode/lokasi ini sudah ditetapkan. Tidak dapat diisi ulang; untuk tahun berikutnya saldo dibuat otomatis dari periode sebelumnya.';
+            } else {
+                msgEl.className = "alert alert-info py-2 small";
+                msgEl.innerHTML = 'Saldo awal hanya diisi manual untuk periode pertama. Setelah Tutup Buku, saldo awal tahun berikutnya dibuat otomatis dari saldo akhir tahun sebelumnya.';
+            }
 
             rowsEl.querySelectorAll("input").forEach(input => {
                 input.addEventListener("input", updateTotals);
@@ -7868,6 +8096,12 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 saveBtn.disabled = true;
                 return;
             }
+            if (selectedSetHasOpening) {
+                statusEl.textContent = "✓ Saldo Awal Sudah Ditetapkan";
+                statusEl.className = "fw-semibold text-success";
+                saveBtn.disabled = true;
+                return;
+            }
 
             if (invalidRow) {
                 statusEl.textContent = "Periksa akun — Debit dan Kredit tidak boleh diisi bersamaan";
@@ -7890,7 +8124,10 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         saveBtn.addEventListener("click", async () => {
             const periodId = periodEl.value;
             const unitId = unitEl.value || null;
-            if (!periodId) return;
+            if (!periodId || selectedSetHasOpening) {
+                if (selectedSetHasOpening) showAppToast("info","Saldo awal sudah ditetapkan","Saldo awal hanya dapat diisi satu kali untuk periode/lokasi tersebut.");
+                return;
+            }
 
             let debitTotal = 0, creditTotal = 0;
             const rows = [];
@@ -10021,6 +10258,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <td>${escapeHtml(typeLabel[a.account_type] || a.account_type || "-")}</td>
                     <td class="${isHeader ? "coa-normal" : normalCode === "D" ? "coa-normal debit" : "coa-normal credit"}">${normal}</td>
                     <td>${a.is_system ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>' : '<span class="badge text-bg-light border">Custom</span>'}</td>
+                    <td class="text-end">${level === 4 && activeAppProfile?.role === "admin_pusat" ? `<button type="button" class="btn btn-sm btn-outline-primary coa-edit-btn" data-id="${escapeHtml(a.id)}" data-name="${escapeHtml(a.nama)}"><i class="bi bi-pencil-square me-1"></i>Edit</button>` : ''}</td>
                 </tr>`;
         }).join("");
 
@@ -10057,6 +10295,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                                 <th style="width:180px;">Kelompok</th>
                                 <th style="width:100px;">Saldo Normal</th>
                                 <th style="width:120px;">Sumber</th>
+                                <th style="width:90px;" class="text-end">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="coaTableBody">${htmlRows}</tbody>
@@ -10069,6 +10308,32 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             const q = String(this.value || "").trim().toLowerCase();
             document.querySelectorAll("#coaTableBody tr[data-coa-search]").forEach(row => {
                 row.classList.toggle("d-none", !!q && !row.dataset.coaSearch.includes(q));
+            });
+        });
+
+        document.querySelectorAll(".coa-edit-btn").forEach(button => {
+            button.addEventListener("click", async () => {
+                const accountId = button.dataset.id;
+                const currentName = button.dataset.name || "";
+                const account = rows.find(a => String(a.id) === String(accountId));
+                if (!account || Number(account.level) !== 4) return;
+                const newName = window.prompt("Nama COA Level 4:", currentName);
+                if (newName === null) return;
+                const name = newName.trim();
+                if (!name) return showAppToast("error","Nama COA wajib diisi","Nama akun tidak boleh kosong.");
+                try {
+                    const { error: updateError } = await supabaseClient
+                        .from("chart_of_accounts")
+                        .update({ nama:name })
+                        .eq("id",accountId)
+                        .eq("bumdes_id",activeAppProfile.bumdes_id);
+                    if (updateError) throw updateError;
+                    showAppToast("success","COA berhasil diperbarui",`${account.kode} — ${name}`);
+                    await renderCOAModule();
+                } catch(err) {
+                    console.error(err);
+                    showAppToast("error","Gagal mengedit COA",err.message || String(err));
+                }
             });
         });
 
