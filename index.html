@@ -1670,7 +1670,6 @@
         .coa-edit-btn:active{transform:translateY(0);box-shadow:0 2px 5px rgba(35,65,95,.08)}
         .coa-edit-btn i{font-size:12px}
         .coa-action-cell{text-align:center;white-space:nowrap}
-        .coa-edit-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:#f3f6f9;color:#a0acb8;font-size:11px}
         .coa-form-note{font-size:11px;color:#7b8998;line-height:1.45}
         .coa-readonly-box{background:#f6f8fb;border:1px solid #e3e8ef;border-radius:8px;padding:9px 11px;font-size:12px;color:#425466}
         .coa-code-prefix{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-weight:700}
@@ -10264,7 +10263,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <td>${escapeHtml(typeLabel[a.account_type] || a.account_type || "-")}</td>
                     <td class="${isHeader ? "coa-normal" : normalCode === "D" ? "coa-normal debit" : "coa-normal credit"}">${normal}</td>
                     <td>${a.is_system ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>' : '<span class="badge text-bg-light border">Custom</span>'}</td>
-                    <td class="text-center coa-action-cell">${level === 4 && activeAppProfile?.role === "admin_pusat" && !a.is_system && a.bumdes_id ? `<button type="button" class="coa-edit-btn" data-action="edit-coa" data-id="${escapeHtml(a.id)}" data-name="${escapeHtml(a.nama)}" data-code="${escapeHtml(a.kode)}" title="Edit nama akun"><i class="bi bi-pencil-square"></i><span>Edit</span></button>` : level === 4 ? '<span class="coa-edit-badge"><i class="bi bi-lock"></i></span>' : ''}</td>
+                    <td class="text-center coa-action-cell">${level === 4 && activeAppProfile?.role === "admin_pusat" && !a.is_system && a.bumdes_id ? `<button type="button" class="coa-edit-btn" data-action="edit-coa" data-id="${escapeHtml(a.id)}" data-name="${escapeHtml(a.nama)}" data-code="${escapeHtml(a.kode)}" title="Edit nama akun"><i class="bi bi-pencil-square"></i><span>Edit</span></button>` : ''}</td>
                 </tr>`;
         }).join("");
 
@@ -10317,31 +10316,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
             });
         });
 
-        document.querySelectorAll(".coa-edit-btn").forEach(button => {
-            button.addEventListener("click", async () => {
-                const accountId = button.dataset.id;
-                const currentName = button.dataset.name || "";
-                const account = rows.find(a => String(a.id) === String(accountId));
-                if (!account || Number(account.level) !== 4) return;
-                const newName = window.prompt("Nama COA Level 4:", currentName);
-                if (newName === null) return;
-                const name = newName.trim();
-                if (!name) return showAppToast("error","Nama COA wajib diisi","Nama akun tidak boleh kosong.");
-                try {
-                    const { error: updateError } = await supabaseClient
-                        .from("chart_of_accounts")
-                        .update({ nama:name })
-                        .eq("id",accountId)
-                        .eq("bumdes_id",activeAppProfile.bumdes_id);
-                    if (updateError) throw updateError;
-                    showAppToast("success","COA berhasil diperbarui",`${account.kode} — ${name}`);
-                    await renderCOAModule();
-                } catch(err) {
-                    console.error(err);
-                    showAppToast("error","Gagal mengedit COA",err.message || String(err));
-                }
-            });
-        });
+
 
     }
 
@@ -10393,6 +10368,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                 .eq("id",activeEditCOAId)
                 .eq("bumdes_id",activeAppProfile.bumdes_id)
                 .eq("level",4)
+                .eq("is_system",false)
                 .select("id,kode,nama")
                 .maybeSingle();
             if(error) throw error;
