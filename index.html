@@ -10956,7 +10956,15 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (!box || !list) return;
 
         const attempts = Array.isArray(payment?.metadata?.payment_attempts)
-            ? payment.metadata.payment_attempts.filter(v => v && typeof v === "object")
+            ? payment.metadata.payment_attempts.filter(v => {
+                if (!v || typeof v !== "object") return false;
+                const hasMethod = !!v.payment_method;
+                const hasTransaction = !!v.transaction_id;
+                const status = String(v.status || "").toLowerCase();
+                // Attempt yang baru membuka Snap tetapi belum memilih metode
+                // tidak ditampilkan sebagai riwayat pembayaran.
+                return hasMethod || hasTransaction || !["pending", ""].includes(status);
+            })
             : [];
 
         if (!attempts.length) {
@@ -10994,7 +11002,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
         const { data:p, error } = await supabaseClient
             .from("payments")
-            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,external_payment_id,metadata")
+            .select("id,invoice_number,amount,status,payment_method,payment_url,paid_at,expired_at,created_at,metadata")
             .eq("id",invoiceId).eq("bumdes_id",ctx.profile.bumdes_id).maybeSingle();
 
         if (error || !p) { alert("Invoice tidak ditemukan."); return; }
