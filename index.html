@@ -1665,6 +1665,12 @@
         .coa-normal.credit { color:#8b5f18; font-weight:700; }
         .coa-count { color:#7b8998; font-size:11px; }
         .coa-add-btn{white-space:nowrap;position:relative;z-index:2;pointer-events:auto;cursor:pointer}
+        .coa-edit-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:70px;height:30px;padding:0 10px;border:1px solid #d8e2ee;border-radius:9px;background:linear-gradient(180deg,#ffffff,#f5f8fb);color:#416b9d;font-size:11px;font-weight:700;box-shadow:0 2px 5px rgba(35,65,95,.06);transition:all .18s ease;cursor:pointer}
+        .coa-edit-btn:hover{transform:translateY(-1px);border-color:#9eb9d7;background:#edf6ff;color:#245b94;box-shadow:0 5px 12px rgba(46,93,142,.13)}
+        .coa-edit-btn:active{transform:translateY(0);box-shadow:0 2px 5px rgba(35,65,95,.08)}
+        .coa-edit-btn i{font-size:12px}
+        .coa-action-cell{text-align:center;white-space:nowrap}
+        .coa-edit-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:#f3f6f9;color:#a0acb8;font-size:11px}
         .coa-form-note{font-size:11px;color:#7b8998;line-height:1.45}
         .coa-readonly-box{background:#f6f8fb;border:1px solid #e3e8ef;border-radius:8px;padding:9px 11px;font-size:12px;color:#425466}
         .coa-code-prefix{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-weight:700}
@@ -10258,7 +10264,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
                     <td>${escapeHtml(typeLabel[a.account_type] || a.account_type || "-")}</td>
                     <td class="${isHeader ? "coa-normal" : normalCode === "D" ? "coa-normal debit" : "coa-normal credit"}">${normal}</td>
                     <td>${a.is_system ? '<span class="coa-system-badge"><i class="bi bi-lock-fill"></i>Sistem</span>' : '<span class="badge text-bg-light border">Custom</span>'}</td>
-                    <td class="text-end">${level === 4 && activeAppProfile?.role === "admin_pusat" ? `<button type="button" class="btn btn-sm btn-outline-primary coa-edit-btn" data-id="${escapeHtml(a.id)}" data-name="${escapeHtml(a.nama)}"><i class="bi bi-pencil-square me-1"></i>Edit</button>` : ''}</td>
+                    <td class="text-center coa-action-cell">${level === 4 && activeAppProfile?.role === "admin_pusat" && !a.is_system && a.bumdes_id ? `<button type="button" class="coa-edit-btn" data-action="edit-coa" data-id="${escapeHtml(a.id)}" data-name="${escapeHtml(a.nama)}" data-code="${escapeHtml(a.kode)}" title="Edit nama akun"><i class="bi bi-pencil-square"></i><span>Edit</span></button>` : level === 4 ? '<span class="coa-edit-badge"><i class="bi bi-lock"></i></span>' : ''}</td>
                 </tr>`;
         }).join("");
 
@@ -10339,6 +10345,71 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
 
     }
 
+
+    // =========================================================
+    // EDIT COA LEVEL 4 — ADMIN PUSAT
+    // =========================================================
+    let activeEditCOAId = null;
+
+    function openEditCOAModal(id,name,code){
+        if(activeAppProfile?.role !== "admin_pusat") return;
+        activeEditCOAId=id;
+        $("editCOACode").textContent=code || "-";
+        $("editCOANameInput").value=name || "";
+        $("editCOAError").classList.add("hidden");
+        $("editCOAModal").classList.remove("hidden");
+        setTimeout(()=>$('editCOANameInput')?.focus(),50);
+    }
+
+    function closeEditCOAModal(){
+        activeEditCOAId=null;
+        $("editCOAModal")?.classList.add("hidden");
+    }
+
+    document.addEventListener("click", async (event)=>{
+        const btn=event.target.closest?.('[data-action="edit-coa"]');
+        if(btn){
+            event.preventDefault();
+            openEditCOAModal(btn.dataset.id,btn.dataset.name,btn.dataset.code);
+            return;
+        }
+        if(event.target.closest?.("#editCOAModalClose,#editCOAModalCancel")){ closeEditCOAModal(); return; }
+        if(event.target.id==="editCOAModal") closeEditCOAModal();
+    });
+
+    document.addEventListener("submit",async (event)=>{
+        if(event.target?.id!=="editCOAForm") return;
+        event.preventDefault();
+        if(!activeEditCOAId) return;
+        const name=String($("editCOANameInput")?.value || "").trim();
+        const errorBox=$("editCOAError");
+        if(!name){ errorBox.textContent="Nama akun wajib diisi."; errorBox.classList.remove("hidden"); return; }
+        const btn=$("editCOASaveBtn");
+        btn.disabled=true;
+        btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
+        try{
+            const {data,error}=await supabaseClient.from("chart_of_accounts")
+                .update({nama:name})
+                .eq("id",activeEditCOAId)
+                .eq("bumdes_id",activeAppProfile.bumdes_id)
+                .eq("level",4)
+                .select("id,kode,nama")
+                .maybeSingle();
+            if(error) throw error;
+            if(!data) throw new Error("COA tidak ditemukan atau tidak memiliki izin untuk diedit.");
+            closeEditCOAModal();
+            showAppToast("success","COA diperbarui",`${data.kode} — ${data.nama}`);
+            await renderCOAModule();
+        }catch(err){
+            errorBox.textContent=err?.message || String(err);
+            errorBox.classList.remove("hidden");
+        }finally{
+            btn.disabled=false;
+            btn.innerHTML='<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan';
+        }
+    });
+
+    document.addEventListener("keydown",event=>{ if(event.key==="Escape" && activeEditCOAId) closeEditCOAModal(); });
 
     // =========================================================
     // TAMBAH COA CUSTOM — ADMIN PUSAT
@@ -11520,5 +11591,30 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     </div>
 </div>
 
+
+<div id="editCOAModal" class="coa-modal-backdrop hidden" style="z-index:10060">
+  <div class="coa-modal-card" style="width:min(500px,100%)" role="dialog" aria-modal="true">
+    <div class="coa-modal-head">
+      <div><div class="small text-secondary">BAGAN AKUN</div><div class="fw-bold">Edit COA Level 4</div></div>
+      <button type="button" id="editCOAModalClose" class="coa-modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <form id="editCOAForm">
+      <div class="coa-modal-body">
+        <div class="coa-edit-identity">
+          <div class="coa-edit-icon"><i class="bi bi-pencil-square"></i></div>
+          <div><div id="editCOACode" class="coa-edit-code">-</div><div class="coa-edit-lock"><i class="bi bi-lock me-1"></i>Kode, parent, level, jenis akun, dan saldo normal tetap terkunci</div></div>
+        </div>
+        <label class="form-label">Nama Akun</label>
+        <input id="editCOANameInput" class="form-control" maxlength="120" required autocomplete="off">
+        <div class="coa-form-note mt-2">Edit hanya mengubah nama akun Level 4. Struktur COA tetap aman.</div>
+        <div id="editCOAError" class="alert alert-danger py-2 px-3 mt-3 mb-0 hidden small"></div>
+      </div>
+      <div class="coa-modal-foot">
+        <button type="button" id="editCOAModalCancel" class="btn btn-light btn-sm">Batal</button>
+        <button type="submit" id="editCOASaveBtn" class="btn btn-primary btn-sm"><i class="bi bi-check2-circle me-1"></i>Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>
