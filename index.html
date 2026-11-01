@@ -195,7 +195,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 </div></div>
 <div class="auth-box"><div class="auth-brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name" style="color:#142d4e">e-Bumdesa</div><div class="brand-sub" style="color:#718096">SISTEM KEUANGAN BUMDESA</div></div></div><h2 id="authTitle">Selamat Datang</h2><p id="authDesc">Masuk menggunakan email dan password akun e-Bumdesa Anda.</p>
 
-<div id="authFields"><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div></div><div id="authMessage" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:#c44747"></div><div id="authDiagnostics" style="display:none;margin-top:12px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:#f7faff;color:#42536a;font-size:11px;line-height:1.7;white-space:pre-wrap"></div><button class="btn" id="authSubmit" type="button">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
+<div id="authFields"><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div></div><div id="authMessage" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:#c44747"></div><button class="btn" id="authSubmit" type="button">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
 
 <div id="platformWorkspace">
   <header class="po-top">
@@ -273,11 +273,7 @@ const diagnosticSteps = [];
 function addDiagnostic(message) {
   const stamp = new Date().toLocaleTimeString("id-ID");
   diagnosticSteps.push(`[${stamp}] ${message}`);
-  const panel = $("authDiagnostics");
-  if (panel) {
-    panel.style.display = "block";
-    panel.textContent = diagnosticSteps.slice(-12).join("\\n");
-  }
+  // Rincian teknis hanya dicatat di console browser, tidak ditampilkan kepada pengguna.
   console.info("[e-Bumdesa]", message);
 }
 function clearDiagnostics() {
@@ -451,8 +447,24 @@ async function enterWithSession(session) {
   currentUser = session.user;
   setMessage("Memeriksa hak akses akun...", true);
   try {
+    const pendingRaw = localStorage.getItem(pendingRegistrationKey);
+    if (pendingRaw) {
+      let pending = null;
+      try { pending = JSON.parse(pendingRaw); } catch {}
+      if (pending && String(currentUser.email||"").toLowerCase() === String(pending.proposed_admin_email||"").toLowerCase()) {
+        await sendPendingRegistration();
+        await supabase.auth.signOut();
+        currentUser = null; currentAccess = null;
+        showLogin();
+        restoreLoginForm();
+        setMessage("Pendaftaran BUMDes berhasil dikirim dan sedang menunggu konfirmasi Platform Owner.", true);
+        return;
+      }
+    }
     currentAccess = await resolveAccess(currentUser);
     if (currentAccess.kind === "platform_owner") {
+      clearDiagnostics();
+      setMessage("");
       $("app").style.display = "none";
       $("authScreen").classList.add("is-hidden");
       $("platformWorkspace").style.display = "block";
@@ -470,6 +482,8 @@ async function enterWithSession(session) {
       return;
     }
     $("platformWorkspace").style.display = "none";
+    clearDiagnostics();
+    setMessage("");
     setIdentity(currentAccess.name, currentAccess.role, currentAccess.tenantName);
     // Role menentukan identitas. Menu dan data riil akan diikat ke RLS pada tahap modul berikutnya.
     if (currentAccess.kind === "unit_user") {
@@ -596,7 +610,7 @@ async function login() {
   }
 }
 
-$("authSubmit").addEventListener("click", login);
+$("authSubmit").onclick = login;
 $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
 $("logoutBtn").addEventListener("click", async ()=>{
@@ -610,15 +624,100 @@ document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",(
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.go)));
 $("menuBtn").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
 
-// Pendaftaran publik belum diaktifkan pada tombol ini; proses pendaftaran memakai RPC
-// submit_bumdes_registration setelah alur konfirmasi email dipastikan.
-$("registerLink").addEventListener("click",()=>{
-  setMessage("Pendaftaran BUMDes akan diaktifkan setelah alur verifikasi email dan pengajuan diselesaikan.");
-});
-$("backLink").addEventListener("click",()=>{
-  $("authTitle").textContent="Selamat Datang";
-  $("authDesc").textContent="Masuk menggunakan email dan password akun e-Bumdesa Anda.";
+// Pendaftaran BUMDes: calon Admin Pusat mengisi profil dan membuat akun.
+const pendingRegistrationKey = "ebumdesa_pending_registration_v1";
+function showRegistrationForm(){
+  $("authTitle").textContent = "Pendaftaran BUMDes";
+  $("authDesc").textContent = "Lengkapi profil BUMDes dan data calon Admin Pusat. Pengajuan akan menunggu persetujuan Platform Owner.";
+  $("authFields").innerHTML = `
+    <div class="field"><label>Nama BUMDes *</label><input id="regName" required placeholder="Contoh: BUMDes Sejahtera"></div>
+    <div class="field"><label>Slug / kode unik *</label><input id="regSlug" required placeholder="bumdes-sejahtera"></div>
+    <div class="field"><label>Alamat sekretariat</label><input id="regAddress" placeholder="Alamat lengkap"></div>
+    <div class="field"><label>Desa *</label><input id="regVillage" required placeholder="Nama desa"></div>
+    <div class="field"><label>Kecamatan *</label><input id="regDistrict" required placeholder="Nama kecamatan"></div>
+    <div class="field"><label>Kabupaten *</label><input id="regRegency" required placeholder="Nama kabupaten"></div>
+    <div class="field"><label>Provinsi *</label><input id="regProvince" required value="Jawa Timur"></div>
+    <div class="field"><label>Nomor telepon BUMDes</label><input id="regPhone" placeholder="08xxxxxxxxxx"></div>
+    <div class="field"><label>Email BUMDes</label><input id="regEmail" type="email" placeholder="email@bumdes.id"></div>
+    <div class="field"><label>Email calon Admin Pusat *</label><input id="regAdminEmail" type="email" required placeholder="admin@bumdes.id"></div>
+    <div class="field"><label>Password akun calon Admin Pusat *</label><input id="regPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Minimal 8 karakter"></div>
+    <div style="font-size:11px;color:#718096;margin:8px 0 2px">Setelah akun dibuat, pengajuan profil dikirim untuk diperiksa. BUMDes dan hak akses Admin Pusat baru dibuat setelah disetujui Platform Owner.</div>`;
+  $("authSubmit").textContent = "Kirim Pendaftaran";
+  $("authSubmit").disabled = false;
+  $("authSubmit").onclick = submitRegistration;
+  $("backLink").textContent = "Kembali ke login";
   setMessage("");
+}
+function restoreLoginForm(){
+  $("authTitle").textContent = "Selamat Datang";
+  $("authDesc").textContent = "Masuk menggunakan email dan password akun e-Bumdesa Anda.";
+  $("authFields").innerHTML = `<div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div>`;
+  $("authSubmit").textContent = "Masuk";
+  $("authSubmit").disabled = false;
+  $("authSubmit").onclick = login;
+  $("backLink").textContent = "Tutup halaman login";
+  $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+  $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
+  setMessage("");
+}
+async function sendPendingRegistration(){
+  const raw = localStorage.getItem(pendingRegistrationKey);
+  if(!raw || !currentUser) return;
+  let p;
+  try { p = JSON.parse(raw); } catch { localStorage.removeItem(pendingRegistrationKey); return; }
+  if(String(currentUser.email||"").toLowerCase() !== String(p.proposed_admin_email||"").toLowerCase()) return;
+  const {data,error}=await supabase.rpc("submit_bumdes_registration",{
+    p_name:p.name,p_slug:p.slug,p_address:p.address,p_village:p.village,
+    p_district:p.district,p_regency:p.regency,p_province:p.province,
+    p_phone:p.phone,p_email:p.email,p_proposed_admin_email:p.proposed_admin_email
+  });
+  if(error) throw error;
+  localStorage.removeItem(pendingRegistrationKey);
+  alert("Pendaftaran berhasil dikirim. Status: menunggu konfirmasi Platform Owner. ID pengajuan: "+data);
+}
+async function submitRegistration(){
+  const value=id=>($(id)?.value||"").trim();
+  const payload={
+    name:value("regName"),slug:value("regSlug").toLowerCase().replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,""),
+    address:value("regAddress"),village:value("regVillage"),district:value("regDistrict"),
+    regency:value("regRegency"),province:value("regProvince"),phone:value("regPhone"),
+    email:value("regEmail"),proposed_admin_email:value("regAdminEmail")
+  };
+  const password=value("regPassword");
+  if(!payload.name||!payload.slug||!payload.village||!payload.district||!payload.regency||!payload.province||!payload.proposed_admin_email||password.length<8){
+    setMessage("Lengkapi seluruh kolom wajib. Password minimal 8 karakter.");return;
+  }
+  $("authSubmit").disabled=true;
+  $("authSubmit").textContent="Mengirim...";
+  try{
+    localStorage.setItem(pendingRegistrationKey,JSON.stringify(payload));
+    const {data,error}=await supabase.auth.signUp({
+      email:payload.proposed_admin_email,password,
+      options:{data:{full_name:payload.proposed_admin_email.split("@")[0]}}
+    });
+    if(error) throw error;
+    if(data.session){
+      currentUser=data.user;
+      await sendPendingRegistration();
+      await supabase.auth.signOut();
+      currentUser=null; currentAccess=null;
+      restoreLoginForm();
+      setMessage("Pendaftaran berhasil dikirim dan menunggu persetujuan Platform Owner.",true);
+    }else{
+      setMessage("Akun berhasil dibuat. Silakan verifikasi email, lalu login dengan email calon Admin Pusat. Data profil akan dikirim setelah login.",true);
+      $("authSubmit").disabled=false;
+      $("authSubmit").textContent="Kembali ke login";
+      $("authSubmit").onclick=()=>{restoreLoginForm();};
+    }
+  }catch(err){
+    setMessage(err.message||"Pendaftaran gagal.");
+    $("authSubmit").disabled=false;
+    $("authSubmit").textContent="Kirim Pendaftaran";
+  }
+}
+$("registerLink").addEventListener("click",showRegistrationForm);
+$("backLink").addEventListener("click",()=>{
+  restoreLoginForm();
 });
 
 // Pulihkan sesi jika pengguna sudah pernah login.
