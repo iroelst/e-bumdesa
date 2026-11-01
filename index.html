@@ -468,27 +468,30 @@ async function resolveAccess(user) {
       tenantName:unit?.name || tenant?.name || "Unit Usaha"
     };
   }
-  throw new Error("Akun berhasil login, tetapi belum memiliki hak akses e-Bumdesa yang aktif. Hubungi Admin Pusat atau Platform Owner.");
+  // Akun pendaftar boleh ada di Supabase Auth, tetapi tidak boleh masuk
+  // sebelum Owner menyetujui pengajuan dan membership aktif dibuat.
+  const { data: registration, error: registrationError } = await withTimeout(
+    supabase.rpc("get_my_bumdes_registration_status"),
+    "status pendaftaran"
+  );
+  if (registrationError) {
+    addDiagnostic("Status pendaftaran tidak dapat dibaca: " + registrationError.message);
+    throw new Error("Akun belum memiliki hak akses aktif. Jika Anda baru mendaftar, silakan tunggu persetujuan Platform Owner.");
+  }
+  const latest = Array.isArray(registration) ? registration[0] : registration;
+  if (latest?.status === "pending") {
+    throw new Error("Pendaftaran BUMDes Anda sedang menunggu persetujuan Platform Owner. Anda belum dapat login ke aplikasi.");
+  }
+  if (latest?.status === "rejected") {
+    throw new Error("Pendaftaran BUMDes Anda belum disetujui. Catatan: " + (latest.review_note || "Silakan hubungi Platform Owner."));
+  }
+  throw new Error("Akun berhasil login ke Supabase, tetapi belum memiliki hak akses e-Bumdesa yang aktif. Hubungi Platform Owner.");
 }
 
 async function enterWithSession(session) {
   currentUser = session.user;
   setMessage("Memeriksa hak akses akun...", true);
   try {
-    const pendingRaw = localStorage.getItem(pendingRegistrationKey);
-    if (pendingRaw) {
-      let pending = null;
-      try { pending = JSON.parse(pendingRaw); } catch {}
-      if (pending && String(currentUser.email||"").toLowerCase() === String(pending.proposed_admin_email||"").toLowerCase()) {
-        await sendPendingRegistration();
-        await supabase.auth.signOut();
-        currentUser = null; currentAccess = null;
-        showLogin();
-        restoreLoginForm();
-        setMessage("Pendaftaran BUMDes berhasil dikirim dan sedang menunggu konfirmasi Platform Owner.", true);
-        return;
-      }
-    }
     currentAccess = await resolveAccess(currentUser);
     if (currentAccess.kind === "platform_owner") {
       clearDiagnostics();
@@ -524,13 +527,16 @@ async function enterWithSession(session) {
     setMessage("");
   } catch (err) {
     console.error("e-Bumdesa access resolution:", err);
-    addDiagnostic("PEMERIKSAAN BERHENTI: " + (err.message || String(err)));
+    addDiagnostic("PEMERIKSAAN AKSES: " + (err.message || String(err)));
     currentAccess = null;
-    $("authTitle").textContent = "Pemeriksaan akses belum selesai";
-    $("authDesc").textContent = "Sesi login dipertahankan. Periksa rincian diagnostik berikut dan coba lagi.";
-    $("authSubmit").textContent = "Coba periksa lagi";
+    // Tidak menyimpan sesi login untuk akun yang belum disetujui / belum berhak.
+    try { await supabase.auth.signOut(); } catch (signOutError) { console.warn(signOutError); }
+    currentUser = null;
+    $("authTitle").textContent = "Akses belum tersedia";
+    $("authDesc").textContent = "Akun Anda belum memiliki hak akses aktif ke e-Bumdesa.";
+    $("authSubmit").textContent = "Masuk";
     $("authSubmit").disabled = false;
-    setMessage(err.message || "Tidak dapat memeriksa hak akses akun.");
+    setMessage(err.message || "Akses belum tersedia.");
     $("platformWorkspace").style.display = "none";
     $("app").style.display = "none";
     $("authScreen").classList.remove("is-hidden");
@@ -735,7 +741,7 @@ async function submitRegistration(){
       restoreLoginForm();
       setMessage("Pendaftaran berhasil dikirim dan menunggu persetujuan Platform Owner.",true);
     }else{
-      setMessage("Akun berhasil dibuat. Silakan verifikasi email, lalu login dengan email calon Admin Pusat. Data profil akan dikirim setelah login.",true);
+      setMessage("Akun berhasil dibuat, tetapi Supabase belum memberikan sesi login. Pastikan Confirm Email sudah OFF pada provider Email, lalu coba masuk dengan akun tersebut. Pengajuan belum dikirim.",false);
       $("authSubmit").disabled=false;
       $("authSubmit").textContent="Kembali ke login";
       $("authSubmit").onclick=()=>{restoreLoginForm();};
