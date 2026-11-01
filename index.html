@@ -633,7 +633,27 @@ async function login() {
       "Supabase Auth"
     );
     if (error) throw error;
-    addDiagnostic("Supabase Auth berhasil. Mulai pemeriksaan hak akses.");
+    addDiagnostic("Supabase Auth berhasil. Memeriksa apakah ada pengajuan pendaftaran yang belum terkirim.");
+    // Jika akun Auth sudah dibuat pada percobaan sebelumnya tetapi RPC belum terkirim,
+    // kirim pengajuan yang tersimpan di browser sebelum pemeriksaan hak akses biasa.
+    const pendingRaw = localStorage.getItem(pendingRegistrationKey);
+    if (pendingRaw) {
+      let pendingPayload = null;
+      try { pendingPayload = JSON.parse(pendingRaw); } catch {
+        localStorage.removeItem(pendingRegistrationKey);
+        throw new Error("Data pendaftaran tersimpan di browser tidak valid. Silakan isi ulang formulir pendaftaran.");
+      }
+      if (String(data.user?.email || "").toLowerCase() === String(pendingPayload.proposed_admin_email || "").toLowerCase()) {
+        currentUser = data.user;
+        const requestId = await sendPendingRegistration();
+        await supabase.auth.signOut();
+        currentUser = null; currentAccess = null;
+        restoreLoginForm();
+        setMessage("Pengajuan berhasil dikirim ke Platform Owner. ID pengajuan: " + requestId, true);
+        return;
+      }
+    }
+    addDiagnostic("Tidak ada pengajuan tertunda untuk akun ini. Mulai pemeriksaan hak akses.");
     await enterWithSession(data.session);
   } catch (err) {
     console.error("e-Bumdesa login:", err);
@@ -697,18 +717,29 @@ function restoreLoginForm(){
 }
 async function sendPendingRegistration(){
   const raw = localStorage.getItem(pendingRegistrationKey);
-  if(!raw || !currentUser) return;
+  if(!raw) throw new Error("Data pendaftaran tidak ditemukan di browser. Silakan isi ulang formulir pendaftaran.");
+  if(!currentUser) throw new Error("Sesi pengguna belum tersedia. Silakan login kembali.");
   let p;
-  try { p = JSON.parse(raw); } catch { localStorage.removeItem(pendingRegistrationKey); return; }
-  if(String(currentUser.email||"").toLowerCase() !== String(p.proposed_admin_email||"").toLowerCase()) return;
+  try { p = JSON.parse(raw); } catch {
+    localStorage.removeItem(pendingRegistrationKey);
+    throw new Error("Data pendaftaran yang tersimpan tidak valid. Silakan isi ulang formulir pendaftaran.");
+  }
+  if(String(currentUser.email||"").toLowerCase() !== String(p.proposed_admin_email||"").toLowerCase()) {
+    throw new Error("Email akun yang sedang login tidak sama dengan email calon Admin Pusat pada formulir pendaftaran.");
+  }
   const {data,error}=await supabase.rpc("submit_bumdes_registration",{
     p_name:p.name,p_slug:p.slug,p_address:p.address,p_village:p.village,
     p_district:p.district,p_regency:p.regency,p_province:p.province,
     p_phone:p.phone,p_email:p.email,p_proposed_admin_email:p.proposed_admin_email
   });
-  if(error) throw error;
+  if(error) {
+    addDiagnostic("RPC submit_bumdes_registration gagal: " + error.message);
+    throw new Error("Pengajuan belum tersimpan di database: " + error.message);
+  }
+  if(!data) throw new Error("Supabase tidak mengembalikan ID pengajuan. Pengajuan belum dapat dipastikan tersimpan.");
   localStorage.removeItem(pendingRegistrationKey);
-  alert("Pendaftaran berhasil dikirim. Status: menunggu konfirmasi Platform Owner. ID pengajuan: "+data);
+  addDiagnostic("RPC pendaftaran berhasil. ID pengajuan: " + data);
+  return data;
 }
 async function submitRegistration(){
   const value=id=>($(id)?.value||"").trim();
@@ -741,7 +772,9 @@ async function submitRegistration(){
       restoreLoginForm();
       setMessage("Pendaftaran berhasil dikirim dan menunggu persetujuan Platform Owner.",true);
     }else{
-      setMessage("Akun berhasil dibuat, tetapi Supabase belum memberikan sesi login. Pastikan Confirm Email sudah OFF pada provider Email, lalu coba masuk dengan akun tersebut. Pengajuan belum dikirim.",false);
+      // Akun Auth sudah dibuat, tetapi tanpa session RPC belum bisa dijalankan.
+      // Payload tetap disimpan agar bisa dikirim setelah pengguna login dengan akun yang sama.
+      setMessage("Akun berhasil dibuat, tetapi sesi login belum tersedia. Data formulir disimpan sementara di browser. Kembali ke login, masuk menggunakan email dan password yang baru dibuat; sistem akan mencoba mengirim pengajuan secara otomatis.",false);
       $("authSubmit").disabled=false;
       $("authSubmit").textContent="Kembali ke login";
       $("authSubmit").onclick=()=>{restoreLoginForm();};
