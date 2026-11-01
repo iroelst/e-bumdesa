@@ -104,7 +104,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
  <div class="side-bottom"><div class="profile"><div class="avatar">AP</div><div><b>Admin Pusat</b><small>BUMDesa Sejahtera Kemirigede</small></div></div></div>
 </aside>
 <main class="main">
- <header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="menuBtn">☰</button><div><div class="eyebrow">e-Bumdesa / <span id="crumb">Ringkasan</span></div><div class="page-title" id="topTitle">Dashboard</div></div></div><div class="top-actions"><select class="role-select" id="roleSelect" aria-label="Simulasi peran"><option value="admin">Tampilan Admin Pusat</option><option value="unit">Tampilan Admin Unit</option><option value="owner">Tampilan Platform Owner</option></select><button class="icon-btn" title="Notifikasi">♧</button><button class="icon-btn" title="Profil">AP</button></div></header>
+ <header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="menuBtn">☰</button><div><div class="eyebrow">e-Bumdesa / <span id="crumb">Ringkasan</span></div><div class="page-title" id="topTitle">Dashboard</div></div></div><div class="top-actions"><span id="sessionLabel" class="role-select">Belum terhubung</span><button class="btn btn-light" id="logoutBtn" type="button">Keluar</button></div></header>
  <div class="content">
   <section class="view active" id="dashboard">
    <div class="welcome"><div><h1>Selamat datang, Admin Pusat</h1><p class="sub">Berikut ringkasan kondisi keuangan BUMDes Anda.</p></div><div class="date-pill">◷ 1 November 2026</div></div>
@@ -173,16 +173,219 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 </div></div>
 <div class="auth-box"><div class="auth-brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name" style="color:#142d4e">e-Bumdesa</div><div class="brand-sub" style="color:#718096">SISTEM KEUANGAN BUMDESA</div></div></div><h2 id="authTitle">Selamat Datang</h2><p id="authDesc">Masuk menggunakan email dan password akun e-Bumdesa Anda.</p>
 
-<div id="authFields"><div class="field"><label>Email</label><input type="email" placeholder="nama@email.com"></div><div class="field"><label>Password</label><input type="password" placeholder="Masukkan password"></div></div><button class="btn" id="authSubmit">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
-<script>
+<div id="authFields"><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div></div><div id="authMessage" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:#c44747"></div><button class="btn" id="authSubmit" type="button">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+/*
+ * Konfigurasi Supabase e-Bumdesa.
+ * Publishable key aman digunakan di browser selama RLS aktif dan benar.
+ * Jangan pernah memasukkan service_role key ke file HTML.
+ */
+const SUPABASE_URL = "https://caqbwgquyfthgzpjiblx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
 const titles={dashboard:"Dashboard",ledger:"Buku Besar",opening:"Saldo Awal",adjustments:"Penyesuaian",closing:"Tutup Buku",shu:"Pembagian & Pembayaran SHU",assets:"Aset",units:"Unit Usaha",transactions:"Transaksi Keuangan",cash:"Kas & Bank",coa:"Daftar Akun (COA)",journals:"Jurnal Umum",reports:"Laporan Keuangan",users:"Pengguna & Hak Akses",settings:"Pengaturan BUMDes"};
-function showView(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===id));document.getElementById("topTitle").textContent=titles[id]||"Dashboard";document.getElementById("crumb").textContent=titles[id]||"Ringkasan";document.getElementById("sidebar").classList.remove("open");}
+const $ = (id) => document.getElementById(id);
+let currentUser = null;
+let currentAccess = null;
+
+function setMessage(message, success=false) {
+  $("authMessage").textContent = message || "";
+  $("authMessage").style.color = success ? "#16865b" : "#c44747";
+}
+function showLogin() {
+  $("app").style.display = "none";
+  $("authScreen").style.display = "flex";
+}
+function showApp() {
+  $("authScreen").style.display = "none";
+  $("app").style.display = "block";
+}
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
+  document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===id));
+  $("topTitle").textContent=titles[id]||"Dashboard";
+  $("crumb").textContent=titles[id]||"Ringkasan";
+  $("sidebar").classList.remove("open");
+}
+function setIdentity(name, role, tenantName) {
+  document.querySelector(".profile b").textContent = name || currentUser?.email || "Pengguna";
+  document.querySelector(".profile small").textContent = `${role} · ${tenantName || "Semua BUMDes"}`;
+  $("sessionLabel").textContent = role;
+  const welcome = document.querySelector("#dashboard .welcome h1");
+  if (welcome) welcome.textContent = `Selamat datang, ${name || currentUser?.email || "Pengguna"}`;
+}
+function deny(message) {
+  setMessage(message);
+  showLogin();
+}
+
+async function resolveAccess(user) {
+  // Prioritas 1: Platform Owner
+  const { data: owner, error: ownerError } = await supabase
+    .from("platform_admins")
+    .select("user_id, display_name, is_active")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (ownerError) throw new Error("Gagal memeriksa akses Platform Owner: " + ownerError.message);
+  if (owner) {
+    return { kind:"platform_owner", role:"Platform Owner", name:owner.display_name || user.email, tenantName:"Seluruh BUMDes" };
+  }
+
+  // Prioritas 2: keanggotaan BUMDes
+  const { data: memberships, error: membershipError } = await supabase
+    .from("bumdes_memberships")
+    .select("id, bumdes_id, role, is_active")
+    .eq("user_id", user.id)
+    .eq("is_active", true);
+  if (membershipError) throw new Error("Gagal memeriksa keanggotaan BUMDes: " + membershipError.message);
+
+  if (memberships?.length) {
+    if (memberships.length > 1) {
+      throw new Error("Akun memiliki akses ke lebih dari satu BUMDes. Pemilihan tenant perlu disiapkan sebelum akun ini digunakan.");
+    }
+    const membership = memberships[0];
+    const { data: tenant, error: tenantError } = await supabase
+      .from("bumdes")
+      .select("id, name")
+      .eq("id", membership.bumdes_id)
+      .maybeSingle();
+    if (tenantError) throw new Error("Gagal memuat identitas BUMDes: " + tenantError.message);
+    const roleLabels = {
+      super_admin:"Super Admin",
+      admin_pusat:"Admin Pusat",
+      admin_unit:"Admin Unit",
+      staf_unit:"Staf Unit",
+      kasir:"Kasir",
+      viewer:"Viewer"
+    };
+    return {
+      kind:"bumdes_member",
+      bumdesId:membership.bumdes_id,
+      role:roleLabels[membership.role] || membership.role,
+      roleCode:membership.role,
+      name:user.user_metadata?.full_name || user.email,
+      tenantName:tenant?.name || "BUMDes"
+    };
+  }
+
+  // Prioritas 3: akses langsung ke unit
+  const { data: accesses, error: accessError } = await supabase
+    .from("unit_user_access")
+    .select("bumdes_id, unit_id, role, is_active")
+    .eq("user_id", user.id)
+    .eq("is_active", true);
+  if (accessError) throw new Error("Gagal memeriksa akses unit: " + accessError.message);
+  if (accesses?.length) {
+    if (accesses.length > 1) {
+      throw new Error("Akun memiliki akses ke beberapa unit. Pemilihan unit perlu disiapkan sebelum akun ini digunakan.");
+    }
+    const access = accesses[0];
+    const { data: unit, error: unitError } = await supabase
+      .from("units")
+      .select("id, name, bumdes_id")
+      .eq("id", access.unit_id)
+      .eq("bumdes_id", access.bumdes_id)
+      .maybeSingle();
+    if (unitError) throw new Error("Gagal memuat unit usaha: " + unitError.message);
+    const { data: tenant, error: tenantError } = await supabase
+      .from("bumdes")
+      .select("id, name")
+      .eq("id", access.bumdes_id)
+      .maybeSingle();
+    if (tenantError) throw new Error("Gagal memuat identitas BUMDes: " + tenantError.message);
+    return {
+      kind:"unit_user",
+      bumdesId:access.bumdes_id,
+      unitId:access.unit_id,
+      role:access.role,
+      name:user.user_metadata?.full_name || user.email,
+      tenantName:unit?.name || tenant?.name || "Unit Usaha"
+    };
+  }
+  throw new Error("Akun berhasil login, tetapi belum memiliki hak akses e-Bumdesa yang aktif. Hubungi Admin Pusat atau Platform Owner.");
+}
+
+async function enterWithSession(session) {
+  currentUser = session.user;
+  setMessage("Memeriksa hak akses akun...", true);
+  try {
+    currentAccess = await resolveAccess(currentUser);
+    setIdentity(currentAccess.name, currentAccess.role, currentAccess.tenantName);
+    // Role menentukan identitas. Menu dan data riil akan diikat ke RLS pada tahap modul berikutnya.
+    if (currentAccess.kind === "unit_user") {
+      document.querySelectorAll('[data-view="users"], [data-view="settings"], [data-view="coa"]').forEach(el=>el.style.display="none");
+    } else {
+      document.querySelectorAll('[data-view="users"], [data-view="settings"], [data-view="coa"]').forEach(el=>el.style.display="flex");
+    }
+    showView("dashboard");
+    showApp();
+    setMessage("");
+  } catch (err) {
+    console.error(err);
+    await supabase.auth.signOut();
+    currentUser = null;
+    currentAccess = null;
+    deny(err.message || "Tidak dapat memeriksa hak akses akun.");
+  }
+}
+
+async function login() {
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+  if (!email || !password) return setMessage("Email dan password wajib diisi.");
+  $("authSubmit").disabled = true;
+  $("authSubmit").textContent = "Memeriksa...";
+  setMessage("");
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    await enterWithSession(data.session);
+  } catch (err) {
+    setMessage(err.message || "Login gagal. Periksa email dan password.");
+  } finally {
+    $("authSubmit").disabled = false;
+    $("authSubmit").textContent = "Masuk";
+  }
+}
+
+$("authSubmit").addEventListener("click", login);
+$("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+$("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
+$("logoutBtn").addEventListener("click", async ()=>{
+  const { error } = await supabase.auth.signOut();
+  if (error) alert("Gagal keluar: " + error.message);
+  currentUser = null; currentAccess = null;
+  showLogin();
+});
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.go)));
-document.getElementById("menuBtn").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));
-document.getElementById("roleSelect").addEventListener("change",e=>{const role=e.target.value;document.querySelector(".profile b").textContent=role==="owner"?"Platform Owner":role==="unit"?"Admin Unit":"Admin Pusat";document.querySelector(".profile small").textContent=role==="owner"?"Pengelola Platform":role==="unit"?"Unit Perdagangan":"BUMDesa Sejahtera Kemirigede";document.querySelector("h1").textContent=role==="owner"?"Ringkasan Platform":role==="unit"?"Dashboard Unit Perdagangan":"Selamat datang, Admin Pusat";});
-document.getElementById("registerLink").addEventListener("click",()=>{document.getElementById("authTitle").textContent="Pendaftaran BUMDes";document.getElementById("authDesc").textContent="Ajukan pendaftaran BUMDes untuk ditinjau Platform Owner.";document.getElementById("authFields").innerHTML='<div class="field"><label>Nama BUMDes</label><input placeholder="Nama resmi BUMDes"></div><div class="field"><label>Desa / Kelurahan</label><input placeholder="Nama desa"></div><div class="field"><label>Kecamatan</label><input placeholder="Nama kecamatan"></div><div class="field"><label>Kabupaten</label><input placeholder="Nama kabupaten"></div><div class="field"><label>Nama pendaftar / calon Admin Pusat</label><input placeholder="Nama lengkap"></div><div class="field"><label>Email</label><input type="email" placeholder="nama@email.com"></div><div class="field"><label>Password</label><input type="password" placeholder="Buat password"></div>';document.getElementById("authSubmit").textContent="Kirim Pengajuan";});
-document.getElementById("backLink").addEventListener("click",()=>{document.getElementById("authTitle").textContent="Login tetap menjadi halaman awal";document.getElementById("authDesc").textContent="Dashboard hanya dapat dibuka setelah autentikasi berhasil. Integrasi Supabase akan ditambahkan pada tahap berikutnya.";});
+$("menuBtn").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
+
+// Pendaftaran publik belum diaktifkan pada tombol ini; proses pendaftaran memakai RPC
+// submit_bumdes_registration setelah alur konfirmasi email dipastikan.
+$("registerLink").addEventListener("click",()=>{
+  setMessage("Pendaftaran BUMDes akan diaktifkan setelah alur verifikasi email dan pengajuan diselesaikan.");
+});
+$("backLink").addEventListener("click",()=>{
+  $("authTitle").textContent="Selamat Datang";
+  $("authDesc").textContent="Masuk menggunakan email dan password akun e-Bumdesa Anda.";
+  setMessage("");
+});
+
+// Pulihkan sesi jika pengguna sudah pernah login.
+const { data: { session } } = await supabase.auth.getSession();
+if (session) await enterWithSession(session);
+else showLogin();
+
+supabase.auth.onAuthStateChange((event, session)=>{
+  if (event === "SIGNED_OUT") {
+    currentUser = null; currentAccess = null; showLogin();
+  }
+});
 </script>
 </body>
 </html>
