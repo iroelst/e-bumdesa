@@ -660,7 +660,6 @@ function showRegistrationForm(){
   $("authDesc").textContent = "Lengkapi profil BUMDes dan data calon Admin Pusat. Pengajuan akan menunggu persetujuan Platform Owner.";
   $("authFields").innerHTML = `
     <div class="field"><label>Nama BUMDes *</label><input id="regName" required placeholder="Contoh: BUMDes Sejahtera"></div>
-    <div class="field"><label>Slug / kode unik *</label><input id="regSlug" required placeholder="bumdes-sejahtera"></div>
     <div class="field"><label>Alamat sekretariat</label><input id="regAddress" placeholder="Alamat lengkap"></div>
     <div class="field"><label>Desa *</label><input id="regVillage" required placeholder="Nama desa"></div>
     <div class="field"><label>Kecamatan *</label><input id="regDistrict" required placeholder="Nama kecamatan"></div>
@@ -708,7 +707,9 @@ async function sendPendingRegistration(){
 async function submitRegistration(){
   const value=id=>($(id)?.value||"").trim();
   const payload={
-    name:value("regName"),slug:value("regSlug").toLowerCase().replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,""),
+    name:value("regName"),slug:value("regName").toLowerCase()
+      .normalize("NFD").replace(/[\\u0300-\\u036f]/g,"")
+      .replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),
     address:value("regAddress"),village:value("regVillage"),district:value("regDistrict"),
     regency:value("regRegency"),province:value("regProvince"),phone:value("regPhone"),
     email:value("regEmail"),proposed_admin_email:value("regAdminEmail")
