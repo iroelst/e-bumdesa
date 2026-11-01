@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#142d4e">
 <title>e-Bumdesa | Sistem Keuangan BUMDesa</title>
+<link rel="icon" type="image/png" href="e-bumdesa-favicon.png">
 <style>
 :root{
  --navy:#142d4e;--navy2:#1d416b;--blue:#2d6cdf;--blue-soft:#eaf2ff;
@@ -17,7 +18,7 @@
 button,input,select{font:inherit}button{cursor:pointer}
 .app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:258px;background:var(--navy);color:#dbe7f6;padding:22px 16px;display:flex;flex-direction:column;z-index:20;transition:.25s}
 .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 25px;border-bottom:1px solid #ffffff20}
-.brand-mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#78b4ff,#2d6cdf);display:grid;place-items:center;color:white;font-size:21px;font-weight:800;box-shadow:0 5px 15px #0003}
+.brand-mark{width:42px;height:42px;object-fit:contain;border-radius:10px;display:block}.auth-brand .brand-mark{width:48px;height:48px}
 .brand-name{font-size:19px;font-weight:800;letter-spacing:.2px;color:#fff}.brand-sub{font-size:10px;color:#aebfd5;letter-spacing:.6px}
 .nav-label{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#8199b7;padding:22px 10px 8px;text-transform:uppercase}
 .nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#c6d4e6;text-align:left;padding:11px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;font-weight:550}
@@ -48,26 +49,54 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 .view{display:none}.view.active{display:block}.section-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .empty{padding:35px;text-align:center;color:var(--muted)}.empty strong{display:block;color:var(--ink);margin:8px}
 .mobile-menu{display:none}.overlay{display:none}
-.auth-screen{min-height:100vh;background:linear-gradient(135deg,#102743,#1f4d7b);display:none;align-items:center;justify-content:center;padding:25px}
+.auth-screen{min-height:100vh;background:linear-gradient(135deg,rgba(16,39,67,.88),rgba(31,77,123,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;display:none;align-items:center;justify-content:center;padding:25px}
 .auth-box{background:white;border-radius:22px;padding:34px;width:min(100%,440px);box-shadow:0 25px 70px #07172c66}.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.auth-box h2{margin:0 0 5px;font-size:23px}.auth-box p{color:var(--muted);margin:0 0 23px}.field{display:grid;gap:6px;margin:13px 0}.field label{font-size:11px;font-weight:700;color:#526176}.field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none}.field input:focus{border-color:#77a7ed;box-shadow:0 0 0 3px #eaf2ff}.auth-box .btn{width:100%;padding:12px;margin-top:10px}.auth-links{display:flex;justify-content:space-between;margin-top:17px;font-size:11px;color:var(--blue)}.auth-links a{cursor:pointer}
 .notice{background:#fff8e9;border:1px solid #f5e3bd;color:#8a5a16;padding:12px 14px;border-radius:10px;font-size:11px;margin-bottom:18px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.unit-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.topbar{padding:0 16px;height:66px}.content{padding:22px 16px}.mobile-menu{display:inline-grid}.two-col,.section-grid{grid-template-columns:1fr}.welcome{display:block}.date-pill{display:inline-block;margin-top:13px}.top-actions .role-select{max-width:130px}.unit-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:430px){.stats{gap:10px}.stat{padding:14px}.stat-value{font-size:20px}.unit-grid{grid-template-columns:1fr}.page-title{font-size:16px}}
+
+/* LOGIN V3 — mengikuti referensi dua panel */
+.auth-screen{position:fixed;inset:0;z-index:50;display:flex!important;align-items:stretch;justify-content:stretch;padding:0;overflow:auto;background:#f5f7fb}
+.auth-box{position:absolute;right:0;top:0;width:47.5%;height:100%;max-height:none;overflow:auto;border:0;border-radius:0;padding:38px clamp(22px,5vw,76px);display:flex;flex-direction:column;justify-content:center;box-shadow:none;background:transparent}
+.auth-brand-panel{position:absolute;inset:0 auto 0 0;width:52.5%;display:flex;align-items:center;padding:6vw;background:linear-gradient(135deg,rgba(15,43,76,.92),rgba(29,78,125,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;color:#fff;overflow:hidden}
+.auth-brand-panel:after{content:"";position:absolute;width:650px;height:190px;right:-100px;bottom:8%;border-radius:50%;border:35px solid rgba(53,205,170,.35);transform:rotate(-15deg)}
+.auth-brand-content{position:relative;z-index:1;max-width:520px}
+.auth-brand-content img{width:76px;height:76px;object-fit:contain;margin-bottom:22px}
+.auth-brand-content h1{font-size:clamp(34px,4vw,54px);color:#fff;margin:0 0 7px;font-weight:850}
+.auth-brand-content .subbrand{font-size:13px;letter-spacing:2px;color:#d7e8f7;font-weight:700}
+.auth-brand-content .line{width:76px;height:4px;background:linear-gradient(90deg,#25c49a,#f3c64e);border-radius:4px;margin:25px 0}
+.auth-brand-content p{font-size:16px;line-height:1.8;color:#e0eaf5;max-width:430px}
+.auth-features{display:flex;gap:25px;margin-top:35px;flex-wrap:wrap}.auth-features span{font-size:13px;font-weight:700;color:#fff}
+.auth-box .auth-brand{display:none}.auth-box h2{text-align:center;font-size:29px}.auth-box>p{text-align:center;margin-bottom:22px}
+.auth-box .field input{min-height:46px}.auth-box .btn{min-height:47px}
+.auth-role-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:5px;background:#f1f5fa;border:1px solid #e2e9f2;border-radius:13px;margin:0 0 17px}
+.auth-role-switch button{border:0;background:transparent;border-radius:10px;padding:12px 8px;color:#6b7b90;font-weight:700}
+.auth-role-switch button.active{background:white;color:#2464b5;box-shadow:0 4px 14px #183b6414}
+.auth-security{background:#f0f5fb;border-radius:12px;padding:12px 14px;margin-top:17px;color:#61748b;font-size:11px;text-align:center}
+.auth-links{justify-content:center;gap:22px;flex-wrap:wrap}
+@media(max-width:850px){.auth-screen{position:relative;min-height:100vh;display:block!important;padding:0 0 25px}.auth-brand-panel{position:relative;width:100%;height:300px;padding:30px 26px 65px}.auth-brand-content img{width:54px;height:54px;margin-bottom:10px}.auth-brand-content h1{font-size:32px}.auth-brand-content .line{margin:12px 0}.auth-brand-content p{font-size:12px;line-height:1.5}.auth-features{margin-top:12px;gap:14px}.auth-features span{font-size:11px}.auth-brand-panel:after{bottom:-100px}.auth-box{position:relative;width:min(100% - 28px,560px);height:auto;max-height:none;margin:-35px auto 0;padding:28px 22px;border-radius:18px;background:#fff;box-shadow:0 15px 40px #1e365018}.auth-box h2{font-size:25px}}
+
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<div class="app" id="app" style="display:none">
 <aside class="sidebar" id="sidebar">
- <div class="brand"><div class="brand-mark">e</div><div><div class="brand-name">e-Bumdesa</div><div class="brand-sub">SISTEM KEUANGAN BUMDESA</div></div></div>
+ <div class="brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name">e-Bumdesa</div><div class="brand-sub">SISTEM KEUANGAN BUMDESA</div></div></div>
  <div class="nav-label">Menu utama</div>
  <nav class="nav" id="mainNav">
   <button class="active" data-view="dashboard"><span class="ico">▦</span>Dashboard</button>
   <button data-view="units"><span class="ico">▣</span>Unit Usaha</button>
-  <button data-view="transactions"><span class="ico">⇄</span>Transaksi Keuangan</button>
   <button data-view="cash"><span class="ico">▤</span>Kas & Bank</button>
-  <button data-view="coa"><span class="ico">☷</span>Daftar Akun (COA)</button>
-  <button data-view="journals"><span class="ico">≡</span>Jurnal Umum</button>
+  <button data-view="transactions"><span class="ico">⇄</span>Transaksi</button>
+  <button data-view="journals"><span class="ico">≡</span>Jurnal</button>
+  <button data-view="ledger"><span class="ico">▤</span>Buku Besar</button>
+  <button data-view="coa"><span class="ico">☷</span>Bagan Akun (COA)</button>
+  <button data-view="opening"><span class="ico">↙</span>Saldo Awal</button>
+  <button data-view="adjustments"><span class="ico">☷</span>Penyesuaian</button>
+  <button data-view="closing"><span class="ico">▣</span>Tutup Buku</button>
+  <button data-view="shu"><span class="ico">◉</span>Pembagian & Pembayaran SHU</button>
+  <button data-view="assets"><span class="ico">▦</span>Aset</button>
   <button data-view="reports"><span class="ico">▥</span>Laporan Keuangan</button>
  </nav>
  <div class="nav-label">Pengaturan</div>
@@ -125,22 +154,40 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
   <section class="view" id="cash"><div class="welcome"><div><h1>Kas & Bank</h1><p class="sub">Pantau saldo kas tunai dan rekening bank.</p></div><button class="btn">＋ Catat Mutasi</button></div><div class="grid stats"><div class="card stat"><div class="stat-head">Kas Pusat <span class="stat-icon">▤</span></div><div class="stat-value">Rp 26,7 jt</div></div><div class="card stat"><div class="stat-head">Bank BUMDes <span class="stat-icon">▥</span></div><div class="stat-value">Rp 60,0 jt</div></div></div><div class="card panel"><h3>Mutasi Kas & Bank</h3><div class="empty">Belum ada data mutasi yang terhubung.</div></div></section>
   <section class="view" id="coa"><div class="welcome"><div><h1>Daftar Akun (COA)</h1><p class="sub">Bagan akun standar BUMDes dengan struktur empat level.</p></div><button class="btn btn-light">Ekspor COA</button></div><div class="notice">Template standar terdiri dari 257 akun: Level 1 (7), Level 2 (23), Level 3 (77), Level 4 (150). Data akun akan dimuat dari database.</div><div class="card panel"><div class="panel-head"><h3>Bagan Akun</h3><input class="role-select" placeholder="Cari kode atau nama akun"></div><div class="empty">COA belum dimuat. Hubungkan database untuk menampilkan daftar akun.</div></div></section>
   <section class="view" id="journals"><div class="welcome"><div><h1>Jurnal Umum</h1><p class="sub">Catatan jurnal debit dan kredit.</p></div><button class="btn">＋ Buat Jurnal</button></div><div class="card panel"><h3>Daftar Jurnal</h3><div class="empty">Data jurnal akan tampil setelah integrasi database.</div></div></section>
+  <section class="view" id="ledger"><div class="welcome"><div><h1>Buku Besar</h1><p class="sub">Mutasi dan saldo setiap akun berdasarkan jurnal.</p></div></div><div class="card panel"><div class="empty">Modul Buku Besar akan dihubungkan setelah transaksi dan jurnal siap.</div></div></section>
+  <section class="view" id="opening"><div class="welcome"><div><h1>Saldo Awal</h1><p class="sub">Pengaturan saldo awal akun pada awal periode pembukuan.</p></div></div><div class="card panel"><div class="empty">Modul Saldo Awal menunggu konfigurasi periode dan COA.</div></div></section>
+  <section class="view" id="adjustments"><div class="welcome"><div><h1>Penyesuaian</h1><p class="sub">Pencatatan jurnal penyesuaian akhir periode.</p></div></div><div class="card panel"><div class="empty">Modul Penyesuaian akan dibangun setelah jurnal umum.</div></div></section>
+  <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Proses pemeriksaan dan penutupan periode akuntansi.</p></div></div><div class="card panel"><div class="empty">Modul Tutup Buku akan dibangun setelah laporan keuangan.</div></div></section>
+  <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Perencanaan alokasi dan realisasi pembayaran SHU.</p></div></div><div class="card panel"><div class="empty">Modul SHU akan mengikuti struktur COA dan aturan BUMDes.</div></div></section>
+  <section class="view" id="assets"><div class="welcome"><div><h1>Aset</h1><p class="sub">Pencatatan aset tetap dan penyusutannya.</p></div></div><div class="card panel"><div class="empty">Modul aset akan dihubungkan dengan jurnal dan COA.</div></div></section>
   <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan keuangan per unit dan konsolidasi BUMDes.</p></div><button class="btn btn-light">Unduh Laporan</button></div><div class="grid section-grid"><div class="card panel"><h3>Laporan Laba Rugi</h3><p class="panel-note">Pendapatan, beban, dan surplus/defisit.</p></div><div class="card panel"><h3>Neraca</h3><p class="panel-note">Aset, kewajiban, dan ekuitas.</p></div><div class="card panel"><h3>Arus Kas</h3><p class="panel-note">Aktivitas operasi, investasi, dan pendanaan.</p></div><div class="card panel"><h3>Laporan SHU</h3><p class="panel-note">Perhitungan dan alokasi hasil usaha.</p></div></div></section>
   <section class="view" id="users"><div class="welcome"><div><h1>Pengguna & Hak Akses</h1><p class="sub">Atur pengguna dan kewenangan berdasarkan unit usaha.</p></div><button class="btn">＋ Tambah Pengguna</button></div><div class="card panel"><h3>Daftar Pengguna</h3><div class="empty">Data pengguna akan dimuat dari Supabase.</div></div></section>
   <section class="view" id="settings"><div class="welcome"><div><h1>Pengaturan BUMDes</h1><p class="sub">Identitas, periode buku, dan konfigurasi tenant.</p></div></div><div class="card panel"><div class="grid section-grid"><div class="field"><label>Nama BUMDes</label><input value="BUMDesa Sejahtera Kemirigede"></div><div class="field"><label>Kode BUMDes</label><input value="BUMDES001"></div><div class="field"><label>Desa</label><input value="Kemirigede"></div><div class="field"><label>Tahun Buku</label><select><option>2026</option><option>2027</option></select></div></div><button class="btn">Simpan Pengaturan</button></div></section>
  </div>
 </main>
 </div>
-<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="auth-brand"><div class="brand-mark">e</div><div><div class="brand-name" style="color:#142d4e">e-Bumdesa</div><div class="brand-sub" style="color:#718096">SISTEM KEUANGAN BUMDESA</div></div></div><h2 id="authTitle">Masuk ke akun Anda</h2><p id="authDesc">Kelola keuangan BUMDes dengan lebih terstruktur.</p><div id="authFields"><div class="field"><label>Email</label><input type="email" placeholder="nama@email.com"></div><div class="field"><label>Password</label><input type="password" placeholder="Masukkan password"></div></div><button class="btn" id="authSubmit">Masuk</button><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Kembali ke dashboard contoh</a></div></div></div>
+<div class="auth-screen" id="authScreen" style="display:flex">
+<div class="auth-brand-panel"><div class="auth-brand-content">
+<img src="e-bumdesa-logo.png" alt="Logo e-Bumdesa">
+<h1>e-Bumdesa</h1><div class="subbrand">SISTEM KEUANGAN BUMDESA</div>
+<div class="line"></div>
+<p>Pengelolaan keuangan BUM Desa yang transparan, akuntabel, terintegrasi, dan mudah digunakan untuk kemajuan desa.</p>
+<div class="auth-features"><span>◈ Transparan</span><span>✓ Akuntabel</span><span>↗ Berkelanjutan</span></div>
+</div></div>
+<div class="auth-box"><div class="auth-brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name" style="color:#142d4e">e-Bumdesa</div><div class="brand-sub" style="color:#718096">SISTEM KEUANGAN BUMDESA</div></div></div><h2 id="authTitle">Selamat Datang</h2><p id="authDesc">Pilih akses untuk masuk ke sistem e-Bumdesa.</p>
+<div class="auth-role-switch"><button type="button" id="loginPusatTab" class="active">▣ Admin Pusat</button><button type="button" id="loginUnitTab">▤ Admin Unit</button></div>
+<div id="authFields"><div class="field"><label>Email</label><input type="email" placeholder="nama@email.com"></div><div class="field"><label>Password</label><input type="password" placeholder="Masukkan password"></div></div><button class="btn" id="authSubmit">Masuk</button><div class="auth-security">♧ Akses aman — hak akses ditentukan oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
 <script>
-const titles={dashboard:"Dashboard",units:"Unit Usaha",transactions:"Transaksi Keuangan",cash:"Kas & Bank",coa:"Daftar Akun (COA)",journals:"Jurnal Umum",reports:"Laporan Keuangan",users:"Pengguna & Hak Akses",settings:"Pengaturan BUMDes"};
+const titles={dashboard:"Dashboard",ledger:"Buku Besar",opening:"Saldo Awal",adjustments:"Penyesuaian",closing:"Tutup Buku",shu:"Pembagian & Pembayaran SHU",assets:"Aset",units:"Unit Usaha",transactions:"Transaksi Keuangan",cash:"Kas & Bank",coa:"Daftar Akun (COA)",journals:"Jurnal Umum",reports:"Laporan Keuangan",users:"Pengguna & Hak Akses",settings:"Pengaturan BUMDes"};
 function showView(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===id));document.getElementById("topTitle").textContent=titles[id]||"Dashboard";document.getElementById("crumb").textContent=titles[id]||"Ringkasan";document.getElementById("sidebar").classList.remove("open");}
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.go)));
 document.getElementById("menuBtn").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));
 document.getElementById("roleSelect").addEventListener("change",e=>{const role=e.target.value;document.querySelector(".profile b").textContent=role==="owner"?"Platform Owner":role==="unit"?"Admin Unit":"Admin Pusat";document.querySelector(".profile small").textContent=role==="owner"?"Pengelola Platform":role==="unit"?"Unit Perdagangan":"BUMDesa Sejahtera Kemirigede";document.querySelector("h1").textContent=role==="owner"?"Ringkasan Platform":role==="unit"?"Dashboard Unit Perdagangan":"Selamat datang, Admin Pusat";});
+document.getElementById("loginPusatTab").addEventListener("click",()=>{document.getElementById("loginPusatTab").classList.add("active");document.getElementById("loginUnitTab").classList.remove("active");document.getElementById("authDesc").textContent="Masuk menggunakan akun Admin Pusat yang telah terdaftar.";});
+document.getElementById("loginUnitTab").addEventListener("click",()=>{document.getElementById("loginUnitTab").classList.add("active");document.getElementById("loginPusatTab").classList.remove("active");document.getElementById("authDesc").textContent="Masuk menggunakan akun yang diberikan oleh Admin Pusat.";});
 document.getElementById("registerLink").addEventListener("click",()=>{document.getElementById("authTitle").textContent="Pendaftaran BUMDes";document.getElementById("authDesc").textContent="Ajukan pendaftaran BUMDes untuk ditinjau Platform Owner.";document.getElementById("authFields").innerHTML='<div class="field"><label>Nama BUMDes</label><input placeholder="Nama resmi BUMDes"></div><div class="field"><label>Desa / Kelurahan</label><input placeholder="Nama desa"></div><div class="field"><label>Kecamatan</label><input placeholder="Nama kecamatan"></div><div class="field"><label>Kabupaten</label><input placeholder="Nama kabupaten"></div><div class="field"><label>Nama pendaftar / calon Admin Pusat</label><input placeholder="Nama lengkap"></div><div class="field"><label>Email</label><input type="email" placeholder="nama@email.com"></div><div class="field"><label>Password</label><input type="password" placeholder="Buat password"></div>';document.getElementById("authSubmit").textContent="Kirim Pengajuan";});
-document.getElementById("backLink").addEventListener("click",()=>{document.getElementById("authScreen").style.display="none";document.getElementById("app").style.display="block";});
+document.getElementById("backLink").addEventListener("click",()=>{document.getElementById("authTitle").textContent="Login tetap menjadi halaman awal";document.getElementById("authDesc").textContent="Dashboard hanya dapat dibuka setelah autentikasi berhasil. Integrasi Supabase akan ditambahkan pada tahap berikutnya.";});
 </script>
 </body>
 </html>
