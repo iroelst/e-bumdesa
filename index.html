@@ -193,7 +193,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 </div></div>
 <div class="auth-box"><div class="auth-brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name" style="color:#142d4e">e-Bumdesa</div><div class="brand-sub" style="color:#718096">SISTEM KEUANGAN BUMDESA</div></div></div><h2 id="authTitle">Selamat Datang</h2><p id="authDesc">Masuk menggunakan email dan password akun e-Bumdesa Anda.</p>
 
-<div id="authFields"><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div></div><div id="authMessage" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:#c44747"></div><button class="btn" id="authSubmit" type="button">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
+<div id="authFields"><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div></div><div id="authMessage" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:#c44747"></div><div id="authDiagnostics" style="display:none;margin-top:12px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:#f7faff;color:#42536a;font-size:11px;line-height:1.7;white-space:pre-wrap"></div><button class="btn" id="authSubmit" type="button">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
 
 <div id="platformWorkspace">
   <header class="po-top">
@@ -267,14 +267,33 @@ const $ = (id) => document.getElementById(id);
 let currentUser = null;
 let currentAccess = null;
 
+const diagnosticSteps = [];
+function addDiagnostic(message) {
+  const stamp = new Date().toLocaleTimeString("id-ID");
+  diagnosticSteps.push(`[${stamp}] ${message}`);
+  const panel = $("authDiagnostics");
+  if (panel) {
+    panel.style.display = "block";
+    panel.textContent = diagnosticSteps.slice(-12).join("\\n");
+  }
+  console.info("[e-Bumdesa]", message);
+}
+function clearDiagnostics() {
+  diagnosticSteps.length = 0;
+  const panel = $("authDiagnostics");
+  if (panel) { panel.textContent = ""; panel.style.display = "none"; }
+}
 function withTimeout(promise, label, ms=12000) {
+  let timer;
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(
-      () => reject(new Error(`Pemeriksaan ${label} melewati batas waktu ${ms/1000} detik. Periksa koneksi, URL/key Supabase, dan kebijakan RLS tabel tersebut.`)),
-      ms
-    ))
-  ]);
+    new Promise((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`TIMEOUT: pemeriksaan ${label} tidak mendapat respons dalam ${ms/1000} detik.`)),
+        ms
+      );
+    })
+  ]).finally(() => clearTimeout(timer));
 }
 
 function setMessage(message, success=false) {
@@ -309,8 +328,10 @@ function deny(message) {
 }
 
 async function resolveAccess(user) {
+  addDiagnostic("Sesi terdeteksi untuk user ID: " + user.id);
   // Prioritas 1: Platform Owner
   setMessage("Memeriksa akses Platform Owner...", true);
+  addDiagnostic("Memulai query tabel public.platform_admins.");
   const { data: owner, error: ownerError } = await withTimeout(
     supabase.from("platform_admins")
       .select("user_id, display_name, is_active")
@@ -319,7 +340,11 @@ async function resolveAccess(user) {
       .maybeSingle(),
     "platform_admins"
   );
-  if (ownerError) throw new Error("Gagal memeriksa akses Platform Owner: " + ownerError.message);
+  if (ownerError) {
+    addDiagnostic("Query platform_admins gagal: " + ownerError.message);
+    throw new Error("Gagal membaca platform_admins: " + ownerError.message);
+  }
+  addDiagnostic(owner ? "Baris Platform Owner ditemukan dan aktif." : "Tidak ditemukan baris Platform Owner aktif untuk user ini.");
   if (owner) {
     return { kind:"platform_owner", role:"Platform Owner", name:owner.display_name || user.email, tenantName:"Seluruh BUMDes" };
   }
@@ -333,7 +358,10 @@ async function resolveAccess(user) {
       .eq("is_active", true),
     "bumdes_memberships"
   );
-  if (membershipError) throw new Error("Gagal memeriksa keanggotaan BUMDes: " + membershipError.message);
+  if (membershipError) {
+    addDiagnostic("Query bumdes_memberships gagal: " + membershipError.message);
+    throw new Error("Gagal memeriksa keanggotaan BUMDes: " + membershipError.message);
+  }
 
   if (memberships?.length) {
     if (memberships.length > 1) {
@@ -376,7 +404,10 @@ async function resolveAccess(user) {
       .eq("is_active", true),
     "unit_user_access"
   );
-  if (accessError) throw new Error("Gagal memeriksa akses unit: " + accessError.message);
+  if (accessError) {
+    addDiagnostic("Query unit_user_access gagal: " + accessError.message);
+    throw new Error("Gagal memeriksa akses unit: " + accessError.message);
+  }
   if (accesses?.length) {
     if (accesses.length > 1) {
       throw new Error("Akun memiliki akses ke beberapa unit. Pemilihan unit perlu disiapkan sebelum akun ini digunakan.");
@@ -422,7 +453,16 @@ async function enterWithSession(session) {
       $("authScreen").style.display = "none";
       $("platformWorkspace").style.display = "block";
       $("poAccountLabel").textContent = currentAccess.name || "Pemilik Platform";
-      await loadPlatformDashboard();
+      try {
+        await loadPlatformDashboard();
+        addDiagnostic("Dashboard Platform Owner berhasil dimuat.");
+      } catch (dashboardError) {
+        console.error("Gagal memuat dashboard Platform Owner:", dashboardError);
+        addDiagnostic("Hak Platform Owner terverifikasi, tetapi dashboard gagal dimuat: " + dashboardError.message);
+        $("poOverviewMessage").textContent = dashboardError.message;
+        $("poOverviewMessage").className = "po-message";
+        $("platformWorkspace").style.display = "block";
+      }
       return;
     }
     $("platformWorkspace").style.display = "none";
@@ -438,12 +478,16 @@ async function enterWithSession(session) {
     setMessage("");
   } catch (err) {
     console.error("e-Bumdesa access resolution:", err);
-    try { await supabase.auth.signOut(); } catch (signOutError) {
-      console.error("Gagal membersihkan sesi:", signOutError);
-    }
-    currentUser = null;
+    addDiagnostic("PEMERIKSAAN BERHENTI: " + (err.message || String(err)));
     currentAccess = null;
-    deny(err.message || "Tidak dapat memeriksa hak akses akun.");
+    $("authTitle").textContent = "Pemeriksaan akses belum selesai";
+    $("authDesc").textContent = "Sesi login dipertahankan. Periksa rincian diagnostik berikut dan coba lagi.";
+    $("authSubmit").textContent = "Coba periksa lagi";
+    $("authSubmit").disabled = false;
+    setMessage(err.message || "Tidak dapat memeriksa hak akses akun.");
+    $("platformWorkspace").style.display = "none";
+    $("app").style.display = "none";
+    $("authScreen").style.display = "flex";
   }
 }
 
@@ -521,6 +565,9 @@ $("poRequestRefresh").addEventListener("click",()=>loadPlatformDashboard().catch
 $("poLogout").addEventListener("click",async()=>{const {error}=await supabase.auth.signOut();if(error)alert(error.message);});
 
 async function login() {
+  clearDiagnostics();
+  $("authTitle").textContent = "Selamat Datang";
+  $("authDesc").textContent = "Masuk menggunakan email dan password akun e-Bumdesa Anda.";
   const email = $("loginEmail").value.trim();
   const password = $("loginPassword").value;
   if (!email || !password) return setMessage("Email dan password wajib diisi.");
@@ -528,8 +575,13 @@ async function login() {
   $("authSubmit").textContent = "Memeriksa...";
   setMessage("");
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    addDiagnostic("Mengirim kredensial ke Supabase Auth.");
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password }),
+      "Supabase Auth"
+    );
     if (error) throw error;
+    addDiagnostic("Supabase Auth berhasil. Mulai pemeriksaan hak akses.");
     await enterWithSession(data.session);
   } catch (err) {
     console.error("e-Bumdesa login:", err);
