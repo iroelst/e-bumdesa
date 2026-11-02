@@ -16,7 +16,13 @@
 }
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 button,input,select{font:inherit}button{cursor:pointer}
-.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:258px;background:var(--navy);color:#dbe7f6;padding:22px 16px;display:flex;flex-direction:column;z-index:20;transition:.25s}
+.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:258px;height:100vh;height:100dvh;box-sizing:border-box;background:var(--navy);color:#dbe7f6;padding:22px 16px;display:flex;flex-direction:column;z-index:20;transition:.25s;overflow:hidden}
+.sidebar-menu{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 2px 12px 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#587397 transparent}
+.sidebar-menu::-webkit-scrollbar{width:6px}
+.sidebar-menu::-webkit-scrollbar-track{background:transparent}
+.sidebar-menu::-webkit-scrollbar-thumb{background:#587397;border-radius:8px}
+.sidebar-menu::-webkit-scrollbar-thumb:hover{background:#86a6cc}
+.sidebar .nav-label:first-child{padding-top:18px}
 .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 25px;border-bottom:1px solid #ffffff20}
 .brand-mark{width:42px;height:42px;object-fit:contain;border-radius:10px;display:block}.auth-brand .brand-mark{width:48px;height:48px}
 .brand-name{font-size:19px;font-weight:800;letter-spacing:.2px;color:#fff}.brand-sub{font-size:10px;color:#aebfd5;letter-spacing:.6px}
@@ -49,7 +55,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 .view{display:none}.view.active{display:block}.section-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .empty{padding:35px;text-align:center;color:var(--muted)}.empty strong{display:block;color:var(--ink);margin:8px}
 .mobile-menu{display:none}.overlay{display:none}
-.auth-screen{min-height:100vh;background:linear-gradient(135deg,rgba(16,39,67,.88),rgba(31,77,123,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;display:none;align-items:center;justify-content:center;padding:25px}
+.auth-screen{position:fixed;inset:0;z-index:1000;min-height:100vh;background:linear-gradient(135deg,rgba(16,39,67,.88),rgba(31,77,123,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;display:none;align-items:center;justify-content:center;padding:25px}
 .auth-box{background:white;border-radius:22px;padding:34px;width:min(100%,440px);box-shadow:0 25px 70px #07172c66}.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.auth-box h2{margin:0 0 5px;font-size:23px}.auth-box p{color:var(--muted);margin:0 0 23px}.field{display:grid;gap:6px;margin:13px 0}.field label{font-size:11px;font-weight:700;color:#526176}.field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none}.field input:focus{border-color:#77a7ed;box-shadow:0 0 0 3px #eaf2ff}.auth-box .btn{width:100%;padding:12px;margin-top:10px}.auth-links{display:flex;justify-content:space-between;margin-top:17px;font-size:11px;color:var(--blue)}.auth-links a{cursor:pointer}
 .notice{background:#fff8e9;border:1px solid #f5e3bd;color:#8a5a16;padding:12px 14px;border-radius:10px;font-size:11px;margin-bottom:18px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.unit-grid{grid-template-columns:repeat(2,1fr)}}
@@ -58,8 +64,8 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 
 /* LOGIN V3 — mengikuti referensi dua panel */
 .auth-screen{position:fixed;inset:0;z-index:50;display:flex!important;align-items:stretch;justify-content:stretch;padding:0;overflow:auto;background:#f5f7fb}
-.auth-box{position:absolute;right:0;top:0;width:47.5%;height:100%;max-height:none;overflow:auto;border:0;border-radius:0;padding:38px clamp(22px,5vw,76px);display:flex;flex-direction:column;justify-content:center;box-shadow:none;background:transparent}
-.auth-brand-panel{position:absolute;inset:0 auto 0 0;width:52.5%;display:flex;align-items:center;justify-content:center;text-align:center;padding:6vw;background:linear-gradient(135deg,rgba(15,43,76,.92),rgba(29,78,125,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;color:#fff;overflow:hidden}
+.auth-box{position:absolute;z-index:2;pointer-events:auto;right:0;top:0;width:47.5%;height:100%;max-height:none;overflow:auto;border:0;border-radius:0;padding:38px clamp(22px,5vw,76px);display:flex;flex-direction:column;justify-content:center;box-shadow:none;background:transparent}
+.auth-brand-panel{position:absolute;inset:0 auto 0 0;pointer-events:none;width:52.5%;display:flex;align-items:center;justify-content:center;text-align:center;padding:6vw;background:linear-gradient(135deg,rgba(15,43,76,.92),rgba(29,78,125,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;color:#fff;overflow:hidden}
 .auth-brand-panel:after{display:none!important;content:none!important}
 .auth-brand-content{position:relative;z-index:1;max-width:620px;width:100%;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center}
 .auth-brand-content img{width:76px;height:76px;object-fit:contain;margin-bottom:22px}
@@ -158,6 +164,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 <div class="app" id="app" style="display:none">
 <aside class="sidebar" id="sidebar">
  <div class="brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name">e-Bumdesa</div><div class="brand-sub">SISTEM KEUANGAN BUMDESA</div></div></div>
+ <div class="sidebar-menu">
  <div class="nav-label">Menu utama</div>
  <nav class="nav" id="mainNav">
   <button class="active" data-view="dashboard"><span class="ico">▦</span>Dashboard</button>
@@ -180,6 +187,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
   <button data-view="users"><span class="ico">♙</span>Pengguna & Hak Akses</button>
   <button data-view="settings"><span class="ico">⚙</span>Pengaturan BUMDes</button>
  </nav>
+ </div>
  <div class="side-bottom"><div class="profile"><div class="avatar">AP</div><div><b>Admin Pusat</b><small>BUMDesa Sejahtera Kemirigede</small></div></div></div>
 </aside>
 <main class="main">
@@ -675,7 +683,7 @@ async function login() {
   }
 }
 
-$("authSubmit").onclick = login;
+$("authSubmit").type = "button";\n$("authSubmit").addEventListener("click", event => { event.preventDefault(); login(); });
 $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
 $("logoutBtn").addEventListener("click", async ()=>{
@@ -720,7 +728,7 @@ function restoreLoginForm(){
   $("authFields").innerHTML = `<div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div>`;
   $("authSubmit").textContent = "Masuk";
   $("authSubmit").disabled = false;
-  $("authSubmit").onclick = login;
+  $("authSubmit").type = "button";\n$("authSubmit").addEventListener("click", event => { event.preventDefault(); login(); });
   $("backLink").textContent = "Tutup halaman login";
   $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
   $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
