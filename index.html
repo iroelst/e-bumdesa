@@ -199,7 +199,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 </div>
 </section>
   <section class="view" id="units"><div class="welcome"><div><h1>Unit Usaha</h1><p class="sub">Kelola unit usaha BUMDes.</p></div><button class="btn btn-primary" id="rbAddUnit">＋ Tambah Unit</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Unit</h3><input id="rbUnitSearch" class="role-select" placeholder="Cari unit..."><button class="btn btn-light" id="rbReloadUnits">Muat ulang</button></div><div id="rbUnitsTable"></div></div></section>
-  <section class="view" id="transactions"><div class="welcome"><div><h1>Transaksi Keuangan</h1><p class="sub">Pencatatan transaksi pusat. Transaksi diposting melalui jurnal berpasangan.</p></div><button class="btn btn-primary" id="rbAddTransaction">＋ Catat Transaksi</button></div><div class="card panel"><div class="panel-head"><h3>Riwayat Transaksi</h3><div class="toolbar"><input type="date" id="rbTxFrom"><input type="date" id="rbTxTo"><button class="btn btn-light" id="rbFilterTx">Terapkan</button><button class="btn btn-light" id="rbReloadTx">Muat ulang</button></div></div><div id="rbTransactionsTable"></div></div></section>
+  <section class="view" id="transactions"><div class="welcome"><div><h1>Transaksi Keuangan</h1><p class="sub">Pencatatan transaksi pusat atau unit sesuai hak akses. Transaksi diposting melalui jurnal berpasangan.</p></div><button class="btn btn-primary" id="rbAddTransaction">＋ Catat Transaksi</button></div><div class="card panel"><div class="panel-head"><h3>Riwayat Transaksi</h3><div class="toolbar"><input type="date" id="rbTxFrom"><input type="date" id="rbTxTo"><button class="btn btn-light" id="rbFilterTx">Terapkan</button><button class="btn btn-light" id="rbReloadTx">Muat ulang</button></div></div><div id="rbTransactionsTable"></div></div></section>
   <section class="view" id="cash"><div class="welcome"><div><h1>Kas & Bank</h1><p class="sub">Saldo rekening dihitung dari jurnal posted dan akun kas/bank.</p></div><button class="btn btn-light" id="rbReloadCash">Muat ulang</button></div><div class="grid stats" id="rbCashCards"></div><div class="card panel"><div class="panel-head"><h3>Mutasi Kas & Bank</h3></div><div id="rbCashTable"></div></div></section>
   <section class="view" id="coa"><div class="welcome"><div><h1>Daftar Akun (COA)</h1><p class="sub">Bagan akun empat level. Akun sistem level 1–3 dilindungi.</p></div><div class="toolbar"><button class="btn btn-light" id="rbExportCoa">Ekspor CSV</button><button class="btn btn-primary" id="rbAddCoa">＋ Tambah Akun Level 4</button></div></div><div class="card panel"><div class="panel-head"><input id="rbCoaSearch" class="role-select" placeholder="Cari kode/nama akun"><select id="rbCoaStatus"><option value="all">Semua status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select><button class="btn btn-light" id="rbReloadCoa">Muat ulang</button></div><div id="rbCoaTable"></div></div></section>
   <section class="view" id="journals"><div class="welcome"><div><h1>Jurnal Umum</h1><p class="sub">Jurnal draft dapat diedit; jurnal posted dikunci dan dikoreksi dengan jurnal pembalik.</p></div><button class="btn btn-primary" id="rbAddJournal">＋ Buat Jurnal</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Jurnal</h3><button class="btn btn-light" id="rbReloadJournals">Muat ulang</button></div><div id="rbJournalsTable"></div></div></section>
@@ -209,7 +209,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
   <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Periode hanya dapat ditutup setelah pemeriksaan laporan dan saldo.</p></div><button class="btn btn-light" id="rbReloadClosing">Muat ulang</button></div><div class="card panel"><div id="rbClosingNotice" class="notice">Tutup buku tidak akan dijalankan otomatis sebelum jurnal penutup dan rekonsiliasi saldo disiapkan.</div><div id="rbClosingTable"></div></div></section>
   <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Rencana alokasi, persentase, nilai, dan pembayaran SHU.</p></div><button class="btn btn-primary" id="rbAddShu">＋ Buat Alokasi SHU</button></div><div class="grid two-col"><div class="card panel"><div class="panel-head"><h3>Alokasi SHU</h3></div><div id="rbShuAllocations"></div></div><div class="card panel"><div class="panel-head"><h3>Distribusi SHU</h3></div><div id="rbShuDistributions"></div></div></div></section>
   <section class="view" id="assets"><div class="welcome"><div><h1>Aset Tetap</h1><p class="sub">Daftar aset, biaya perolehan, umur manfaat, dan akumulasi penyusutan.</p></div><button class="btn btn-primary" id="rbAddAsset">＋ Tambah Aset</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Aset</h3><button class="btn btn-light" id="rbReloadAssets">Muat ulang</button></div><div id="rbAssetsTable"></div></div></section>
-  <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan bersumber dari jurnal posted, bukan dari data contoh.</p></div><button class="btn btn-light" id="rbPrintReport">Cetak / Simpan PDF</button></div><div class="card panel"><div class="toolbar"><select id="rbReportType"><option value="pl">Laba Rugi</option><option value="bs">Neraca</option><option value="cash">Arus Kas (ringkasan akun kas/bank)</option></select><input type="date" id="rbReportFrom"><input type="date" id="rbReportTo"><select id="rbReportUnit"><option value="">Konsolidasi BUMDes</option></select><button class="btn btn-primary" id="rbRunReport">Buat Laporan</button></div><div id="rbReportResult"><div class="empty">Pilih jenis dan periode laporan.</div></div></div></section>
+  <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan bersumber dari jurnal posted, bukan dari data contoh.</p></div><button class="btn btn-light" id="rbPrintReport">Cetak / Simpan PDF</button></div><div class="card panel"><div class="toolbar"><select id="rbReportType"><option value="pl">Laba Rugi</option><option value="bs">Neraca</option><option value="cash">Ringkasan Saldo Kas & Bank</option></select><input type="date" id="rbReportFrom"><input type="date" id="rbReportTo"><select id="rbReportUnit"><option value="">Konsolidasi BUMDes</option></select><button class="btn btn-primary" id="rbRunReport">Buat Laporan</button></div><div class="rb-note">Laporan dihitung dari jurnal posted. Pastikan seluruh akun COA sudah memiliki saldo normal dan klasifikasi yang benar sebelum angka laporan dipakai sebagai laporan resmi.</div><div id="rbReportResult"><div class="empty">Pilih jenis dan periode laporan.</div></div></div></section>
   <section class="view" id="users"><div class="welcome"><div><h1>Pengguna & Hak Akses</h1><p class="sub">Kelola membership BUMDes dan akses unit untuk akun yang sudah terdaftar di Supabase Auth.</p></div><button class="btn btn-primary" id="rbAddUser">＋ Beri Akses Pengguna</button></div><div class="card panel"><div class="panel-head"><h3>Keanggotaan BUMDes</h3><button class="btn btn-light" id="rbReloadUsers">Muat ulang</button></div><div id="rbUsersTable"></div></div><div class="card panel"><div class="panel-head"><h3>Akses Unit</h3></div><div id="rbUnitAccessTable"></div></div></section>
   <section class="view" id="settings"><div class="welcome"><div><h1>Pengaturan BUMDes</h1><p class="sub">Identitas BUMDes dan periode pembukuan.</p></div><button class="btn btn-primary" id="rbSaveSettings">Simpan Pengaturan</button></div><div class="card panel"><div id="rbSettingsForm"><div class="empty">Memuat pengaturan...</div></div></div><div class="card panel"><div class="panel-head"><h3>Periode Akuntansi</h3><button class="btn btn-light" id="rbAddPeriod">＋ Periode Baru</button></div><div id="rbPeriodsTable"></div></div></section>
  </div>
@@ -529,7 +529,9 @@ async function enterWithSession(session) {
     setMessage("");
     // Tombol tulis pusat mengikuti role; RLS tetap menjadi pengaman utama.
     const centralWrite=["admin_pusat","super_admin"].includes(currentAccess.roleCode);
-    document.querySelectorAll("#rbAddUnit,#rbAddTransaction,#rbAddCoa,#rbAddOpening,#rbAddAsset,#rbAddUser,#rbSaveSettings,#rbAddPeriod,#rbAddShu").forEach(el=>el.style.display=centralWrite?"":"none");
+    document.querySelectorAll("#rbAddUnit,#rbAddCoa,#rbAddOpening,#rbAddAsset,#rbAddUser,#rbSaveSettings,#rbAddPeriod,#rbAddShu").forEach(el=>el.style.display=centralWrite?"":"none");
+    const canRecordTx=centralWrite||(currentAccess.kind==="unit_user"&&["admin_unit","staf_unit"].includes(currentAccess.role));
+    document.querySelectorAll("#rbAddTransaction").forEach(el=>el.style.display=canRecordTx?"":"none");
     document.querySelectorAll("#rbAddJournal,#rbAddAdjustment").forEach(el=>el.style.display=(centralWrite||(!!currentAccess.unitId&&["admin_unit","staf_unit"].includes(currentAccess.roleCode||currentAccess.role)))?"":"none");
 
   } catch (err) {
@@ -801,7 +803,7 @@ $("backLink").addEventListener("click",()=>{
 // =============================================================
 // e-BUMDESA REBUILD — data layer and operational modules
 // =============================================================
-const RB = { units:[], coa:[], periods:[], tx:[], journals:[], assets:[], memberships:[], unitAccess:[], activePeriod:null };
+const RB = { units:[], coa:[], periods:[], tx:[], journals:[], adjustments:[], assets:[], memberships:[], unitAccess:[], activePeriod:null };
 const rbMoney = n => "Rp " + Number(n||0).toLocaleString("id-ID",{maximumFractionDigits:0});
 const rbEsc = v => String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rbDate = v => { if(!v)return "—"; const d=new Date(String(v).length===10?v+"T00:00:00":v); return isNaN(d)?"—":d.toLocaleDateString("id-ID"); };
@@ -853,7 +855,7 @@ async function rbLoadDashboard(){
  for(const l of lines){const a=cmap[l.account_id];if(!a)continue;const code=String(a.code||"");if(code.startsWith("4"))income+=Number(l.credit)-Number(l.debit);if(code.startsWith("5"))expense+=Number(l.debit)-Number(l.credit);}
  $("rbDate").textContent=now.toLocaleDateString("id-ID",{dateStyle:"long"});
  $("rbKpiIncome").textContent=rbMoney(income);$("rbKpiExpense").textContent=rbMoney(expense);$("rbKpiSurplus").textContent=rbMoney(income-expense);$("rbKpiUnits").textContent=RB.units.length;
- $("rbDashNotice").textContent=`Periode ${now.toLocaleDateString("id-ID",{month:"long",year:"numeric"})} · ${RB.journals.length} jurnal posted · angka berdasarkan akun dengan kode awalan 4 (pendapatan) dan 5 (beban).`;
+ $("rbDashNotice").textContent=`Periode ${now.toLocaleDateString("id-ID",{month:"long",year:"numeric"})} · ${RB.journals.length} jurnal posted · angka indikatif berdasarkan awalan kode akun 4 (pendapatan) dan 5 (beban); verifikasi klasifikasi COA sebelum laporan resmi.`;
  $("rbDashUnits").innerHTML=RB.units.map(u=>`<div class="card unit"><h3>${rbEsc(u.name)}</h3><p>${rbEsc(u.code)} · ${rbEsc(u.status)}</p><small>${rbEsc(u.unit_head||"Penanggung jawab belum diisi")}</small></div>`).join("")||'<div class="rb-empty">Belum ada unit usaha.</div>';
  $("rbDashJournals").innerHTML=RB.journals.slice(0,6).map(j=>`<div class="activity-item"><div><b>${rbEsc(j.journal_no)} · ${rbEsc(j.description)}</b><small>${rbDate(j.journal_date)}</small></div></div>`).join("")||'<div class="rb-empty">Belum ada jurnal posted.</div>';
 }
@@ -878,9 +880,11 @@ async function rbOpenUnit(u=null){
  });
 }
 async function rbDeleteUnit(id){
- if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat menghapus unit.");
- if(!confirm("Hapus unit ini? Jika sudah memiliki transaksi atau jurnal, database dapat menolak penghapusan."))return;
- const r=await supabase.from("units").delete().eq("id",id).eq("bumdes_id",rbTenant());rbCheck(r);await rbLoadUnits();
+ if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengelola status unit.");
+ const unit=RB.units.find(x=>x.id===id);if(!unit)return;
+ if(!confirm(`Nonaktifkan unit "${unit.name}"? Data transaksi dan jurnal lama tetap dipertahankan.`))return;
+ rbCheck(await supabase.from("units").update({status:"inactive",updated_at:new Date().toISOString()}).eq("id",id).eq("bumdes_id",rbTenant()));
+ await rbLoadUnits();await rbLoadDashboard();rbToast("Unit dinonaktifkan. Riwayat keuangan tetap aman.",true);
 }
 async function rbLoadTransactions(){
  const id=rbTenant();let q=supabase.from("transactions").select("id,unit_id,transaction_date,transaction_number,description,transaction_type,amount,status,journal_entry_id,created_at").eq("bumdes_id",id).order("transaction_date",{ascending:false}).limit(500);
@@ -891,29 +895,44 @@ async function rbLoadTransactions(){
 }
 function rbTxForm(){
  const leaf=RB.coa.filter(a=>a.level===4&&a.is_active);
- return `<div class="rb-note">Transaksi pusat membuat jurnal berpasangan dan memanggil fungsi post_journal. Unit hanya dapat dipilih oleh Admin Pusat. Pemindahan antar rekening harus dicatat melalui dua akun neraca, bukan pendapatan/beban.</div><div class="rb-form-grid">${rbField("Tanggal","rbTxDate","date",new Date().toISOString().slice(0,10))}<div class="rb-field"><label>Unit</label><select id="rbTxUnit">${rbSelect(RB.units,"id","name","","Pusat / tidak terkait unit")}</select></div>${rbField("Keterangan","rbTxDesc","text","")}${rbField("Nominal","rbTxAmount","number","","min=\"1\" step=\"0.01\"")}<div class="rb-field"><label>Jenis Transaksi</label><select id="rbTxType"><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option><option value="pemindahan">Pemindahan Kas/Bank</option><option value="modal">Tambahan Modal</option><option value="lainnya">Lainnya</option></select></div><div class="rb-field"><label>Akun Debit</label><select id="rbTxDebit">${rbSelect(leaf,"id", "code")}</select></div><div class="rb-field"><label>Akun Kredit</label><select id="rbTxCredit">${rbSelect(leaf,"id","code")}</select></div>${rbTextArea("Catatan","rbTxNote","")}</div>`;
+ const unitUser=currentAccess?.kind==="unit_user";
+ const fixedUnit=unitUser?(RB.units.find(u=>u.id===currentAccess.unitId)||null):null;
+ const unitControl=unitUser
+  ? `<div class="rb-field"><label>Unit Usaha</label><input value="${rbEsc(fixedUnit?.name||"Unit Anda")}" disabled><input id="rbTxUnit" type="hidden" value="${rbEsc(currentAccess.unitId)}"></div>`
+  : `<div class="rb-field"><label>Unit Usaha</label><select id="rbTxUnit">${rbSelect(RB.units,"id","name","","Pusat / tidak terkait unit")}</select></div>`;
+ return `<div class="rb-note">Transaksi disimpan melalui satu proses database yang atomik: nomor transaksi dibuat berurutan, jurnal dibentuk, diperiksa keseimbangannya, lalu diposting. Jika salah satu tahap gagal, seluruh proses dibatalkan sehingga tidak meninggalkan transaksi/jurnal setengah jadi. Pilih akun berdasarkan bukti transaksi.</div><div class="rb-form-grid">${rbField("Tanggal","rbTxDate","date",new Date().toISOString().slice(0,10))}${unitControl}${rbField("Keterangan","rbTxDesc","text","")}${rbField("Nominal","rbTxAmount","number","","min=\"1\" step=\"0.01\"")}<div class="rb-field"><label>Jenis Transaksi</label><select id="rbTxType"><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option><option value="pemindahan">Pemindahan Kas/Bank</option><option value="modal">Tambahan Modal</option><option value="lainnya">Lainnya</option></select></div><div class="rb-field"><label>Akun Debit</label><select id="rbTxDebit">${rbSelect(leaf,"id","code")}</select></div><div class="rb-field"><label>Akun Kredit</label><select id="rbTxCredit">${rbSelect(leaf,"id","code")}</select></div>${rbTextArea("Catatan / Referensi Bukti","rbTxNote","")}</div>`;
 }
 async function rbCreateTransaction(){
- if(!rbCanWrite())throw new Error("Kebijakan database saat ini hanya mengizinkan Admin Pusat mencatat transaksi.");
- await rbLoadBase();rbModal("Catat Transaksi",rbTxForm(),"Simpan & Posting",async()=>{
-  const amount=Number($("rbTxAmount").value),date=$("rbTxDate").value,desc=$("rbTxDesc").value.trim(),debit=$("rbTxDebit").value,credit=$("rbTxCredit").value,unit=$("rbTxUnit").value||null;
-  if(!date||!desc||amount<=0||!debit||!credit||debit===credit)throw new Error("Lengkapi tanggal, keterangan, nominal, serta dua akun yang berbeda.");
-  if(unit&&!RB.units.some(u=>u.id===unit))throw new Error("Unit tidak valid.");
-  const stamp=Date.now(),txNo=`TRX-${date.replaceAll("-","")}-${String(stamp).slice(-6)}`,journalNo=`JU-${date.replaceAll("-","")}-${String(stamp).slice(-6)}`;
-  const tx=rbCheck(await supabase.from("transactions").insert({bumdes_id:rbTenant(),unit_id:unit,period_id:RB.activePeriod?.id||null,transaction_date:date,transaction_number:txNo,description:desc,transaction_type:$("rbTxType").value,amount,status:"draft",created_by:currentUser.id}).select("id").single());
-  const j=rbCheck(await supabase.from("journal_entries").insert({bumdes_id:rbTenant(),unit_id:unit,journal_no:journalNo,journal_date:date,description:desc,reference_no:txNo,status:"draft",source_type:"transaction",source_id:tx.id,created_by:currentUser.id}).select("id").single());
-  const lines=[{bumdes_id:rbTenant(),journal_entry_id:j.id,account_id:debit,line_no:1,description:desc,debit:amount,credit:0},{bumdes_id:rbTenant(),journal_entry_id:j.id,account_id:credit,line_no:2,description:desc,debit:0,credit:amount}];
-  rbCheck(await supabase.from("journal_lines").insert(lines));
-  rbCheck(await supabase.rpc("post_journal",{p_journal_id:j.id}));
-  rbCheck(await supabase.from("transactions").update({status:"posted",journal_entry_id:j.id}).eq("id",tx.id).eq("bumdes_id",rbTenant()));
+ if(!(rbCanCentral() || (currentAccess?.kind==="unit_user" && ["admin_unit","staf_unit"].includes(rbRole()))))
+  throw new Error("Pencatatan transaksi hanya tersedia untuk Admin Pusat, Admin Unit, dan Staf Unit.");
+ await rbLoadBase();
+ rbModal("Catat Transaksi",rbTxForm(),"Simpan & Posting",async()=>{
+  const amount=Number($("rbTxAmount").value),date=$("rbTxDate").value,desc=$("rbTxDesc").value.trim();
+  const debit=$("rbTxDebit").value,credit=$("rbTxCredit").value,unit=$("rbTxUnit").value||null;
+  const note=$("rbTxNote").value.trim();
+  if(!date||!desc||!Number.isFinite(amount)||amount<=0||!debit||!credit||debit===credit)
+   throw new Error("Lengkapi tanggal, keterangan, nominal, serta dua akun yang berbeda.");
+  if(currentAccess?.kind==="unit_user" && unit!==currentAccess.unitId)
+   throw new Error("Unit transaksi tidak sesuai dengan hak akses akun.");
+  if(unit&&!RB.units.some(u=>u.id===unit))throw new Error("Unit tidak valid atau tidak dapat diakses.");
+  if(!RB.activePeriod || date<RB.activePeriod.start_date || date>RB.activePeriod.end_date)
+   throw new Error("Tanggal transaksi harus berada dalam periode akuntansi yang masih terbuka.");
+  const result=rbCheck(await supabase.rpc("create_posted_transaction",{
+   p_unit_id:unit,p_transaction_date:date,p_description:desc,
+   p_transaction_type:$("rbTxType").value,p_amount:amount,
+   p_debit_account_id:debit,p_credit_account_id:credit,p_note:note||null
+  }));
+  const txNo=result?.transaction_number||"";
+  rbToast(`Transaksi ${txNo} berhasil diposting.`,true);
   await rbLoadTransactions();await rbLoadDashboard();
  });
+ if(!$("rbTxUnit"))return;
  $("rbTxUnit").addEventListener("change",async()=>{
   const unit=$("rbTxUnit").value;
   let accounts=RB.coa.filter(a=>a.level===4&&a.is_active);
   if(unit){
    const a=await supabase.from("unit_coa_accounts").select("account_id").eq("bumdes_id",rbTenant()).eq("unit_id",unit).eq("is_enabled",true);
-   if(a.error){rbErr(a.error);return;}
+   if(a.error)throw a.error;
    const allowed=new Set((a.data||[]).map(x=>x.account_id));accounts=accounts.filter(x=>allowed.has(x.id));
   }
   $("rbTxDebit").innerHTML=rbSelect(accounts,"id","code");
@@ -949,7 +968,7 @@ async function rbLoadJournals(){
  const r=await supabase.from("journal_entries").select("id,journal_no,journal_date,description,reference_no,status,source_type,unit_id,created_at").eq("bumdes_id",rbTenant()).order("journal_date",{ascending:false}).limit(500);if(r.error)throw r.error;RB.journals=r.data||[];
  rbTable("rbJournalsTable",["Tanggal","Nomor","Keterangan","Referensi","Sumber","Status","Aksi"],RB.journals.map(j=>`<tr><td>${rbDate(j.journal_date)}</td><td>${rbEsc(j.journal_no)}</td><td>${rbEsc(j.description)}</td><td>${rbEsc(j.reference_no||"—")}</td><td>${rbEsc(j.source_type)}</td><td><span class="rb-badge">${rbEsc(j.status)}</span></td><td>${j.status==="draft"?`<button class="btn btn-light" data-rb-edit-journal="${j.id}">Buka</button><button class="btn btn-light" data-rb-post-journal="${j.id}">Posting</button>`:"Terkunci"}</td></tr>`),"Belum ada jurnal.");
 }
-async function rbOpenJournal(journal=null){
+async function rbOpenJournal(journal=null,sourceType="manual"){
  await rbLoadBase();
  let leaf=RB.coa.filter(a=>a.level===4&&a.is_active);
  const journalUnit=journal?.unit_id || (currentAccess.kind==="unit_user"?currentAccess.unitId:null);
@@ -963,35 +982,65 @@ async function rbOpenJournal(journal=null){
  const header=journal?{...journal}:{};let existing=[];
  if(journal){const q=await supabase.from("journal_lines").select("id,account_id,description,debit,credit,line_no").eq("journal_entry_id",journal.id).order("line_no");if(q.error)throw q.error;existing=q.data||[];}
  const linesHtml=(existing.length?existing:[{},{}]).map((l,i)=>`<div class="rb-line-grid"><div class="rb-field"><label>Akun</label><select class="rbJAccount">${rbSelect(leaf,"id","code",l.account_id||"")}</select></div><div class="rb-field"><label>Debit</label><input class="rbJDebit" type="number" min="0" step="0.01" value="${l.debit||""}"></div><div class="rb-field"><label>Kredit</label><input class="rbJCredit" type="number" min="0" step="0.01" value="${l.credit||""}"></div></div>`).join("");
- rbModal(journal?"Edit Jurnal Draft":"Buat Jurnal Manual",`<div class="rb-form-grid">${rbField("Tanggal","rbJDate","date",header.journal_date||new Date().toISOString().slice(0,10))}${rbField("Nomor Jurnal","rbJNo","text",header.journal_no||("JU-"+Date.now()))}${rbField("Keterangan","rbJDesc","text",header.description||"")}${rbField("Referensi","rbJRef","text",header.reference_no||"")}${rbTextArea("Catatan","rbJNote","")}</div><div class="rb-note">Minimal dua baris. Setiap baris harus hanya berisi debit atau kredit. Total debit harus sama dengan total kredit sebelum posting.</div><div id="rbJournalLines">${linesHtml}</div><button class="btn btn-light" type="button" id="rbAddJournalLine">＋ Tambah Baris</button>`,"Simpan Draft",async()=>{
+ rbModal(journal?"Edit Jurnal Draft":(sourceType==="adjustment"?"Buat Jurnal Penyesuaian":"Buat Jurnal Manual"),`<div class="rb-form-grid">${rbField("Tanggal","rbJDate","date",header.journal_date||new Date().toISOString().slice(0,10))}${rbField("Nomor Jurnal","rbJNo","text",header.journal_no||("JU-"+Date.now()))}${rbField("Keterangan","rbJDesc","text",header.description||"")}${rbField("Referensi","rbJRef","text",header.reference_no||"")}${rbTextArea("Catatan","rbJNote","")}</div><div class="rb-note">Minimal dua baris. Setiap baris harus hanya berisi debit atau kredit. Total debit harus sama dengan total kredit sebelum posting.</div><div id="rbJournalLines">${linesHtml}</div><button class="btn btn-light" type="button" id="rbAddJournalLine">＋ Tambah Baris</button>`,"Simpan Draft",async()=>{
   const date=$("rbJDate").value,no=$("rbJNo").value.trim(),desc=$("rbJDesc").value.trim();
   const lineEls=[...$("rbJournalLines").querySelectorAll(".rb-line-grid")];
   const parsed=lineEls.map((el,i)=>({account_id:el.querySelector(".rbJAccount").value,debit:Number(el.querySelector(".rbJDebit").value||0),credit:Number(el.querySelector(".rbJCredit").value||0),line_no:i+1,description:desc}));
   const debit=parsed.reduce((s,x)=>s+x.debit,0),credit=parsed.reduce((s,x)=>s+x.credit,0);
   if(!date||!no||!desc||parsed.length<2||parsed.some(x=>!x.account_id||((x.debit>0)===(x.credit>0)))||debit!==credit)throw new Error("Jurnal belum valid. Pastikan minimal dua baris, akun terisi, satu sisi per baris, dan debit = kredit.");
   let jid=journal?.id;
-  if(!jid){const j=rbCheck(await supabase.from("journal_entries").insert({bumdes_id:rbTenant(),unit_id:currentAccess.kind==="unit_user"?currentAccess.unitId:null,journal_no:no,journal_date:date,description:desc,reference_no:$("rbJRef").value||null,status:"draft",source_type:"manual",created_by:currentUser.id}).select("id").single());jid=j.id;}
+  if(!jid){const j=rbCheck(await supabase.from("journal_entries").insert({bumdes_id:rbTenant(),unit_id:currentAccess.kind==="unit_user"?currentAccess.unitId:null,journal_no:no,journal_date:date,description:desc,reference_no:$("rbJRef").value||null,status:"draft",source_type:(journal?.source_type||sourceType),created_by:currentUser.id}).select("id").single());jid=j.id;}
   else {rbCheck(await supabase.from("journal_entries").update({journal_date:date,journal_no:no,description:desc,reference_no:$("rbJRef").value||null,updated_at:new Date().toISOString()}).eq("id",jid).eq("bumdes_id",rbTenant()));await supabase.from("journal_lines").delete().eq("journal_entry_id",jid);}
   rbCheck(await supabase.from("journal_lines").insert(parsed.map(x=>({...x,bumdes_id:rbTenant(),journal_entry_id:jid}))));
-  await rbLoadJournals();
+  await rbLoadJournals();if(sourceType==="adjustment"||journal?.source_type==="adjustment")await rbLoadAdjustments();
  });
  $("rbAddJournalLine").onclick=()=>{const d=document.createElement("div");d.className="rb-line-grid";d.innerHTML="<div class=\"rb-field\"><label>Akun</label><select class=\"rbJAccount\">"+rbSelect(leaf,"id","code")+"</select></div><div class=\"rb-field\"><label>Debit</label><input class=\"rbJDebit\" type=\"number\" min=\"0\" step=\"0.01\"></div><div class=\"rb-field\"><label>Kredit</label><input class=\"rbJCredit\" type=\"number\" min=\"0\" step=\"0.01\"></div>";$("rbJournalLines").appendChild(d);};
 }
+async function rbLoadAdjustments(){
+ const r=await supabase.from("journal_entries")
+  .select("id,journal_no,journal_date,description,reference_no,status,source_type,unit_id")
+  .eq("bumdes_id",rbTenant()).eq("source_type","adjustment")
+  .order("journal_date",{ascending:false}).limit(500);
+ if(r.error)throw r.error;
+ RB.adjustments=r.data||[];
+ const rows=(RB.adjustments).map(j=>`<tr><td>${rbDate(j.journal_date)}</td><td>${rbEsc(j.journal_no)}</td><td>${rbEsc(j.description)}</td><td>${rbEsc(j.reference_no||"—")}</td><td><span class="rb-badge">${rbEsc(j.status)}</span></td><td>${j.status==="draft"?`<button class="btn btn-light" data-rb-edit-journal="${j.id}">Buka</button><button class="btn btn-light" data-rb-post-journal="${j.id}">Posting</button>`:"Terkunci"}</td></tr>`);
+ rbTable("rbAdjustmentList",["Tanggal","Nomor","Keterangan","Referensi","Status","Aksi"],rows,"Belum ada jurnal penyesuaian.");
+}
 async function rbPostJournal(id){
  if(!confirm("Posting jurnal? Jurnal yang sudah posted tidak dapat diedit langsung."))return;
- rbCheck(await supabase.rpc("post_journal",{p_journal_id:id}));await rbLoadJournals();await rbLoadDashboard();
+ rbCheck(await supabase.rpc("post_journal",{p_journal_id:id}));await rbLoadJournals();await rbLoadAdjustments();await rbLoadDashboard();
 }
 async function rbLoadLedgerOptions(){
- await rbLoadBase();const el=$("rbLedgerAccount");el.innerHTML=rbSelect(RB.coa.filter(a=>a.level===4&&a.is_active),"id", "code","", "Pilih akun");
+ await rbLoadBase();
+ const el=$("rbLedgerAccount");el.innerHTML=rbSelect(RB.coa.filter(a=>a.level===4&&a.is_active),"id","code","","Pilih akun");
+ if(RB.activePeriod){
+  if(!$("rbLedgerFrom").value)$("rbLedgerFrom").value=RB.activePeriod.start_date;
+  if(!$("rbLedgerTo").value)$("rbLedgerTo").value=new Date().toISOString().slice(0,10);
+ }
 }
 async function rbRunLedger(){
+ await rbLoadBase();
  const account=$("rbLedgerAccount").value;if(!account)throw new Error("Pilih akun terlebih dahulu.");
- let q=supabase.from("journal_lines").select("journal_entry_id,account_id,description,debit,credit,line_no").eq("bumdes_id",rbTenant()).eq("account_id",account);
- const r=await q;if(r.error)throw r.error;const ids=[...new Set((r.data||[]).map(x=>x.journal_entry_id))];let journals=[];
- if(ids.length){let jq=supabase.from("journal_entries").select("id,journal_no,journal_date,description,status,unit_id").eq("bumdes_id",rbTenant()).eq("status","posted").in("id",ids).order("journal_date");if($("rbLedgerFrom").value)jq=jq.gte("journal_date",$("rbLedgerFrom").value);if($("rbLedgerTo").value)jq=jq.lte("journal_date",$("rbLedgerTo").value);const jr=await jq;if(jr.error)throw jr.error;journals=jr.data||[];}
- const jmap=Object.fromEntries(journals.map(x=>[x.id,x]));const lines=(r.data||[]).filter(x=>jmap[x.journal_entry_id]).sort((a,b)=>String(jmap[a.journal_entry_id].journal_date).localeCompare(String(jmap[b.journal_entry_id].journal_date)));
- let bal=0;const a=RB.coa.find(x=>x.id===account),debitNormal=a?.normal_balance==="debit";
- const rows=lines.map(l=>{const j=jmap[l.journal_entry_id];bal+=debitNormal?Number(l.debit)-Number(l.credit):Number(l.credit)-Number(l.debit);return `<tr><td>${rbDate(j.journal_date)}</td><td>${rbEsc(j.journal_no)}</td><td>${rbEsc(j.description)}</td><td>${rbMoney(l.debit)}</td><td>${rbMoney(l.credit)}</td><td>${rbMoney(bal)}</td></tr>`;});
+ const a=RB.coa.find(x=>x.id===account);
+ if(!a||!a.normal_balance)throw new Error("Saldo normal COA belum ditentukan. Lengkapi saldo normal akun terlebih dahulu.");
+ const from=$("rbLedgerFrom").value||RB.activePeriod?.start_date;
+ const to=$("rbLedgerTo").value||new Date().toISOString().slice(0,10);
+ if(!from||!to||from>to)throw new Error("Rentang tanggal buku besar tidak valid.");
+ const period=RB.periods.filter(p=>p.start_date<=from&&p.end_date>=from).sort((x,y)=>y.start_date.localeCompare(x.start_date))[0];
+ if(!period)throw new Error("Tanggal awal harus berada dalam periode akuntansi yang tersedia.");
+ if(to>period.end_date)throw new Error("Untuk menjaga saldo awal tidak terhitung ganda, pilih rentang dalam satu periode akuntansi.");
+ const ob=rbCheck(await supabase.from("opening_balances").select("debit,credit,unit_id").eq("bumdes_id",rbTenant()).eq("period_id",period.id).eq("account_id",account));
+ let balance=ob.reduce((s,x)=>s+(a.normal_balance==="debit"?Number(x.debit)-Number(x.credit):Number(x.credit)-Number(x.debit)),0);
+ const jr=rbCheck(await supabase.from("journal_entries").select("id,journal_no,journal_date,description,unit_id").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",period.start_date).lte("journal_date",to).order("journal_date",{ascending:true}).limit(1000));
+ const ids=jr.map(x=>x.id);let lines=[];
+ if(ids.length)lines=rbCheck(await supabase.from("journal_lines").select("journal_entry_id,debit,credit,line_no,description").eq("bumdes_id",rbTenant()).eq("account_id",account).in("journal_entry_id",ids));
+ const jmap=Object.fromEntries(jr.map(x=>[x.id,x]));
+ lines.sort((x,y)=>String(jmap[x.journal_entry_id]?.journal_date).localeCompare(String(jmap[y.journal_entry_id]?.journal_date))||(x.line_no||0)-(y.line_no||0));
+ const rows=[`<tr><td>${rbDate(period.start_date)}</td><td>Saldo Awal</td><td>Saldo awal periode</td><td>—</td><td>—</td><td>${rbMoney(balance)}</td></tr>`];
+ for(const l of lines){
+  const j=jmap[l.journal_entry_id];balance+=a.normal_balance==="debit"?Number(l.debit)-Number(l.credit):Number(l.credit)-Number(l.debit);
+  if(j.journal_date>=from)rows.push(`<tr><td>${rbDate(j.journal_date)}</td><td>${rbEsc(j.journal_no)}</td><td>${rbEsc(l.description||j.description)}</td><td>${rbMoney(l.debit)}</td><td>${rbMoney(l.credit)}</td><td>${rbMoney(balance)}</td></tr>`);
+ }
  rbTable("rbLedgerResult",["Tanggal","Jurnal","Keterangan","Debit","Kredit","Saldo"],rows,"Tidak ada mutasi untuk akun/periode ini.");
 }
 async function rbLoadOpening(){
@@ -1020,11 +1069,25 @@ async function rbAddPeriod(){
  });
 }
 async function rbLoadCash(){
- await rbLoadBase();const cashAccounts=RB.coa.filter(a=>a.level===4&&/kas|bank|rekening/i.test(a.name+" "+a.code));
- const lines=[];if(cashAccounts.length){const r=await supabase.from("journal_lines").select("account_id,debit,credit,journal_entry_id").eq("bumdes_id",rbTenant()).in("account_id",cashAccounts.map(a=>a.id));if(r.error)throw r.error;const ids=[...new Set((r.data||[]).map(x=>x.journal_entry_id))];let posted=new Set();if(ids.length){const j=await supabase.from("journal_entries").select("id").eq("bumdes_id",rbTenant()).eq("status","posted").in("id",ids);if(j.error)throw j.error;posted=new Set((j.data||[]).map(x=>x.id));}for(const l of r.data||[])if(posted.has(l.journal_entry_id))lines.push(l);}
- const grouped={};for(const l of lines){const a=RB.coa.find(x=>x.id===l.account_id);grouped[l.account_id]=(grouped[l.account_id]||0)+(a?.normal_balance==="kredit"?Number(l.credit)-Number(l.debit):Number(l.debit)-Number(l.credit));}
+ await rbLoadBase();
+ const cashAccounts=RB.coa.filter(a=>a.level===4&&/kas|bank|rekening/i.test(a.name+" "+a.code));
+ const grouped={};
+ if(cashAccounts.length){
+  if(RB.activePeriod){
+   const ob=rbCheck(await supabase.from("opening_balances").select("account_id,debit,credit").eq("bumdes_id",rbTenant()).eq("period_id",RB.activePeriod.id).in("account_id",cashAccounts.map(a=>a.id)));
+   for(const x of ob)grouped[x.account_id]=(grouped[x.account_id]||0)+Number(x.debit)-Number(x.credit);
+   const j=rbCheck(await supabase.from("journal_entries").select("id").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",RB.activePeriod.start_date).lte("journal_date",new Date().toISOString().slice(0,10)).limit(1000));
+   const ids=j.map(x=>x.id);
+   if(ids.length){
+    const lines=rbCheck(await supabase.from("journal_lines").select("account_id,debit,credit").eq("bumdes_id",rbTenant()).in("account_id",cashAccounts.map(a=>a.id)).in("journal_entry_id",ids));
+    for(const l of lines)grouped[l.account_id]=(grouped[l.account_id]||0)+Number(l.debit)-Number(l.credit);
+   }
+  }else{
+   $("rbCashCards").innerHTML='<div class="rb-empty">Buat periode akuntansi dan input saldo awal agar saldo kas/bank dapat dihitung dengan benar.</div>';
+  }
+ }
  $("rbCashCards").innerHTML=cashAccounts.map(a=>`<div class="card stat"><div class="stat-head">${rbEsc(a.name)}</div><div class="rb-kpi">${rbMoney(grouped[a.id]||0)}</div><div class="stat-foot">${rbEsc(a.code)}</div></div>`).join("")||'<div class="rb-empty">Belum ada akun kas/bank yang dikenali dari nama akun. Periksa COA.</div>';
- rbTable("rbCashTable",["Akun","Kode","Saldo"],cashAccounts.map(a=>`<tr><td>${rbEsc(a.name)}</td><td>${rbEsc(a.code)}</td><td>${rbMoney(grouped[a.id]||0)}</td></tr>`),"Belum ada saldo kas/bank.");
+ rbTable("rbCashTable",["Akun","Kode","Saldo Periode Berjalan"],cashAccounts.map(a=>`<tr><td>${rbEsc(a.name)}</td><td>${rbEsc(a.code)}</td><td>${rbMoney(grouped[a.id]||0)}</td></tr>`),"Belum ada saldo kas/bank.");
 }
 async function rbLoadAssets(){
  const r=await supabase.from("fixed_assets").select("id,unit_id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status").eq("bumdes_id",rbTenant()).order("acquisition_date",{ascending:false});if(r.error)throw r.error;RB.assets=r.data||[];
@@ -1044,20 +1107,23 @@ async function rbOpenAsset(a=null){
 async function rbLoadUsers(){
  const id=rbTenant();const [m,a]=await Promise.all([supabase.from("bumdes_memberships").select("id,user_id,role,is_active,created_at").eq("bumdes_id",id).order("created_at",{ascending:false}),supabase.from("unit_user_access").select("id,unit_id,user_id,role,is_active,created_at").eq("bumdes_id",id).order("created_at",{ascending:false})]);
  if(m.error)throw m.error;if(a.error)throw a.error;RB.memberships=m.data||[];RB.unitAccess=a.data||[];
- rbTable("rbUsersTable",["User ID","Role","Status","Dibuat"],RB.memberships.map(x=>`<tr><td>${rbEsc(x.user_id)}</td><td>${rbEsc(x.role)}</td><td>${x.is_active?"Aktif":"Nonaktif"}</td><td>${rbDate(x.created_at)}</td></tr>`),"Belum ada membership.");
+ rbTable("rbUsersTable",["User ID","Role","Status","Dibuat","Aksi"],RB.memberships.map(x=>`<tr><td>${rbEsc(x.user_id)}</td><td>${rbEsc(x.role)}</td><td>${x.is_active?"Aktif":"Nonaktif"}</td><td>${rbDate(x.created_at)}</td><td><button class="btn btn-light" data-rb-toggle-member="${x.id}" data-active="${x.is_active}">${x.is_active?"Nonaktifkan":"Aktifkan"}</button></td></tr>`),"Belum ada membership.");
  const um=Object.fromEntries(RB.units.map(x=>[x.id,x.name]));
- rbTable("rbUnitAccessTable",["User ID","Unit","Role","Status"],RB.unitAccess.map(x=>`<tr><td>${rbEsc(x.user_id)}</td><td>${rbEsc(um[x.unit_id]||"—")}</td><td>${rbEsc(x.role)}</td><td>${x.is_active?"Aktif":"Nonaktif"}</td></tr>`),"Belum ada akses unit.");
+ rbTable("rbUnitAccessTable",["User ID","Unit","Role","Status","Aksi"],RB.unitAccess.map(x=>`<tr><td>${rbEsc(x.user_id)}</td><td>${rbEsc(um[x.unit_id]||"—")}</td><td>${rbEsc(x.role)}</td><td>${x.is_active?"Aktif":"Nonaktif"}</td><td><button class="btn btn-light" data-rb-toggle-unitaccess="${x.id}" data-active="${x.is_active}">${x.is_active?"Nonaktifkan":"Aktifkan"}</button></td></tr>`),"Belum ada akses unit.");
 }
 async function rbOpenUser(){
  if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengelola akses.");
  await rbLoadBase();
- rbModal("Beri Akses Pengguna",`<div class="rb-note">Masukkan UUID pengguna yang sudah memiliki akun Supabase Auth. Aplikasi browser tidak membuat akun Auth baru karena itu membutuhkan hak server/admin.</div><div class="rb-form-grid">${rbField("User ID (UUID)","rbUserId") }<div class="rb-field"><label>Jenis Akses</label><select id="rbUserKind"><option value="member">Membership BUMDes</option><option value="unit">Akses Unit</option></select></div><div class="rb-field"><label>Role</label><select id="rbUserRole"><option value="admin_pusat">Admin Pusat</option><option value="admin_unit">Admin Unit</option><option value="staf_unit">Staf Unit</option><option value="kasir">Kasir</option><option value="viewer">Viewer</option></select></div><div class="rb-field"><label>Unit (untuk akses unit)</label><select id="rbUserUnit">${rbSelect(RB.units,"id","name")}</select></div></div>`,"Beri Akses",async()=>{
+ rbModal("Beri Akses Pengguna",`<div class="rb-note">Masukkan UUID pengguna yang sudah memiliki akun Supabase Auth. Aplikasi browser tidak membuat akun Auth baru karena itu membutuhkan hak server/admin.</div><div class="rb-form-grid">${rbField("User ID (UUID)","rbUserId") }<div class="rb-field"><label>Jenis Akses</label><select id="rbUserKind"><option value="member">Membership BUMDes</option><option value="unit">Akses Unit</option></select></div><div class="rb-field"><label>Role</label><select id="rbUserRole"><option value="admin_pusat">Admin Pusat</option><option value="viewer">Viewer</option></select></div><div class="rb-field"><label>Unit (untuk akses unit)</label><select id="rbUserUnit">${rbSelect(RB.units,"id","name")}</select></div></div>`,"Beri Akses",async()=>{
  const uid=$("rbUserId").value.trim(),kind=$("rbUserKind").value,role=$("rbUserRole").value;if(!/^[0-9a-f-]{36}$/i.test(uid))throw new Error("User ID harus berupa UUID.");
  if(kind==="member")rbCheck(await supabase.from("bumdes_memberships").insert({bumdes_id:rbTenant(),user_id:uid,role,is_active:true}));
  else {const unit=$("rbUserUnit").value;if(!unit)throw new Error("Pilih unit.");rbCheck(await supabase.from("unit_user_access").insert({bumdes_id:rbTenant(),unit_id:unit,user_id:uid,role,is_active:true}));}
  await rbLoadUsers();
  });
+ $("rbUserKind").addEventListener("change",()=>{const kind=$("rbUserKind").value;const opts=kind==="member"?[["admin_pusat","Admin Pusat"],["viewer","Viewer"]]:[["admin_unit","Admin Unit"],["staf_unit","Staf Unit"],["kasir","Kasir"],["viewer","Viewer"]];$("rbUserRole").innerHTML=opts.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("");});
 }
+async function rbToggleMembership(id,active){if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengubah akses.");if(!confirm(`${active?"Nonaktifkan":"Aktifkan"} akses pengguna ini?`))return;rbCheck(await supabase.from("bumdes_memberships").update({is_active:!active}).eq("id",id).eq("bumdes_id",rbTenant()));await rbLoadUsers();}
+async function rbToggleUnitAccess(id,active){if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengubah akses.");if(!confirm(`${active?"Nonaktifkan":"Aktifkan"} akses unit ini?`))return;rbCheck(await supabase.from("unit_user_access").update({is_active:!active}).eq("id",id).eq("bumdes_id",rbTenant()));await rbLoadUsers();}
 async function rbLoadSettings(){
  const id=rbTenant();const r=await supabase.from("bumdes").select("id,name,slug,address,village,district,regency,province,phone,email").eq("id",id).maybeSingle();if(r.error)throw r.error;const b=r.data||{};
  $("rbSettingsForm").innerHTML=`<div class="rb-form-grid">${rbField("Nama BUMDes","rbSetName","text",b.name||"")}${rbField("Kode / Slug","rbSetSlug","text",b.slug||"")}${rbField("Telepon","rbSetPhone","text",b.phone||"")}${rbField("Email","rbSetEmail","email",b.email||"")}${rbField("Desa","rbSetVillage","text",b.village||"")}${rbField("Kecamatan","rbSetDistrict","text",b.district||"")}${rbField("Kabupaten","rbSetRegency","text",b.regency||"")}${rbField("Provinsi","rbSetProvince","text",b.province||"")}${rbTextArea("Alamat","rbSetAddress",b.address||"")}</div><div class="rb-note">Penyimpanan identitas mengikuti policy RLS tabel BUMDes. Jika policy update belum tersedia, aplikasi akan menampilkan pesan penolakan database.</div>`;
@@ -1095,14 +1161,14 @@ async function rbLoadReport(){
  if(type!=="bs")q=q.gte("journal_date",from);
  if(unit)q=q.eq("unit_id",unit);const j=rbCheck(await q);const ids=j.map(x=>x.id);let lines=[];
  if(ids.length){const l=await supabase.from("journal_lines").select("journal_entry_id,account_id,debit,credit").eq("bumdes_id",rbTenant()).in("journal_entry_id",ids);if(l.error)throw l.error;lines=l.data||[];}
- const cm=Object.fromEntries(RB.coa.map(a=>[a.id,a]));const sums={};
+ const cm=Object.fromEntries(RB.coa.map(a=>[a.id,a]));const usedIds=new Set(lines.map(x=>x.account_id));const missing=RB.coa.filter(a=>usedIds.has(a.id)&&a.level===4&&!a.normal_balance);if(missing.length)throw new Error("Laporan belum dapat dihitung dengan benar. Saldo normal belum diatur pada: "+missing.slice(0,8).map(a=>a.code+" "+a.name).join(", ")+(missing.length>8?" dan akun lainnya.":"."));const sums={};
  for(const l of lines){const a=cm[l.account_id];if(!a)continue;const k=a.id;sums[k]=(sums[k]||0)+(a.normal_balance==="kredit"?Number(l.credit)-Number(l.debit):Number(l.debit)-Number(l.credit));}
  let selected=RB.coa.filter(a=>a.level===4&&sums[a.id]!==undefined);
  if(type==="pl")selected=selected.filter(a=>String(a.code).startsWith("4")||String(a.code).startsWith("5"));
  if(type==="bs")selected=selected.filter(a=>/^[123]/.test(String(a.code)));
  if(type==="cash")selected=selected.filter(a=>/kas|bank|rekening/i.test(a.name+" "+a.code));
  const total=selected.reduce((s,a)=>s+(sums[a.id]||0),0);
- const title=type==="pl"?"Laporan Laba Rugi":type==="bs"?"Neraca":"Ringkasan Kas & Bank";
+ const title=type==="pl"?"Laporan Laba Rugi":type==="bs"?"Neraca":"Ringkasan Saldo Kas & Bank";
  $("rbReportResult").innerHTML=`<h2>${title}</h2><p>Periode ${rbDate(from)} s.d. ${rbDate(to)} · ${unit?rbEsc(RB.units.find(x=>x.id===unit)?.name):"Konsolidasi BUMDes"}</p><div class="rb-table-wrap"><table class="rb-table"><thead><tr><th>Kode</th><th>Nama Akun</th><th>Saldo</th></tr></thead><tbody>${selected.map(a=>`<tr><td>${rbEsc(a.code)}</td><td>${rbEsc(a.name)}</td><td>${rbMoney(sums[a.id]||0)}</td></tr>`).join("")}<tr><th colspan="2">Total bersih</th><th>${rbMoney(total)}</th></tr></tbody></table></div>`;
 }
 async function rbInitReports(){
@@ -1110,7 +1176,7 @@ async function rbInitReports(){
  const now=new Date();$("rbReportFrom").value=`${now.getFullYear()}-01-01`;$("rbReportTo").value=now.toISOString().slice(0,10);
 }
 async function rbRefreshModule(id){
- const map={dashboard:rbLoadDashboard,units:rbLoadUnits,transactions:rbLoadTransactions,cash:rbLoadCash,coa:rbLoadCoa,journals:rbLoadJournals,ledger:rbLoadLedgerOptions,opening:rbLoadOpening,adjustments:rbLoadJournals,closing:rbLoadClosing,shu:rbLoadShu,assets:rbLoadAssets,reports:rbInitReports,users:rbLoadUsers,settings:rbLoadSettings};
+ const map={dashboard:rbLoadDashboard,units:rbLoadUnits,transactions:rbLoadTransactions,cash:rbLoadCash,coa:rbLoadCoa,journals:rbLoadJournals,ledger:rbLoadLedgerOptions,opening:rbLoadOpening,adjustments:rbLoadAdjustments,closing:rbLoadClosing,shu:rbLoadShu,assets:rbLoadAssets,reports:rbInitReports,users:rbLoadUsers,settings:rbLoadSettings};
  if(map[id])await map[id]();
 }
 function rbBind(){
@@ -1121,7 +1187,7 @@ function rbBind(){
  on("rbReloadCoa",rbLoadCoa);on("rbAddCoa",rbAddCoa);
  on("rbAddJournal",()=>rbOpenJournal());on("rbReloadJournals",rbLoadJournals);
  on("rbAddOpening",rbOpenOpening);on("rbReloadOpening",rbLoadOpening);
- on("rbAddAdjustment",()=>rbOpenJournal());
+ on("rbAddAdjustment",()=>rbOpenJournal(null,"adjustment"));
  on("rbReloadClosing",rbLoadClosing);on("rbAddShu",rbOpenShu);
  on("rbAddAsset",()=>rbOpenAsset());on("rbReloadAssets",rbLoadAssets);
  on("rbRunReport",rbLoadReport);on("rbPrintReport",()=>window.print());
@@ -1133,11 +1199,13 @@ function rbBind(){
   const t=e.target.closest("[data-rb-edit-unit]");if(t){const u=RB.units.find(x=>x.id===t.dataset.rbEditUnit);rbOpenUnit(u).catch(rbErr);}
   const d=e.target.closest("[data-rb-delete-unit]");if(d)rbDeleteUnit(d.dataset.rbDeleteUnit).catch(rbErr);
   const c=e.target.closest("[data-rb-edit-coa]");if(c)rbEditCoa(c.dataset.rbEditCoa).catch(rbErr);
-  const j=e.target.closest("[data-rb-edit-journal]");if(j){const x=RB.journals.find(v=>v.id===j.dataset.rbEditJournal);rbOpenJournal(x).catch(rbErr);}
+  const j=e.target.closest("[data-rb-edit-journal]");if(j){const x=RB.journals.find(v=>v.id===j.dataset.rbEditJournal)||RB.adjustments.find(v=>v.id===j.dataset.rbEditJournal);rbOpenJournal(x).catch(rbErr);}
   const jp=e.target.closest("[data-rb-post-journal]");if(jp)rbPostJournal(jp.dataset.rbPostJournal).catch(rbErr);
   const oa=e.target.closest("[data-rb-edit-opening]");if(oa)rbEditOpening(oa.dataset.rbEditOpening).catch(rbErr);
   const od=e.target.closest("[data-rb-del-opening]");if(od)rbDeleteOpening(od.dataset.rbDelOpening).catch(rbErr);
   const ae=e.target.closest("[data-rb-edit-asset]");if(ae){const a=RB.assets.find(x=>x.id===ae.dataset.rbEditAsset);rbOpenAsset(a).catch(rbErr);}
+  const tm=e.target.closest("[data-rb-toggle-member]");if(tm)rbToggleMembership(tm.dataset.rbToggleMember,tm.dataset.active==="true").catch(rbErr);
+  const tu=e.target.closest("[data-rb-toggle-unitaccess]");if(tu)rbToggleUnitAccess(tu.dataset.rbToggleUnitaccess,tu.dataset.active==="true").catch(rbErr);
  });
  $("rbExportCoa")?.addEventListener("click",()=>{const rows=[["Kode","Nama","Level","Saldo Normal","Aktif"],...RB.coa.map(a=>[a.code,a.name,a.level,a.normal_balance,a.is_active])];rbDownloadCsv("coa-bumdes.csv",rows);});
 }
