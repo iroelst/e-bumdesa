@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#142d4e">
+<title>e-Bumdesa | Sistem Keuangan BUMDesa</title>
+<link rel="icon" type="image/png" href="e-bumdesa-favicon.png">
+<style>
+:root{
+ --navy:#142d4e;--navy2:#1d416b;--blue:#2d6cdf;--blue-soft:#eaf2ff;
+ --ink:#17263b;--muted:#718096;--line:#e6ebf2;--bg:#f4f7fb;
+ --white:#fff;--green:#16865b;--green-bg:#e8f7f0;--orange:#b96b13;
+ --orange-bg:#fff4e5;--red:#c44747;--shadow:0 8px 24px rgba(24,48,79,.06);
+ --radius:16px
+}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}
+.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:258px;background:var(--navy);color:#dbe7f6;padding:22px 16px;display:flex;flex-direction:column;z-index:20;transition:.25s}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 25px;border-bottom:1px solid #ffffff20}
+.brand-mark{width:42px;height:42px;object-fit:contain;border-radius:10px;display:block}.auth-brand .brand-mark{width:48px;height:48px}
+.brand-name{font-size:19px;font-weight:800;letter-spacing:.2px;color:#fff}.brand-sub{font-size:10px;color:#aebfd5;letter-spacing:.6px}
+.nav-label{font-size:10px;font-weight:800;letter-spacing:1.4px;color:#8199b7;padding:22px 10px 8px;text-transform:uppercase}
+.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#c6d4e6;text-align:left;padding:11px 12px;border-radius:10px;display:flex;align-items:center;gap:12px;font-weight:550}
+.nav button:hover,.nav button.active{background:#ffffff17;color:#fff}.nav button.active{box-shadow:inset 3px 0 #72adff}
+.ico{width:19px;text-align:center;font-size:16px}.side-bottom{margin-top:auto;border-top:1px solid #ffffff20;padding:16px 8px 0}
+.profile{display:flex;align-items:center;gap:10px}.avatar{width:35px;height:35px;border-radius:50%;background:#dceaff;color:#214b7d;display:grid;place-items:center;font-weight:800}
+.profile b{display:block;color:white;font-size:12px}.profile small{color:#aebfd5;font-size:10px}
+.main{margin-left:258px;min-height:100vh}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:10}
+.top-left{display:flex;align-items:center;gap:14px}.eyebrow{color:var(--muted);font-size:11px}.page-title{font-size:19px;font-weight:750;letter-spacing:-.3px}
+.top-actions{display:flex;align-items:center;gap:12px}.role-select{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;color:#526176;font-size:12px}
+.icon-btn{border:1px solid var(--line);background:#fff;width:38px;height:38px;border-radius:10px;color:#526176}
+.content{padding:28px 32px 42px;max-width:1500px;margin:auto}.welcome{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px}
+h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);margin:0}.date-pill{background:#fff;border:1px solid var(--line);padding:9px 13px;border-radius:10px;color:#65748a;font-size:12px;white-space:nowrap}
+.grid{display:grid;gap:16px}.stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.stat{padding:18px 19px}.stat-head{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px}
+.stat-icon{width:35px;height:35px;border-radius:11px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue);font-size:17px}
+.stat-value{font-size:25px;font-weight:800;letter-spacing:-.7px;margin:13px 0 3px}.stat-foot{font-size:11px;color:var(--muted)}.positive{color:var(--green);font-weight:700}
+.two-col{grid-template-columns:1.55fr 1fr;margin-bottom:18px}.panel{padding:20px}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px}.panel h3{margin:0;font-size:15px}.panel-note{font-size:11px;color:var(--muted)}
+.chart{height:220px;display:flex;align-items:end;gap:13px;padding:12px 4px 0;border-bottom:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent 53px,#edf1f6 54px)}
+.bar-group{height:100%;flex:1;display:flex;align-items:end;justify-content:center;gap:4px;position:relative;padding-bottom:0}
+.bar{width:13px;border-radius:5px 5px 0 0;background:#8bb5f4;min-height:4px}.bar.alt{background:#2d6cdf}.bar-label{position:absolute;bottom:-23px;font-size:10px;color:#8794a6}
+.legend{display:flex;gap:16px;margin-top:32px;color:var(--muted);font-size:11px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:#2d6cdf}.dot.alt{background:#8bb5f4}
+.activity{display:grid;gap:15px}.activity-item{display:flex;gap:11px;align-items:flex-start}.activity-icon{width:31px;height:31px;border-radius:10px;background:#eef4fc;display:grid;place-items:center;color:#356db8;flex:none}.activity-item b{font-size:12px;display:block}.activity-item small{font-size:10px;color:var(--muted)}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:510px}th{text-align:left;color:#8190a3;font-size:10px;text-transform:uppercase;letter-spacing:.7px;padding:11px 12px;border-bottom:1px solid var(--line)}td{padding:13px 12px;border-bottom:1px solid #eef1f5;font-size:12px}tr:last-child td{border-bottom:0}.status{display:inline-flex;padding:4px 8px;border-radius:20px;font-size:10px;font-weight:700}.done{background:var(--green-bg);color:var(--green)}.pending{background:var(--orange-bg);color:var(--orange)}
+.unit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.unit{padding:18px}.unit-top{display:flex;justify-content:space-between;align-items:center}.unit-symbol{width:39px;height:39px;border-radius:12px;background:#edf4ff;display:grid;place-items:center;font-size:18px}.unit h3{font-size:14px;margin:14px 0 3px}.unit p{margin:0;color:var(--muted);font-size:11px}.unit-value{font-size:19px;font-weight:800;margin-top:17px}
+.btn{border:0;background:var(--blue);color:#fff;border-radius:9px;padding:10px 15px;font-weight:650;font-size:12px}.btn:hover{background:#2059bd}.btn-light{background:#edf3fb;color:#315c91}.btn-light:hover{background:#e1ebf8}
+.view{display:none}.view.active{display:block}.section-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.empty{padding:35px;text-align:center;color:var(--muted)}.empty strong{display:block;color:var(--ink);margin:8px}
+.mobile-menu{display:none}.overlay{display:none}
+.auth-screen{min-height:100vh;background:linear-gradient(135deg,rgba(16,39,67,.88),rgba(31,77,123,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;display:none;align-items:center;justify-content:center;padding:25px}
+.auth-box{background:white;border-radius:22px;padding:34px;width:min(100%,440px);box-shadow:0 25px 70px #07172c66}.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.auth-box h2{margin:0 0 5px;font-size:23px}.auth-box p{color:var(--muted);margin:0 0 23px}.field{display:grid;gap:6px;margin:13px 0}.field label{font-size:11px;font-weight:700;color:#526176}.field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none}.field input:focus{border-color:#77a7ed;box-shadow:0 0 0 3px #eaf2ff}.auth-box .btn{width:100%;padding:12px;margin-top:10px}.auth-links{display:flex;justify-content:space-between;margin-top:17px;font-size:11px;color:var(--blue)}.auth-links a{cursor:pointer}
+.notice{background:#fff8e9;border:1px solid #f5e3bd;color:#8a5a16;padding:12px 14px;border-radius:10px;font-size:11px;margin-bottom:18px}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.unit-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.topbar{padding:0 16px;height:66px}.content{padding:22px 16px}.mobile-menu{display:inline-grid}.two-col,.section-grid{grid-template-columns:1fr}.welcome{display:block}.date-pill{display:inline-block;margin-top:13px}.top-actions .role-select{max-width:130px}.unit-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.stats{gap:10px}.stat{padding:14px}.stat-value{font-size:20px}.unit-grid{grid-template-columns:1fr}.page-title{font-size:16px}}
+
+/* LOGIN V3 — mengikuti referensi dua panel */
+.auth-screen{position:fixed;inset:0;z-index:50;display:flex!important;align-items:stretch;justify-content:stretch;padding:0;overflow:auto;background:#f5f7fb}
+.auth-box{position:absolute;right:0;top:0;width:47.5%;height:100%;max-height:none;overflow:auto;border:0;border-radius:0;padding:38px clamp(22px,5vw,76px);display:flex;flex-direction:column;justify-content:center;box-shadow:none;background:transparent}
+.auth-brand-panel{position:absolute;inset:0 auto 0 0;width:52.5%;display:flex;align-items:center;justify-content:center;text-align:center;padding:6vw;background:linear-gradient(135deg,rgba(15,43,76,.92),rgba(29,78,125,.78)),url('e-bumdesa-login-landscape.png') center/cover no-repeat;color:#fff;overflow:hidden}
+.auth-brand-panel:after{display:none!important;content:none!important}
+.auth-brand-content{position:relative;z-index:1;max-width:620px;width:100%;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center}
+.auth-brand-content img{width:76px;height:76px;object-fit:contain;margin-bottom:22px}
+.auth-brand-content h1{font-size:clamp(34px,4vw,54px);color:#fff;margin:0 0 7px;font-weight:850}
+.auth-brand-content .subbrand{font-size:13px;letter-spacing:2px;color:#d7e8f7;font-weight:700}
+.auth-brand-content .line{width:76px;height:4px;background:linear-gradient(90deg,#25c49a,#f3c64e);border-radius:4px;margin:25px 0}
+.auth-brand-content p{font-size:16px;line-height:1.8;color:#e0eaf5;max-width:500px;margin-left:auto;margin-right:auto}
+.auth-features{display:flex;gap:25px;margin-top:35px;flex-wrap:wrap}.auth-features span{font-size:13px;font-weight:700;color:#fff}
+.auth-box .auth-brand{display:none}.auth-box h2{text-align:center;font-size:29px}.auth-box>p{text-align:center;margin-bottom:22px}
+.auth-box .field input{min-height:46px}.auth-box .btn{min-height:47px}
+.auth-security{background:#f0f5fb;border-radius:12px;padding:12px 14px;margin-top:17px;color:#61748b;font-size:11px;text-align:center}
+.auth-links{justify-content:center;gap:22px;flex-wrap:wrap}
+@media(max-width:850px){.auth-screen{position:relative;min-height:100vh;display:block!important;padding:0 0 25px}.auth-brand-panel{position:relative;width:100%;height:300px;padding:30px 26px 65px;justify-content:center;text-align:center}.auth-brand-content img{width:54px;height:54px;margin-bottom:10px}.auth-brand-content h1{font-size:32px}.auth-brand-content .line{margin:12px 0}.auth-brand-content p{font-size:12px;line-height:1.5}.auth-features{margin-top:12px;gap:14px}.auth-features span{font-size:11px}.auth-brand-panel:after{display:none!important;content:none!important}.auth-box{position:relative;width:min(100% - 28px,560px);height:auto;max-height:none;margin:-35px auto 0;padding:28px 22px;border-radius:18px;background:#fff;box-shadow:0 15px 40px #1e365018}.auth-box h2{font-size:25px}}
+
+
+
+/* Form pendaftaran panjang: mulai dari atas dan dapat discroll sampai tombol kirim */
+.auth-screen.register-mode .auth-box{
+  justify-content:flex-start;
+  top:0;
+  bottom:0;
+  height:auto;
+  min-height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-top:38px;
+  padding-bottom:42px;
+}
+.auth-screen.register-mode #authFields{flex:0 0 auto}
+.auth-screen.register-mode #authFields .field{margin:10px 0}
+.auth-screen.register-mode #authFields .field input{min-height:44px}
+.auth-screen.register-mode #authSubmit,
+.auth-screen.register-mode .auth-security,
+.auth-screen.register-mode .auth-links{flex:0 0 auto}
+@media(max-width:850px){
+  .auth-screen.register-mode{position:relative;min-height:100vh;height:auto;overflow:visible}
+  .auth-screen.register-mode .auth-box{
+    position:relative;top:auto;bottom:auto;height:auto;min-height:0;
+    margin:-35px auto 0;overflow:visible;justify-content:flex-start;
+    padding:28px 22px 34px;
+  }
+}
+
+.auth-screen.is-hidden{display:none!important;}
+
+/* PLATFORM OWNER WORKSPACE */
+#platformWorkspace{display:none;min-height:100vh;background:#f4f7fb;color:#17263b}
+.po-top{height:72px;background:#fff;border-bottom:1px solid #e6ebf2;display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;z-index:30}
+.po-brand{display:flex;align-items:center;gap:12px}.po-brand img{width:42px;height:42px;object-fit:contain}.po-brand strong{font-size:18px;color:#142d4e}.po-brand small{display:block;color:#718096;font-size:10px;letter-spacing:.7px}
+.po-user{display:flex;align-items:center;gap:12px}.po-user span{font-size:12px;color:#526176}
+.po-layout{display:grid;grid-template-columns:245px minmax(0,1fr);min-height:calc(100vh - 72px)}
+.po-sidebar{background:#142d4e;color:#dbe7f6;padding:22px 14px}.po-side-title{font-size:10px;letter-spacing:1.2px;color:#8da5c2;font-weight:800;padding:8px 10px 12px}
+.po-nav{display:grid;gap:5px}.po-nav button{border:0;background:transparent;color:#d0dced;text-align:left;padding:12px;border-radius:9px;font-size:12px;font-weight:650}.po-nav button.active,.po-nav button:hover{background:#ffffff19;color:#fff}
+.po-main{padding:30px;max-width:1500px;width:100%;margin:0 auto}.po-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px}.po-heading h1{font-size:25px;margin:0 0 5px}.po-heading p{margin:0;color:#718096;font-size:13px}
+.po-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:18px}.po-kpi{background:#fff;border:1px solid #e6ebf2;border-radius:15px;padding:18px;box-shadow:0 8px 24px rgba(24,48,79,.04)}.po-kpi label{font-size:11px;color:#718096}.po-kpi strong{display:block;font-size:27px;margin-top:9px;color:#142d4e}.po-kpi small{color:#8a96a7;font-size:10px}
+.po-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-bottom:16px}.po-card{background:#fff;border:1px solid #e6ebf2;border-radius:15px;padding:20px;box-shadow:0 8px 24px rgba(24,48,79,.04);min-width:0}.po-card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}.po-card h3{font-size:15px;margin:0}.po-muted{font-size:11px;color:#718096}
+.po-table-wrap{overflow:auto} .po-table{width:100%;border-collapse:collapse;min-width:580px}.po-table th{text-align:left;font-size:10px;color:#8190a3;letter-spacing:.6px;text-transform:uppercase;padding:10px;border-bottom:1px solid #e6ebf2}.po-table td{font-size:12px;padding:12px 10px;border-bottom:1px solid #eef1f5;vertical-align:middle}.po-table tr:last-child td{border-bottom:0}
+.po-pill{display:inline-flex;padding:4px 8px;border-radius:20px;font-size:10px;font-weight:750;background:#e8f7f0;color:#16865b}.po-pill.pending{background:#fff4e5;color:#a9610e}.po-pill.inactive{background:#f1f3f6;color:#68778b}
+.po-btn{border:0;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:700;background:#2d6cdf;color:#fff}.po-btn.light{background:#edf3fb;color:#315c91}.po-btn.danger{background:#fff0f0;color:#b83f3f}.po-btn:disabled{opacity:.5;cursor:not-allowed}
+.po-empty{padding:28px;text-align:center;color:#718096;font-size:12px}.po-message{font-size:12px;margin:10px 0;color:#b44747}.po-message.ok{color:#16865b}.po-view{display:none}.po-view.active{display:block}
+.po-actions{display:flex;gap:7px;flex-wrap:wrap}.po-search{border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px;font-size:12px;min-width:190px}
+@media(max-width:1000px){.po-kpis{grid-template-columns:repeat(2,1fr)}.po-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.po-layout{grid-template-columns:1fr}.po-sidebar{padding:10px;overflow:auto}.po-nav{display:flex;min-width:max-content}.po-nav button{padding:10px}.po-main{padding:18px 13px}.po-top{padding:0 14px}.po-user span{display:none}.po-heading{display:block}.po-heading .po-btn{margin-top:12px}}
+
+</style>
+</head>
+<body>
+<div class="app" id="app" style="display:none">
+<aside class="sidebar" id="sidebar">
+ <div class="brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name">e-Bumdesa</div><div class="brand-sub">SISTEM KEUANGAN BUMDESA</div></div></div>
+ <div class="nav-label">Menu utama</div>
+ <nav class="nav" id="mainNav">
+  <button class="active" data-view="dashboard"><span class="ico">▦</span>Dashboard</button>
+  <button data-view="units"><span class="ico">▣</span>Unit Usaha</button>
+  <button data-view="cash"><span class="ico">▤</span>Kas & Bank</button>
+  <button data-view="transactions"><span class="ico">⇄</span>Transaksi</button>
+  <button data-view="journals"><span class="ico">≡</span>Jurnal</button>
+  <button data-view="ledger"><span class="ico">▤</span>Buku Besar</button>
+  <button data-view="coa"><span class="ico">☷</span>Bagan Akun (COA)</button>
+  <button data-view="opening"><span class="ico">↙</span>Saldo Awal</button>
+  <button data-view="adjustments"><span class="ico">☷</span>Penyesuaian</button>
+  <button data-view="closing"><span class="ico">▣</span>Tutup Buku</button>
+  <button data-view="shu"><span class="ico">◉</span>Pembagian & Pembayaran SHU</button>
+  <button data-view="assets"><span class="ico">▦</span>Aset</button>
+  <button data-view="reports"><span class="ico">▥</span>Laporan Keuangan</button>
+ </nav>
+ <div class="nav-label">Pengaturan</div>
+ <nav class="nav">
+  <button data-view="users"><span class="ico">♙</span>Pengguna & Hak Akses</button>
+  <button data-view="settings"><span class="ico">⚙</span>Pengaturan BUMDes</button>
+ </nav>
+ <div class="side-bottom"><div class="profile"><div class="avatar">AP</div><div><b>Admin Pusat</b><small>BUMDesa Sejahtera Kemirigede</small></div></div></div>
+</aside>
+<main class="main">
+ <header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="menuBtn">☰</button><div><div class="eyebrow">e-Bumdesa / <span id="crumb">Ringkasan</span></div><div class="page-title" id="topTitle">Dashboard</div></div></div><div class="top-actions"><span id="sessionLabel" class="role-select">Belum terhubung</span><button class="btn btn-light" id="logoutBtn" type="button">Keluar</button></div></header>
+ <div class="content">
+  <section class="view active" id="dashboard">
+<div class="welcome"><div><h1>Dashboard BUMDes</h1><p class="sub">Ringkasan data dari database.</p></div><div class="date-pill" id="liveDate"></div></div>
+<div class="notice" id="liveDataNotice">Memuat data database...</div>
+<div class="grid stats">
+<div class="card stat"><div class="stat-head">Total Pendapatan</div><div class="stat-value" data-kpi="income">—</div><div class="stat-foot">Menunggu pemetaan transaksi</div></div>
+<div class="card stat"><div class="stat-head">Total Pengeluaran</div><div class="stat-value" data-kpi="expense">—</div><div class="stat-foot">Menunggu pemetaan transaksi</div></div>
+<div class="card stat"><div class="stat-head">Surplus</div><div class="stat-value" data-kpi="surplus">—</div><div class="stat-foot">Belum dihitung</div></div>
+<div class="card stat"><div class="stat-head">Kas & Bank</div><div class="stat-value" data-kpi="cash">—</div><div class="stat-foot">Menunggu pemetaan akun kas/bank</div></div>
+</div>
+<div class="grid two-col">
+<div class="card panel"><div class="panel-head"><h3>Ikhtisar Keuangan</h3></div><div class="empty">Grafik akan tersedia setelah pemetaan akun dan transaksi diverifikasi.</div></div>
+<div class="card panel"><div class="panel-head"><h3>Aktivitas Terbaru</h3><button class="btn btn-light" data-go="transactions">Lihat semua</button></div><div class="activity" id="dashboardActivity"><div class="empty">Memuat aktivitas...</div></div></div>
+</div>
+<div class="card panel"><div class="panel-head"><h3>Unit Usaha</h3><button class="btn btn-light" data-go="units">Lihat unit</button></div><div class="grid unit-grid" id="dashboardUnits"><div class="empty">Memuat unit usaha...</div></div></div>
+</section>
+  <section class="view" id="units"><div class="welcome"><div><h1>Unit Usaha</h1><p class="sub">Daftar unit usaha pada BUMDes.</p></div></div><div class="grid unit-grid" id="unitsList"><div class="empty">Memuat unit...</div></div></section>
+  <section class="view" id="transactions"><div class="welcome"><div><h1>Transaksi Keuangan</h1><p class="sub">Transaksi yang tersimpan pada database.</p></div></div><div class="card panel"><div class="panel-head"><h3>Daftar Transaksi</h3><button class="btn btn-light" id="refreshTransactions">Muat ulang</button></div><div id="transactionsTable"><div class="empty">Memuat transaksi...</div></div></div></section>
+  <section class="view" id="cash"><div class="welcome"><div><h1>Kas & Bank</h1><p class="sub">Mutasi transaksi dari database.</p></div></div><div class="notice">Saldo belum ditampilkan sebelum akun kas/bank dipetakan.</div><div class="card panel"><div class="panel-head"><h3>Mutasi</h3><button class="btn btn-light" id="refreshCash">Muat ulang</button></div><div id="cashTable"><div class="empty">Memuat data...</div></div></div></section>
+  <section class="view" id="coa"><div class="welcome"><div><h1>Daftar Akun (COA)</h1><p class="sub">Bagan akun BUMDes.</p></div></div><div class="card panel"><div class="panel-head"><h3>Bagan Akun</h3><input class="role-select" id="coaSearch" placeholder="Cari kode atau nama akun"></div><div id="coaTable"><div class="empty">Memuat COA...</div></div></div></section>
+  <section class="view" id="journals"><div class="welcome"><div><h1>Jurnal Umum</h1><p class="sub">Jurnal yang tersimpan pada database.</p></div></div><div class="card panel"><div class="panel-head"><h3>Daftar Jurnal</h3><button class="btn btn-light" id="refreshJournals">Muat ulang</button></div><div id="journalsTable"><div class="empty">Memuat jurnal...</div></div></div></section>
+  <section class="view" id="ledger"><div class="welcome"><div><h1>Buku Besar</h1><p class="sub">Mutasi dan saldo setiap akun berdasarkan jurnal.</p></div></div><div class="card panel"><div class="empty">Modul Buku Besar akan dihubungkan setelah transaksi dan jurnal siap.</div></div></section>
+  <section class="view" id="opening"><div class="welcome"><div><h1>Saldo Awal</h1><p class="sub">Pengaturan saldo awal akun pada awal periode pembukuan.</p></div></div><div class="card panel"><div class="empty">Modul Saldo Awal menunggu konfigurasi periode dan COA.</div></div></section>
+  <section class="view" id="adjustments"><div class="welcome"><div><h1>Penyesuaian</h1><p class="sub">Pencatatan jurnal penyesuaian akhir periode.</p></div></div><div class="card panel"><div class="empty">Modul Penyesuaian akan dibangun setelah jurnal umum.</div></div></section>
+  <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Proses pemeriksaan dan penutupan periode akuntansi.</p></div></div><div class="card panel"><div class="empty">Modul Tutup Buku akan dibangun setelah laporan keuangan.</div></div></section>
+  <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Perencanaan alokasi dan realisasi pembayaran SHU.</p></div></div><div class="card panel"><div class="empty">Modul SHU akan mengikuti struktur COA dan aturan BUMDes.</div></div></section>
+  <section class="view" id="assets"><div class="welcome"><div><h1>Aset</h1><p class="sub">Pencatatan aset tetap dan penyusutannya.</p></div></div><div class="card panel"><div class="empty">Modul aset akan dihubungkan dengan jurnal dan COA.</div></div></section>
+  <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan keuangan per unit dan konsolidasi BUMDes.</p></div><button class="btn btn-light">Unduh Laporan</button></div><div class="grid section-grid"><div class="card panel"><h3>Laporan Laba Rugi</h3><p class="panel-note">Pendapatan, beban, dan surplus/defisit.</p></div><div class="card panel"><h3>Neraca</h3><p class="panel-note">Aset, kewajiban, dan ekuitas.</p></div><div class="card panel"><h3>Arus Kas</h3><p class="panel-note">Aktivitas operasi, investasi, dan pendanaan.</p></div><div class="card panel"><h3>Laporan SHU</h3><p class="panel-note">Perhitungan dan alokasi hasil usaha.</p></div></div></section>
+  <section class="view" id="users"><div class="welcome"><div><h1>Pengguna & Hak Akses</h1><p class="sub">Atur pengguna dan kewenangan berdasarkan unit usaha.</p></div><button class="btn">＋ Tambah Pengguna</button></div><div class="card panel"><h3>Daftar Pengguna</h3><div class="empty">Data pengguna akan dimuat dari Supabase.</div></div></section>
+  <section class="view" id="settings"><div class="welcome"><div><h1>Pengaturan BUMDes</h1><p class="sub">Identitas, periode buku, dan konfigurasi tenant.</p></div></div><div class="card panel"><div class="grid section-grid"><div class="field"><label>Nama BUMDes</label><input value="BUMDesa Sejahtera Kemirigede"></div><div class="field"><label>Kode BUMDes</label><input value="BUMDES001"></div><div class="field"><label>Desa</label><input value="Kemirigede"></div><div class="field"><label>Tahun Buku</label><select><option>2026</option><option>2027</option></select></div></div><button class="btn">Simpan Pengaturan</button></div></section>
+ </div>
+</main>
+</div>
+<div class="auth-screen" id="authScreen" style="display:flex">
+<div class="auth-brand-panel"><div class="auth-brand-content">
+<img src="e-bumdesa-logo.png" alt="Logo e-Bumdesa">
+<h1>e-Bumdesa</h1><div class="subbrand">SISTEM KEUANGAN BUMDESA</div>
+<div class="line"></div>
+<p>Pengelolaan keuangan BUM Desa yang transparan, akuntabel, terintegrasi, dan mudah digunakan untuk kemajuan desa.</p>
+<div class="auth-features"><span>◈ Transparan</span><span>✓ Akuntabel</span><span>↗ Berkelanjutan</span></div>
+</div></div>
+<div class="auth-box"><div class="auth-brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name" style="color:#142d4e">e-Bumdesa</div><div class="brand-sub" style="color:#718096">SISTEM KEUANGAN BUMDESA</div></div></div><h2 id="authTitle">Selamat Datang</h2><p id="authDesc">Masuk menggunakan email dan password akun e-Bumdesa Anda.</p>
+
+<div id="authFields"><div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div></div><div id="authMessage" role="status" aria-live="polite" style="font-size:12px;margin-top:10px;color:#c44747"></div><button class="btn" id="authSubmit" type="button">Masuk</button><div class="auth-security">♧ Akses aman — dashboard dan hak akses ditentukan otomatis oleh sistem.</div><div class="auth-links"><a id="registerLink">Daftar BUMDes</a><a id="backLink">Tutup halaman login</a></div></div></div>
+
+<div id="platformWorkspace">
+  <header class="po-top">
+    <div class="po-brand"><img src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><strong>e-Bumdesa</strong><small>PLATFORM MANAGEMENT</small></div></div>
+    <div class="po-user"><span id="poAccountLabel">Pemilik Platform</span><button class="po-btn light" id="poLogout" type="button">Keluar</button></div>
+  </header>
+  <div class="po-layout">
+    <aside class="po-sidebar">
+      <div class="po-side-title">PENGELOLAAN PLATFORM</div>
+      <nav class="po-nav">
+        <button class="active" data-po-view="overview">▦ Dashboard Platform</button>
+        <button data-po-view="tenants">▣ Data BUMDes</button>
+        <button data-po-view="requests">▤ Pendaftaran BUMDes</button>
+        <button data-po-view="accounts">♙ Keanggotaan</button>
+        <button data-po-view="template">☷ Template COA</button>
+        <button data-po-view="audit">≡ Audit Log</button>
+      </nav>
+    </aside>
+    <main class="po-main">
+      <section class="po-view active" id="po-overview">
+        <div class="po-heading"><div><h1>Dashboard Platform</h1><p>Ringkasan pengelolaan seluruh tenant e-Bumdesa.</p></div><button class="po-btn light" id="poRefresh">↻ Muat ulang</button></div>
+        <div class="po-kpis">
+          <div class="po-kpi"><label>Total BUMDes terdaftar</label><strong id="poTotalTenants">—</strong><small>Seluruh tenant dalam platform</small></div>
+          <div class="po-kpi"><label>BUMDes aktif</label><strong id="poActiveTenants">—</strong><small>Status aktif pada database</small></div>
+          <div class="po-kpi"><label>Menunggu persetujuan</label><strong id="poPendingRequests">—</strong><small>Pengajuan pendaftaran</small></div>
+          <div class="po-kpi"><label>Total keanggotaan</label><strong id="poMemberships">—</strong><small>Membership BUMDes aktif</small></div>
+        </div>
+        <div class="po-grid">
+          <div class="po-card"><div class="po-card-head"><div><h3>Pendaftaran terbaru</h3><div class="po-muted">Pengajuan yang perlu ditinjau</div></div><button class="po-btn light" data-po-jump="requests">Lihat semua</button></div><div id="poRecentRequests" class="po-table-wrap"><div class="po-empty">Memuat data...</div></div></div>
+          <div class="po-card"><div class="po-card-head"><div><h3>Status platform</h3><div class="po-muted">Koneksi dan konfigurasi</div></div></div><p class="po-muted">Status koneksi database</p><div id="poConnectionStatus" class="po-pill">Memeriksa...</div><p class="po-muted" style="margin-top:18px">Template COA</p><strong id="poCoaCount" style="font-size:25px;color:#142d4e">—</strong><div class="po-muted">Akun pada template standar</div><div id="poOverviewMessage" class="po-message"></div></div>
+        </div>
+      </section>
+      <section class="po-view" id="po-tenants">
+        <div class="po-heading"><div><h1>Data BUMDes</h1><p>Daftar tenant yang terdaftar pada platform.</p></div><input id="poTenantSearch" class="po-search" placeholder="Cari nama / slug BUMDes"></div>
+        <div class="po-card"><div id="poTenantTable" class="po-table-wrap"><div class="po-empty">Memuat data BUMDes...</div></div><div id="poTenantMessage" class="po-message"></div></div>
+      </section>
+      <section class="po-view" id="po-requests">
+        <div class="po-heading"><div><h1>Pendaftaran BUMDes</h1><p>Tinjau pengajuan dan putuskan persetujuan pendaftaran.</p></div><button class="po-btn light" id="poRequestRefresh">↻ Muat ulang</button></div>
+        <div class="po-card"><div id="poRequestTable" class="po-table-wrap"><div class="po-empty">Memuat pengajuan...</div></div><div id="poRequestMessage" class="po-message"></div></div>
+      </section>
+      <section class="po-view" id="po-accounts">
+        <div class="po-heading"><div><h1>Keanggotaan</h1><p>Ringkasan keanggotaan Admin Pusat dan pengguna BUMDes.</p></div></div>
+        <div class="po-card"><div id="poMembershipTable" class="po-table-wrap"><div class="po-empty">Memuat keanggotaan...</div></div><div id="poMembershipMessage" class="po-message"></div></div>
+      </section>
+      <section class="po-view" id="po-template">
+        <div class="po-heading"><div><h1>Template COA</h1><p>Template standar yang digunakan saat tenant baru disetujui.</p></div></div>
+        <div class="po-card"><div class="po-kpis" style="margin:0"><div class="po-kpi"><label>Total akun</label><strong id="poTemplateTotal">—</strong></div><div class="po-kpi"><label>Level 1</label><strong id="poL1">—</strong></div><div class="po-kpi"><label>Level 2</label><strong id="poL2">—</strong></div><div class="po-kpi"><label>Level 3 + 4</label><strong id="poL34">—</strong></div></div><div id="poTemplateMessage" class="po-message"></div><p class="po-muted">Halaman ini masih bersifat pemantauan. Perubahan template tidak otomatis mengubah COA tenant yang sudah terbentuk.</p></div>
+      </section>
+      <section class="po-view" id="po-audit">
+        <div class="po-heading"><div><h1>Audit Log</h1><p>Aktivitas penting yang tercatat pada database.</p></div></div>
+        <div class="po-card"><div id="poAuditTable" class="po-table-wrap"><div class="po-empty">Memuat audit log...</div></div><div id="poAuditMessage" class="po-message"></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+/*
+ * Konfigurasi Supabase e-Bumdesa.
+ * Publishable key aman digunakan di browser selama RLS aktif dan benar.
+ * Jangan pernah memasukkan service_role key ke file HTML.
+ */
+const SUPABASE_URL = "https://caqbwgquyfthgzpjiblx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const titles={dashboard:"Dashboard",ledger:"Buku Besar",opening:"Saldo Awal",adjustments:"Penyesuaian",closing:"Tutup Buku",shu:"Pembagian & Pembayaran SHU",assets:"Aset",units:"Unit Usaha",transactions:"Transaksi Keuangan",cash:"Kas & Bank",coa:"Daftar Akun (COA)",journals:"Jurnal Umum",reports:"Laporan Keuangan",users:"Pengguna & Hak Akses",settings:"Pengaturan BUMDes"};
+const $ = (id) => document.getElementById(id);
+let currentUser = null;
+let currentAccess = null;
+
+const diagnosticSteps = [];
+function addDiagnostic(message) {
+  const stamp = new Date().toLocaleTimeString("id-ID");
+  diagnosticSteps.push(`[${stamp}] ${message}`);
+  // Rincian teknis hanya dicatat di console browser, tidak ditampilkan kepada pengguna.
+  console.info("[e-Bumdesa]", message);
+}
+function clearDiagnostics() {
+  diagnosticSteps.length = 0;
+  const panel = $("authDiagnostics");
+  if (panel) { panel.textContent = ""; panel.style.display = "none"; }
+}
+function withTimeout(promise, label, ms=12000) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`TIMEOUT: pemeriksaan ${label} tidak mendapat respons dalam ${ms/1000} detik.`)),
+        ms
+      );
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+
+function setMessage(message, success=false) {
+  $("authMessage").textContent = message || "";
+  $("authMessage").style.color = success ? "#16865b" : "#c44747";
+}
+function showLogin() {
+  $("app").style.display = "none";
+  $("platformWorkspace").style.display = "none";
+  $("authScreen").classList.remove("is-hidden");
+}
+function showApp() {
+  $("authScreen").classList.add("is-hidden");
+  $("platformWorkspace").style.display = "none";
+  $("app").style.display = "block";
+}
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
+  document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===id));
+  $("topTitle").textContent=titles[id]||"Dashboard";
+  $("crumb").textContent=titles[id]||"Ringkasan";
+  $("sidebar").classList.remove("open");
+}
+function setIdentity(name, role, tenantName) {
+  document.querySelector(".profile b").textContent = name || currentUser?.email || "Pengguna";
+  document.querySelector(".profile small").textContent = `${role} · ${tenantName || "Semua BUMDes"}`;
+  $("sessionLabel").textContent = role;
+  const welcome = document.querySelector("#dashboard .welcome h1");
+  if (welcome) welcome.textContent = `Selamat datang, ${name || currentUser?.email || "Pengguna"}`;
+}
+function deny(message) {
+  setMessage(message);
+  showLogin();
+}
+
+async function resolveAccess(user) {
+  addDiagnostic("Sesi terdeteksi untuk user ID: " + user.id);
+  // Prioritas 1: Platform Owner
+  setMessage("Memeriksa akses Platform Owner...", true);
+  addDiagnostic("Memulai query tabel public.platform_admins.");
+  const { data: owner, error: ownerError } = await withTimeout(
+    supabase.from("platform_admins")
+      .select("user_id, display_name, is_active")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle(),
+    "platform_admins"
+  );
+  if (ownerError) {
+    addDiagnostic("Query platform_admins gagal: " + ownerError.message);
+    throw new Error("Gagal membaca platform_admins: " + ownerError.message);
+  }
+  addDiagnostic(owner ? "Baris Platform Owner ditemukan dan aktif." : "Tidak ditemukan baris Platform Owner aktif untuk user ini.");
+  if (owner) {
+    return { kind:"platform_owner", role:"Platform Owner", name:owner.display_name || user.email, tenantName:"Seluruh BUMDes" };
+  }
+
+  // Prioritas 2: keanggotaan BUMDes
+  setMessage("Memeriksa keanggotaan BUMDes...", true);
+  const { data: memberships, error: membershipError } = await withTimeout(
+    supabase.from("bumdes_memberships")
+      .select("id, bumdes_id, role, is_active")
+      .eq("user_id", user.id)
+      .eq("is_active", true),
+    "bumdes_memberships"
+  );
+  if (membershipError) {
+    addDiagnostic("Query bumdes_memberships gagal: " + membershipError.message);
+    throw new Error("Gagal memeriksa keanggotaan BUMDes: " + membershipError.message);
+  }
+
+  if (memberships?.length) {
+    if (memberships.length > 1) {
+      throw new Error("Akun memiliki akses ke lebih dari satu BUMDes. Pemilihan tenant perlu disiapkan sebelum akun ini digunakan.");
+    }
+    const membership = memberships[0];
+    setMessage("Memuat identitas BUMDes...", true);
+    const { data: tenant, error: tenantError } = await withTimeout(
+      supabase.from("bumdes")
+        .select("id, name")
+        .eq("id", membership.bumdes_id)
+        .maybeSingle(),
+      "bumdes"
+    );
+    if (tenantError) throw new Error("Gagal memuat identitas BUMDes: " + tenantError.message);
+    const roleLabels = {
+      super_admin:"Super Admin",
+      admin_pusat:"Admin Pusat",
+      admin_unit:"Admin Unit",
+      staf_unit:"Staf Unit",
+      kasir:"Kasir",
+      viewer:"Viewer"
+    };
+    return {
+      kind:"bumdes_member",
+      bumdesId:membership.bumdes_id,
+      role:roleLabels[membership.role] || membership.role,
+      roleCode:membership.role,
+      name:user.user_metadata?.full_name || user.email,
+      tenantName:tenant?.name || "BUMDes"
+    };
+  }
+
+  // Prioritas 3: akses langsung ke unit
+  setMessage("Memeriksa akses unit usaha...", true);
+  const { data: accesses, error: accessError } = await withTimeout(
+    supabase.from("unit_user_access")
+      .select("bumdes_id, unit_id, role, is_active")
+      .eq("user_id", user.id)
+      .eq("is_active", true),
+    "unit_user_access"
+  );
+  if (accessError) {
+    addDiagnostic("Query unit_user_access gagal: " + accessError.message);
+    throw new Error("Gagal memeriksa akses unit: " + accessError.message);
+  }
+  if (accesses?.length) {
+    if (accesses.length > 1) {
+      throw new Error("Akun memiliki akses ke beberapa unit. Pemilihan unit perlu disiapkan sebelum akun ini digunakan.");
+    }
+    const access = accesses[0];
+    setMessage("Memuat data unit usaha...", true);
+    const { data: unit, error: unitError } = await withTimeout(
+      supabase.from("units")
+        .select("id, name, bumdes_id")
+        .eq("id", access.unit_id)
+        .eq("bumdes_id", access.bumdes_id)
+        .maybeSingle(),
+      "units"
+    );
+    if (unitError) throw new Error("Gagal memuat unit usaha: " + unitError.message);
+    const { data: tenant, error: tenantError } = await withTimeout(
+      supabase.from("bumdes")
+        .select("id, name")
+        .eq("id", access.bumdes_id)
+        .maybeSingle(),
+      "bumdes"
+    );
+    if (tenantError) throw new Error("Gagal memuat identitas BUMDes: " + tenantError.message);
+    return {
+      kind:"unit_user",
+      bumdesId:access.bumdes_id,
+      unitId:access.unit_id,
+      role:access.role,
+      name:user.user_metadata?.full_name || user.email,
+      tenantName:unit?.name || tenant?.name || "Unit Usaha"
+    };
+  }
+  // Akun pendaftar boleh ada di Supabase Auth, tetapi tidak boleh masuk
+  // sebelum Owner menyetujui pengajuan dan membership aktif dibuat.
+  const { data: registration, error: registrationError } = await withTimeout(
+    supabase.rpc("get_my_bumdes_registration_status"),
+    "status pendaftaran"
+  );
+  if (registrationError) {
+    addDiagnostic("Status pendaftaran tidak dapat dibaca: " + registrationError.message);
+    throw new Error("Akun belum memiliki hak akses aktif. Jika Anda baru mendaftar, silakan tunggu persetujuan Platform Owner.");
+  }
+  const latest = Array.isArray(registration) ? registration[0] : registration;
+  if (latest?.status === "pending") {
+    throw new Error("Pendaftaran BUMDes Anda sedang menunggu persetujuan Platform Owner. Anda belum dapat login ke aplikasi.");
+  }
+  if (latest?.status === "rejected") {
+    throw new Error("Pendaftaran BUMDes Anda belum disetujui. Catatan: " + (latest.review_note || "Silakan hubungi Platform Owner."));
+  }
+  throw new Error("Akun berhasil login ke Supabase, tetapi belum memiliki hak akses e-Bumdesa yang aktif. Hubungi Platform Owner.");
+}
+
+async function enterWithSession(session) {
+  currentUser = session.user;
+  setMessage("Memeriksa hak akses akun...", true);
+  try {
+    currentAccess = await resolveAccess(currentUser);
+    if (currentAccess.kind === "platform_owner") {
+      clearDiagnostics();
+      setMessage("");
+      $("app").style.display = "none";
+      $("authScreen").classList.add("is-hidden");
+      $("platformWorkspace").style.display = "block";
+      $("poAccountLabel").textContent = currentAccess.name || "Pemilik Platform";
+      try {
+        await loadPlatformDashboard();
+        addDiagnostic("Dashboard Platform Owner berhasil dimuat.");
+      } catch (dashboardError) {
+        console.error("Gagal memuat dashboard Platform Owner:", dashboardError);
+        addDiagnostic("Hak Platform Owner terverifikasi, tetapi dashboard gagal dimuat: " + dashboardError.message);
+        $("poOverviewMessage").textContent = dashboardError.message;
+        $("poOverviewMessage").className = "po-message";
+        $("platformWorkspace").style.display = "block";
+      }
+      return;
+    }
+    $("platformWorkspace").style.display = "none";
+    clearDiagnostics();
+    setMessage("");
+    setIdentity(currentAccess.name, currentAccess.role, currentAccess.tenantName);
+    // Role menentukan identitas. Menu dan data riil akan diikat ke RLS pada tahap modul berikutnya.
+    if (currentAccess.kind === "unit_user") {
+      document.querySelectorAll('[data-view="users"], [data-view="settings"], [data-view="coa"]').forEach(el=>el.style.display="none");
+    } else {
+      document.querySelectorAll('[data-view="users"], [data-view="settings"], [data-view="coa"]').forEach(el=>el.style.display="flex");
+    }
+    showView("dashboard");
+    showApp();
+    setMessage("");
+    ebLoadAll().catch(e=>console.error("Gagal memuat data:",e));
+  } catch (err) {
+    console.error("e-Bumdesa access resolution:", err);
+    addDiagnostic("PEMERIKSAAN AKSES: " + (err.message || String(err)));
+    currentAccess = null;
+    // Tidak menyimpan sesi login untuk akun yang belum disetujui / belum berhak.
+    try { await supabase.auth.signOut(); } catch (signOutError) { console.warn(signOutError); }
+    currentUser = null;
+    $("authTitle").textContent = "Akses belum tersedia";
+    $("authDesc").textContent = "Akun Anda belum memiliki hak akses aktif ke e-Bumdesa.";
+    $("authSubmit").textContent = "Masuk";
+    $("authSubmit").disabled = false;
+    setMessage(err.message || "Akses belum tersedia.");
+    $("platformWorkspace").style.display = "none";
+    $("app").style.display = "none";
+    $("authScreen").classList.remove("is-hidden");
+  }
+}
+
+
+function poSet(id, htmlValue){ const el=$(id); if(el) el.innerHTML=htmlValue; }
+function poEscape(value){
+  return String(value ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function poSwitch(view){
+  document.querySelectorAll(".po-view").forEach(v=>v.classList.toggle("active",v.id==="po-"+view));
+  document.querySelectorAll("[data-po-view]").forEach(b=>b.classList.toggle("active",b.dataset.poView===view));
+}
+async function loadPlatformDashboard(){
+  $("poConnectionStatus").textContent="Terhubung";
+  $("poConnectionStatus").className="po-pill";
+  const [tenantsRes, requestsRes, membersRes, coaRes] = await Promise.all([
+    withTimeout(supabase.from("bumdes").select("id,name,slug,regency,province,is_active,created_at").order("created_at",{ascending:false}),"data BUMDes"),
+    withTimeout(supabase.from("bumdes_registration_requests").select("id,proposed_name,proposed_slug,village,district,regency,status,created_at,requested_by").order("created_at",{ascending:false}),"pengajuan BUMDes"),
+    withTimeout(supabase.from("bumdes_memberships").select("id",{count:"exact",head:true}).eq("is_active",true),"keanggotaan"),
+    withTimeout(supabase.from("coa_template_accounts").select("code,level"),"template COA")
+  ]);
+  const errors=[tenantsRes.error,requestsRes.error,membersRes.error,coaRes.error].filter(Boolean);
+  if(errors.length){
+    $("poConnectionStatus").textContent="Ada data gagal dimuat";
+    $("poConnectionStatus").className="po-pill pending";
+    $("poOverviewMessage").textContent=errors.map(e=>e.message).join(" | ");
+  }
+  const tenants=tenantsRes.data||[], requests=requestsRes.data||[], pending=requests.filter(r=>r.status==="pending");
+  $("poTotalTenants").textContent=tenants.length;
+  $("poActiveTenants").textContent=tenants.filter(t=>t.is_active===true).length;
+  $("poPendingRequests").textContent=pending.length;
+  $("poMemberships").textContent=membersRes.count ?? "—";
+  const levels=[1,2,3,4].map(level=>(coaRes.data||[]).filter(x=>x.level===level).length);
+  $("poCoaCount").textContent=(coaRes.data||[]).length;
+  $("poTemplateTotal").textContent=(coaRes.data||[]).length;
+  $("poL1").textContent=levels[0]; $("poL2").textContent=levels[1]; $("poL34").textContent=levels[2]+levels[3];
+  renderPoTenants(tenants); renderPoRequests(requests); renderPoMemberships();
+  renderPoRecent(pending.slice(0,5)); renderPoAudit();
+}
+function renderPoTenants(rows){
+  const body=rows.map(t=>`<tr><td><b>${poEscape(t.name)}</b><div class="po-muted">${poEscape(t.slug)}</div></td><td>${poEscape([t.regency,t.province].filter(Boolean).join(", ")||"—")}</td><td><span class="po-pill ${t.is_active?"":"inactive"}">${t.is_active?"Aktif":"Nonaktif"}</span></td><td>${t.created_at?new Date(t.created_at).toLocaleDateString("id-ID"):"—"}</td></tr>`).join("");
+  poSet("poTenantTable",`<table class="po-table"><thead><tr><th>BUMDes</th><th>Wilayah</th><th>Status</th><th>Terdaftar</th></tr></thead><tbody>${body||'<tr><td colspan="4" class="po-empty">Belum ada BUMDes.</td></tr>'}</tbody></table>`);
+  $("poTenantSearch").oninput=()=>{const q=$("poTenantSearch").value.toLowerCase();renderPoTenants(rows.filter(t=>(t.name+" "+t.slug).toLowerCase().includes(q)));};
+}
+function requestRows(rows, compact=false){
+  const list=compact?rows:rows.filter(r=>r.status==="pending");
+  return `<table class="po-table"><thead><tr><th>Nama BUMDes</th><th>Wilayah</th><th>Tanggal</th><th>Status</th>${compact?"":"<th>Aksi</th>"}</tr></thead><tbody>${list.map(r=>`<tr><td><b>${poEscape(r.proposed_name)}</b><div class="po-muted">${poEscape(r.proposed_slug)}</div></td><td>${poEscape([r.village,r.district,r.regency].filter(Boolean).join(", ")||"—")}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString("id-ID"):"—"}</td><td><span class="po-pill ${r.status==="pending"?"pending":r.status==="approved"?"":"inactive"}">${poEscape(r.status)}</span></td>${compact?"":`<td>${r.status==="pending"?`<div class="po-actions"><button class="po-btn" data-approve="${r.id}">Setujui</button><button class="po-btn danger" data-reject="${r.id}">Tolak</button></div>`:"—"}</td>`}</tr>`).join("")||`<tr><td colspan="${compact?4:5}" class="po-empty">Tidak ada pengajuan.</td></tr>`}</tbody></table>`;
+}
+function renderPoRequests(rows){poSet("poRequestTable",requestRows(rows));document.querySelectorAll("[data-approve]").forEach(b=>b.onclick=()=>decideRequest(b.dataset.approve,"approved"));document.querySelectorAll("[data-reject]").forEach(b=>b.onclick=()=>decideRequest(b.dataset.reject,"rejected"));}
+function renderPoRecent(rows){poSet("poRecentRequests",requestRows(rows,true));}
+async function decideRequest(id,decision){
+  const note=decision==="rejected"?prompt("Alasan penolakan (opsional):"):"Disetujui oleh Platform Owner";
+  if(decision==="rejected" && note===null)return;
+  if(!confirm(decision==="approved"?"Setujui pendaftaran ini dan buat tenant BUMDes beserta COA?":"Tolak pengajuan BUMDes ini?"))return;
+  const {error}=await supabase.rpc("review_bumdes_registration",{p_request_id:id,p_decision:decision,p_review_note:note||null});
+  if(error){$("poRequestMessage").textContent=error.message;return;}
+  $("poRequestMessage").textContent="Pengajuan berhasil diproses.";
+  $("poRequestMessage").className="po-message ok";
+  await loadPlatformDashboard();
+}
+async function renderPoMemberships(){
+  const {data,error}=await supabase.from("bumdes_memberships").select("bumdes_id,user_id,role,is_active").order("created_at",{ascending:false}).limit(100);
+  if(error){$("poMembershipMessage").textContent=error.message;return;}
+  poSet("poMembershipTable",`<table class="po-table"><thead><tr><th>BUMDes ID</th><th>User ID</th><th>Peran</th><th>Status</th></tr></thead><tbody>${(data||[]).map(m=>`<tr><td>${poEscape(m.bumdes_id)}</td><td>${poEscape(m.user_id)}</td><td>${poEscape(m.role)}</td><td><span class="po-pill ${m.is_active?"":"inactive"}">${m.is_active?"Aktif":"Nonaktif"}</span></td></tr>`).join("")||'<tr><td colspan="4" class="po-empty">Belum ada keanggotaan.</td></tr>'}</tbody></table>`);
+}
+async function renderPoAudit(){
+  const {data,error}=await supabase.from("audit_logs").select("bumdes_id,actor_id,action,table_name,record_id,created_at").order("created_at",{ascending:false}).limit(50);
+  if(error){$("poAuditMessage").textContent=error.message;return;}
+  poSet("poAuditTable",`<table class="po-table"><thead><tr><th>Waktu</th><th>Aksi</th><th>Tabel</th><th>Pelaku</th><th>BUMDes ID</th></tr></thead><tbody>${(data||[]).map(a=>`<tr><td>${a.created_at?new Date(a.created_at).toLocaleString("id-ID"):"—"}</td><td>${poEscape(a.action)}</td><td>${poEscape(a.table_name)}</td><td>${poEscape(a.actor_id)}</td><td>${poEscape(a.bumdes_id)}</td></tr>`).join("")||'<tr><td colspan="5" class="po-empty">Belum ada aktivitas audit.</td></tr>'}</tbody></table>`);
+}
+document.querySelectorAll("[data-po-view]").forEach(b=>b.addEventListener("click",()=>poSwitch(b.dataset.poView)));
+document.querySelectorAll("[data-po-jump]").forEach(b=>b.addEventListener("click",()=>poSwitch(b.dataset.poJump)));
+$("poRefresh").addEventListener("click",()=>loadPlatformDashboard().catch(e=>$("poOverviewMessage").textContent=e.message));
+$("poRequestRefresh").addEventListener("click",()=>loadPlatformDashboard().catch(e=>$("poRequestMessage").textContent=e.message));
+$("poLogout").addEventListener("click",async()=>{const {error}=await supabase.auth.signOut();if(error)alert(error.message);});
+
+async function login() {
+  clearDiagnostics();
+  $("authTitle").textContent = "Selamat Datang";
+  $("authDesc").textContent = "Masuk menggunakan email dan password akun e-Bumdesa Anda.";
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+  if (!email || !password) return setMessage("Email dan password wajib diisi.");
+  $("authSubmit").disabled = true;
+  $("authSubmit").textContent = "Memeriksa...";
+  setMessage("");
+  try {
+    addDiagnostic("Mengirim kredensial ke Supabase Auth.");
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password }),
+      "Supabase Auth"
+    );
+    if (error) throw error;
+    addDiagnostic("Supabase Auth berhasil. Memeriksa apakah ada pengajuan pendaftaran yang belum terkirim.");
+    // Jika akun Auth sudah dibuat pada percobaan sebelumnya tetapi RPC belum terkirim,
+    // kirim pengajuan yang tersimpan di browser sebelum pemeriksaan hak akses biasa.
+    const pendingRaw = localStorage.getItem(pendingRegistrationKey);
+    if (pendingRaw) {
+      let pendingPayload = null;
+      try { pendingPayload = JSON.parse(pendingRaw); } catch {
+        localStorage.removeItem(pendingRegistrationKey);
+        throw new Error("Data pendaftaran tersimpan di browser tidak valid. Silakan isi ulang formulir pendaftaran.");
+      }
+      if (String(data.user?.email || "").toLowerCase() === String(pendingPayload.proposed_admin_email || "").toLowerCase()) {
+        currentUser = data.user;
+        const requestId = await sendPendingRegistration();
+        await supabase.auth.signOut();
+        currentUser = null; currentAccess = null;
+        restoreLoginForm();
+        setMessage("Pengajuan berhasil dikirim ke Platform Owner. ID pengajuan: " + requestId, true);
+        return;
+      }
+    }
+    addDiagnostic("Tidak ada pengajuan tertunda untuk akun ini. Mulai pemeriksaan hak akses.");
+    await enterWithSession(data.session);
+  } catch (err) {
+    console.error("e-Bumdesa login:", err);
+    setMessage(err.message || "Login gagal. Periksa email dan password.");
+  } finally {
+    $("authSubmit").disabled = false;
+    $("authSubmit").textContent = "Masuk";
+  }
+}
+
+$("authSubmit").onclick = login;
+$("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+$("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
+$("logoutBtn").addEventListener("click", async ()=>{
+  const { error } = await supabase.auth.signOut();
+  if (error) alert("Gagal keluar: " + error.message);
+  currentUser = null; currentAccess = null;
+  $("platformWorkspace").style.display = "none";
+  showLogin();
+});
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.go)));
+$("menuBtn").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
+
+// Pendaftaran BUMDes: calon Admin Pusat mengisi profil dan membuat akun.
+const pendingRegistrationKey = "ebumdesa_pending_registration_v1";
+function showRegistrationForm(){
+  $("authScreen").classList.add("register-mode");
+  $("authTitle").textContent = "Pendaftaran BUMDes";
+  $("authDesc").textContent = "Lengkapi profil BUMDes dan data calon Admin Pusat. Pengajuan akan menunggu persetujuan Platform Owner.";
+  $("authFields").innerHTML = `
+    <div class="field"><label>Nama BUMDes *</label><input id="regName" required placeholder="Contoh: BUMDes Sejahtera"></div>
+    <div class="field"><label>Alamat sekretariat</label><input id="regAddress" placeholder="Alamat lengkap"></div>
+    <div class="field"><label>Desa *</label><input id="regVillage" required placeholder="Nama desa"></div>
+    <div class="field"><label>Kecamatan *</label><input id="regDistrict" required placeholder="Nama kecamatan"></div>
+    <div class="field"><label>Kabupaten *</label><input id="regRegency" required placeholder="Nama kabupaten"></div>
+    <div class="field"><label>Provinsi *</label><input id="regProvince" required value="Jawa Timur"></div>
+    <div class="field"><label>Nomor telepon BUMDes</label><input id="regPhone" placeholder="08xxxxxxxxxx"></div>
+    <div class="field"><label>Email BUMDes</label><input id="regEmail" type="email" placeholder="email@bumdes.id"></div>
+    <div class="field"><label>Email calon Admin Pusat *</label><input id="regAdminEmail" type="email" required placeholder="admin@bumdes.id"></div>
+    <div class="field"><label>Password akun calon Admin Pusat *</label><input id="regPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Minimal 8 karakter"></div>
+    <div style="font-size:11px;color:#718096;margin:8px 0 2px">Setelah akun dibuat, pengajuan profil dikirim untuk diperiksa. BUMDes dan hak akses Admin Pusat baru dibuat setelah disetujui Platform Owner.</div>`;
+  $("authSubmit").textContent = "Kirim Pendaftaran";
+  $("authSubmit").disabled = false;
+  $("authSubmit").onclick = submitRegistration;
+  $("backLink").textContent = "Kembali ke login";
+  setMessage("");
+}
+function restoreLoginForm(){
+  $("authScreen").classList.remove("register-mode");
+  $("authTitle").textContent = "Selamat Datang";
+  $("authDesc").textContent = "Masuk menggunakan email dan password akun e-Bumdesa Anda.";
+  $("authFields").innerHTML = `<div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div>`;
+  $("authSubmit").textContent = "Masuk";
+  $("authSubmit").disabled = false;
+  $("authSubmit").onclick = login;
+  $("backLink").textContent = "Tutup halaman login";
+  $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+  $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
+  setMessage("");
+}
+async function sendPendingRegistration(){
+  const raw = localStorage.getItem(pendingRegistrationKey);
+  if(!raw) throw new Error("Data pendaftaran tidak ditemukan di browser. Silakan isi ulang formulir pendaftaran.");
+  if(!currentUser) throw new Error("Sesi pengguna belum tersedia. Silakan login kembali.");
+  let p;
+  try { p = JSON.parse(raw); } catch {
+    localStorage.removeItem(pendingRegistrationKey);
+    throw new Error("Data pendaftaran yang tersimpan tidak valid. Silakan isi ulang formulir pendaftaran.");
+  }
+  if(String(currentUser.email||"").toLowerCase() !== String(p.proposed_admin_email||"").toLowerCase()) {
+    throw new Error("Email akun yang sedang login tidak sama dengan email calon Admin Pusat pada formulir pendaftaran.");
+  }
+  const {data,error}=await supabase.rpc("submit_bumdes_registration",{
+    p_name:p.name,p_slug:p.slug,p_address:p.address,p_village:p.village,
+    p_district:p.district,p_regency:p.regency,p_province:p.province,
+    p_phone:p.phone,p_email:p.email,p_proposed_admin_email:p.proposed_admin_email
+  });
+  if(error) {
+    addDiagnostic("RPC submit_bumdes_registration gagal: " + error.message);
+    throw new Error("Pengajuan belum tersimpan di database: " + error.message);
+  }
+  if(!data) throw new Error("Supabase tidak mengembalikan ID pengajuan. Pengajuan belum dapat dipastikan tersimpan.");
+  localStorage.removeItem(pendingRegistrationKey);
+  addDiagnostic("RPC pendaftaran berhasil. ID pengajuan: " + data);
+  return data;
+}
+async function submitRegistration(){
+  const value=id=>($(id)?.value||"").trim();
+  const payload={
+    name:value("regName"),slug:value("regName").toLowerCase()
+      .normalize("NFD").replace(/[\\u0300-\\u036f]/g,"")
+      .replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),
+    address:value("regAddress"),village:value("regVillage"),district:value("regDistrict"),
+    regency:value("regRegency"),province:value("regProvince"),phone:value("regPhone"),
+    email:value("regEmail"),proposed_admin_email:value("regAdminEmail")
+  };
+  const password=value("regPassword");
+  if(!payload.name||!payload.slug||!payload.village||!payload.district||!payload.regency||!payload.province||!payload.proposed_admin_email||password.length<8){
+    setMessage("Lengkapi seluruh kolom wajib. Password minimal 8 karakter.");return;
+  }
+  $("authSubmit").disabled=true;
+  $("authSubmit").textContent="Mengirim...";
+  try{
+    localStorage.setItem(pendingRegistrationKey,JSON.stringify(payload));
+    const {data,error}=await supabase.auth.signUp({
+      email:payload.proposed_admin_email,password,
+      options:{data:{full_name:payload.proposed_admin_email.split("@")[0]}}
+    });
+    if(error) throw error;
+    if(data.session){
+      currentUser=data.user;
+      await sendPendingRegistration();
+      await supabase.auth.signOut();
+      currentUser=null; currentAccess=null;
+      restoreLoginForm();
+      setMessage("Pendaftaran berhasil dikirim dan menunggu persetujuan Platform Owner.",true);
+    }else{
+      // Akun Auth sudah dibuat, tetapi tanpa session RPC belum bisa dijalankan.
+      // Payload tetap disimpan agar bisa dikirim setelah pengguna login dengan akun yang sama.
+      setMessage("Akun berhasil dibuat, tetapi sesi login belum tersedia. Data formulir disimpan sementara di browser. Kembali ke login, masuk menggunakan email dan password yang baru dibuat; sistem akan mencoba mengirim pengajuan secara otomatis.",false);
+      $("authSubmit").disabled=false;
+      $("authSubmit").textContent="Kembali ke login";
+      $("authSubmit").onclick=()=>{restoreLoginForm();};
+    }
+  }catch(err){
+    setMessage(err.message||"Pendaftaran gagal.");
+    $("authSubmit").disabled=false;
+    $("authSubmit").textContent="Kirim Pendaftaran";
+  }
+}
+$("registerLink").addEventListener("click",showRegistrationForm);
+$("backLink").addEventListener("click",()=>{
+  restoreLoginForm();
+});
+
+
+// Pembacaan data tenant dan navigasi.
+function ebEsc(v){return String(v??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function ebRp(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFractionDigits:0});}
+function ebTanggal(v){if(!v)return "—";const d=new Date(String(v).length===10?v+"T00:00:00":v);return isNaN(d)?ebEsc(v):d.toLocaleDateString("id-ID");}
+function ebTenant(){if(!currentAccess||!currentAccess.bumdesId)throw new Error("Sesi BUMDes tidak ditemukan.");return currentAccess.bumdesId;}
+function ebShowTable(el,heads,rows,empty){if(!el)return;if(!rows.length){el.innerHTML=`<div class="empty">${ebEsc(empty)}</div>`;return;}el.innerHTML=`<div class="table-wrap"><table><thead><tr>${heads.map(x=>`<th>${ebEsc(x)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;}
+async function ebUnits(){
+ const {data,error}=await supabase.from("units").select("id,code,name,address,unit_head,status,created_at").eq("bumdes_id",ebTenant()).order("created_at",{ascending:false});if(error)throw error;
+ const cards=(data||[]).map(x=>`<div class="card unit"><div class="unit-top"><div class="unit-symbol">▣</div><span class="status">${ebEsc(x.status)}</span></div><h3>${ebEsc(x.name)}</h3><p>${ebEsc(x.code||"")} · ${ebEsc(x.unit_head||"")}</p><p>${ebEsc(x.address||"")}</p></div>`);
+ if($("unitsList"))$("unitsList").innerHTML=cards.join("")||'<div class="empty">Belum ada unit usaha.</div>';
+ if($("dashboardUnits"))$("dashboardUnits").innerHTML=cards.slice(0,6).join("")||'<div class="empty">Belum ada unit usaha.</div>';
+ return data||[];
+}
+async function ebTransactions(){
+ const id=ebTenant();const {data,error}=await supabase.from("transactions").select("id,unit_id,transaction_date,transaction_number,description,transaction_type,amount,status,created_at").eq("bumdes_id",id).order("transaction_date",{ascending:false}).order("created_at",{ascending:false}).limit(200);if(error)throw error;
+ const unitIds=[...new Set((data||[]).map(x=>x.unit_id).filter(Boolean))];let units={};
+ if(unitIds.length){const u=await supabase.from("units").select("id,name").eq("bumdes_id",id).in("id",unitIds);if(u.error)throw u.error;units=Object.fromEntries((u.data||[]).map(x=>[x.id,x.name]));}
+ const row=x=>`<tr><td>${ebTanggal(x.transaction_date)}</td><td>${ebEsc(x.transaction_number)}</td><td>${ebEsc(x.description)}</td><td>${ebEsc(units[x.unit_id]||"Pusat")}</td><td>${ebEsc(x.transaction_type)}</td><td>${ebRp(x.amount)}</td><td>${ebEsc(x.status)}</td></tr>`;
+ ebShowTable($("transactionsTable"),["Tanggal","No. Transaksi","Keterangan","Unit","Jenis","Nominal","Status"],(data||[]).map(row),"Belum ada transaksi.");
+ ebShowTable($("cashTable"),["Tanggal","No. Transaksi","Keterangan","Unit","Jenis","Nominal"],(data||[]).map(x=>`<tr><td>${ebTanggal(x.transaction_date)}</td><td>${ebEsc(x.transaction_number)}</td><td>${ebEsc(x.description)}</td><td>${ebEsc(units[x.unit_id]||"Pusat")}</td><td>${ebEsc(x.transaction_type)}</td><td>${ebRp(x.amount)}</td></tr>`),"Belum ada mutasi.");
+ if($("dashboardActivity"))$("dashboardActivity").innerHTML=(data||[]).slice(0,5).map(x=>`<div class="activity-item"><div><b>${ebEsc(x.description||x.transaction_type)}</b><small>${ebTanggal(x.transaction_date)} · ${ebRp(x.amount)}</small></div></div>`).join("")||'<div class="empty">Belum ada aktivitas.</div>';
+ if($("liveDataNotice"))$("liveDataNotice").textContent=`Berhasil membaca ${(data||[]).length} transaksi terakhir.`;
+}
+async function ebCoa(){
+ const {data,error}=await supabase.from("chart_of_accounts").select("id,code,name,level,normal_balance,is_active,is_system").eq("bumdes_id",ebTenant()).order("code",{ascending:true}).limit(1000);if(error)throw error;
+ const draw=a=>ebShowTable($("coaTable"),["Kode","Nama Akun","Level","Saldo Normal","Status","Jenis"],a.map(x=>`<tr><td>${ebEsc(x.code)}</td><td>${ebEsc(x.name)}</td><td>${ebEsc(x.level)}</td><td>${ebEsc(x.normal_balance)}</td><td>${x.is_active?"Aktif":"Nonaktif"}</td><td>${x.is_system?"Sistem":"Tambahan"}</td></tr>`),"Belum ada akun COA.");
+ draw(data||[]);const s=$("coaSearch");if(s&&!s.dataset.bound){s.dataset.bound="1";s.addEventListener("input",()=>draw((data||[]).filter(x=>(x.code+" "+x.name).toLowerCase().includes(s.value.toLowerCase()))));}
+}
+async function ebJournals(){
+ const {data,error}=await supabase.from("journal_entries").select("id,journal_no,journal_date,description,reference_no,status,source_type,created_at").eq("bumdes_id",ebTenant()).order("journal_date",{ascending:false}).order("created_at",{ascending:false}).limit(200);if(error)throw error;
+ ebShowTable($("journalsTable"),["Tanggal","No. Jurnal","Keterangan","Referensi","Sumber","Status"],(data||[]).map(x=>`<tr><td>${ebTanggal(x.journal_date)}</td><td>${ebEsc(x.journal_no)}</td><td>${ebEsc(x.description)}</td><td>${ebEsc(x.reference_no)}</td><td>${ebEsc(x.source_type)}</td><td>${ebEsc(x.status)}</td></tr>`),"Belum ada jurnal.");
+}
+async function ebLoadAll(){
+ if(!currentAccess||!currentAccess.bumdesId)return;
+ if($("liveDate"))$("liveDate").textContent=new Date().toLocaleDateString("id-ID",{dateStyle:"long"});
+ const errs=[];for(const [label,fn] of [["Unit",ebUnits],["Transaksi",ebTransactions],["COA",ebCoa],["Jurnal",ebJournals]]){try{await fn();}catch(e){errs.push(label+": "+e.message);console.error(e);}}
+ if(errs.length&&$("liveDataNotice"))$("liveDataNotice").textContent="Gagal memuat sebagian data: "+errs.join(" | ");
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-view]");const g=e.target.closest("[data-go]");if(b){e.preventDefault();showView(b.dataset.view);}else if(g){e.preventDefault();showView(g.dataset.go);}});
+$("refreshTransactions")?.addEventListener("click",()=>ebTransactions().catch(e=>alert(e.message)));
+$("refreshCash")?.addEventListener("click",()=>ebTransactions().catch(e=>alert(e.message)));
+$("refreshJournals")?.addEventListener("click",()=>ebJournals().catch(e=>alert(e.message)));
+
+
+// Pulihkan sesi jika pengguna sudah pernah login.
+const { data: { session } } = await supabase.auth.getSession();
+if (session) await enterWithSession(session);
+else showLogin();
+
+supabase.auth.onAuthStateChange((event, session)=>{
+  if (event === "SIGNED_OUT") {
+    currentUser = null; currentAccess = null; $("platformWorkspace").style.display = "none"; showLogin();
+  }
+});
+</script>
+</body>
+</html>
