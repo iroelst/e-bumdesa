@@ -16,7 +16,13 @@
 }
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 button,input,select{font:inherit}button{cursor:pointer}
-.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:258px;background:var(--navy);color:#dbe7f6;padding:22px 16px;display:flex;flex-direction:column;z-index:20;transition:.25s}
+.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:258px;height:100vh;height:100dvh;box-sizing:border-box;background:var(--navy);color:#dbe7f6;padding:22px 16px;display:flex;flex-direction:column;z-index:20;transition:.25s;overflow:hidden}
+.sidebar-menu{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 2px 12px 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#587397 transparent}
+.sidebar-menu::-webkit-scrollbar{width:6px}
+.sidebar-menu::-webkit-scrollbar-track{background:transparent}
+.sidebar-menu::-webkit-scrollbar-thumb{background:#587397;border-radius:8px}
+.sidebar-menu::-webkit-scrollbar-thumb:hover{background:#86a6cc}
+.sidebar .nav-label:first-child{padding-top:18px}
 .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 25px;border-bottom:1px solid #ffffff20}
 .brand-mark{width:42px;height:42px;object-fit:contain;border-radius:10px;display:block}.auth-brand .brand-mark{width:48px;height:48px}
 .brand-name{font-size:19px;font-weight:800;letter-spacing:.2px;color:#fff}.brand-sub{font-size:10px;color:#aebfd5;letter-spacing:.6px}
@@ -158,12 +164,14 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 <div class="app" id="app" style="display:none">
 <aside class="sidebar" id="sidebar">
  <div class="brand"><img class="brand-mark" src="e-bumdesa-logo.png" alt="Logo e-Bumdesa"><div><div class="brand-name">e-Bumdesa</div><div class="brand-sub">SISTEM KEUANGAN BUMDESA</div></div></div>
+ <div class="sidebar-menu">
  <div class="nav-label">Menu utama</div>
  <nav class="nav" id="mainNav">
   <button class="active" data-view="dashboard"><span class="ico">▦</span>Dashboard</button>
   <button data-view="units"><span class="ico">▣</span>Unit Usaha</button>
   <button data-view="cash"><span class="ico">▤</span>Kas & Bank</button>
   <button data-view="transactions"><span class="ico">⇄</span>Transaksi</button>
+  <button data-view="transfers"><span class="ico">⇆</span>Transfer Antar Unit</button>
   <button data-view="journals"><span class="ico">≡</span>Jurnal</button>
   <button data-view="ledger"><span class="ico">▤</span>Buku Besar</button>
   <button data-view="coa"><span class="ico">☷</span>Bagan Akun (COA)</button>
@@ -179,6 +187,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
   <button data-view="users"><span class="ico">♙</span>Pengguna & Hak Akses</button>
   <button data-view="settings"><span class="ico">⚙</span>Pengaturan BUMDes</button>
  </nav>
+ </div>
  <div class="side-bottom"><div class="profile"><div class="avatar">AP</div><div><b>Admin Pusat</b><small>BUMDesa Sejahtera Kemirigede</small></div></div></div>
 </aside>
 <main class="main">
@@ -202,11 +211,12 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
   <section class="view" id="transactions"><div class="welcome"><div><h1>Transaksi Keuangan</h1><p class="sub">Pencatatan transaksi pusat atau unit sesuai hak akses. Transaksi diposting melalui jurnal berpasangan.</p></div><button class="btn btn-primary" id="rbAddTransaction">＋ Catat Transaksi</button></div><div class="card panel"><div class="panel-head"><h3>Riwayat Transaksi</h3><div class="toolbar"><input type="date" id="rbTxFrom"><input type="date" id="rbTxTo"><button class="btn btn-light" id="rbFilterTx">Terapkan</button><button class="btn btn-light" id="rbReloadTx">Muat ulang</button></div></div><div id="rbTransactionsTable"></div></div></section>
   <section class="view" id="cash"><div class="welcome"><div><h1>Kas & Bank</h1><p class="sub">Saldo rekening dihitung dari jurnal posted dan akun kas/bank.</p></div><button class="btn btn-light" id="rbReloadCash">Muat ulang</button></div><div class="grid stats" id="rbCashCards"></div><div class="card panel"><div class="panel-head"><h3>Mutasi Kas & Bank</h3></div><div id="rbCashTable"></div></div></section>
   <section class="view" id="coa"><div class="welcome"><div><h1>Daftar Akun (COA)</h1><p class="sub">Bagan akun empat level. Akun sistem level 1–3 dilindungi.</p></div><div class="toolbar"><button class="btn btn-light" id="rbExportCoa">Ekspor CSV</button><button class="btn btn-primary" id="rbAddCoa">＋ Tambah Akun Level 4</button></div></div><div class="card panel"><div class="panel-head"><input id="rbCoaSearch" class="role-select" placeholder="Cari kode/nama akun"><select id="rbCoaStatus"><option value="all">Semua status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select><button class="btn btn-light" id="rbReloadCoa">Muat ulang</button></div><div id="rbCoaTable"></div></div></section>
+  <section class="view" id="transfers"><div class="welcome"><div><h1>Transfer Antar Unit</h1><p class="sub">Pencatatan perpindahan dana antarunit. Transfer internal bukan pendapatan atau beban BUMDes.</p></div><button class="btn btn-primary" id="rbAddTransfer">＋ Buat Transfer</button></div><div class="card panel"><div class="panel-head"><h3>Riwayat Transfer</h3><button class="btn btn-light" id="rbReloadTransfers">Muat ulang</button></div><div class="notice">Tahap ini mencatat draft dan persetujuan transfer. Pemindahbukuan akuntansi belum otomatis dibuat; buat dan posting jurnal antarunit setelah transfer disetujui agar tidak terjadi pengakuan ganda.</div><div id="rbTransfersTable"></div></div></section>
   <section class="view" id="journals"><div class="welcome"><div><h1>Jurnal Umum</h1><p class="sub">Jurnal draft dapat diedit; jurnal posted dikunci dan dikoreksi dengan jurnal pembalik.</p></div><button class="btn btn-primary" id="rbAddJournal">＋ Buat Jurnal</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Jurnal</h3><button class="btn btn-light" id="rbReloadJournals">Muat ulang</button></div><div id="rbJournalsTable"></div></div></section>
   <section class="view" id="ledger"><div class="welcome"><div><h1>Buku Besar</h1><p class="sub">Mutasi akun dari jurnal yang sudah diposting.</p></div></div><div class="card panel"><div class="toolbar"><select id="rbLedgerAccount"><option value="">Pilih akun</option></select><input type="date" id="rbLedgerFrom"><input type="date" id="rbLedgerTo"><button class="btn btn-primary" id="rbRunLedger">Tampilkan</button></div><div id="rbLedgerResult"><div class="empty">Pilih akun untuk melihat buku besar.</div></div></div></section>
   <section class="view" id="opening"><div class="welcome"><div><h1>Saldo Awal</h1><p class="sub">Saldo awal dicatat per periode, unit, dan akun.</p></div><button class="btn btn-primary" id="rbAddOpening">＋ Input Saldo Awal</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Saldo Awal</h3><button class="btn btn-light" id="rbReloadOpening">Muat ulang</button></div><div id="rbOpeningTable"></div></div></section>
   <section class="view" id="adjustments"><div class="welcome"><div><h1>Penyesuaian</h1><p class="sub">Penyesuaian dibuat sebagai jurnal draft dan diposting setelah debit-kredit seimbang.</p></div><button class="btn btn-primary" id="rbAddAdjustment">＋ Jurnal Penyesuaian</button></div><div class="card panel"><div id="rbAdjustmentInfo" class="notice">Gunakan jurnal penyesuaian dengan akun COA level 4 yang aktif.</div><div id="rbAdjustmentList"></div></div></section>
-  <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Periode hanya dapat ditutup setelah pemeriksaan laporan dan saldo.</p></div><button class="btn btn-light" id="rbReloadClosing">Muat ulang</button></div><div class="card panel"><div id="rbClosingNotice" class="notice">Tutup buku tidak akan dijalankan otomatis sebelum jurnal penutup dan rekonsiliasi saldo disiapkan.</div><div id="rbClosingTable"></div></div></section>
+  <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Pemeriksaan kesiapan periode sebelum proses penutupan.</p></div><button class="btn btn-light" id="rbReloadClosing">Muat ulang</button></div><div class="card panel"><div id="rbClosingNotice" class="notice">Pemeriksaan akan menampilkan jurnal draft, transaksi belum diposting, dan transfer belum selesai. Penutupan periode tetap dilakukan setelah jurnal penutup disiapkan dan saldo direkonsiliasi.</div><div id="rbClosingTable"></div></div></section>
   <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Rencana alokasi, persentase, nilai, dan pembayaran SHU.</p></div><div class="row-actions"><button class="btn btn-light" id="rbAddDistribution">＋ Distribusi SHU</button><button class="btn btn-primary" id="rbAddShu">＋ Buat Alokasi SHU</button></div></div><div class="grid two-col"><div class="card panel"><div class="panel-head"><h3>Alokasi SHU</h3></div><div id="rbShuAllocations"></div></div><div class="card panel"><div class="panel-head"><h3>Distribusi SHU</h3></div><div id="rbShuDistributions"></div></div></div></section>
   <section class="view" id="assets"><div class="welcome"><div><h1>Aset Tetap</h1><p class="sub">Daftar aset, biaya perolehan, umur manfaat, dan akumulasi penyusutan.</p></div><button class="btn btn-primary" id="rbAddAsset">＋ Tambah Aset</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Aset</h3><button class="btn btn-light" id="rbReloadAssets">Muat ulang</button></div><div id="rbAssetsTable"></div></div></section>
   <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan bersumber dari jurnal posted, bukan dari data contoh.</p></div><button class="btn btn-light" id="rbPrintReport">Cetak / Simpan PDF</button></div><div class="card panel"><div class="toolbar"><select id="rbReportType"><option value="pl">Laba Rugi</option><option value="bs">Neraca</option><option value="cash">Ringkasan Saldo Kas & Bank</option></select><input type="date" id="rbReportFrom"><input type="date" id="rbReportTo"><select id="rbReportUnit"><option value="">Konsolidasi BUMDes</option></select><button class="btn btn-primary" id="rbRunReport">Buat Laporan</button></div><div class="rb-note">Laporan dihitung dari jurnal posted. Pastikan seluruh akun COA sudah memiliki saldo normal dan klasifikasi yang benar sebelum angka laporan dipakai sebagai laporan resmi.</div><div id="rbReportResult"><div class="empty">Pilih jenis dan periode laporan.</div></div></div></section>
@@ -1163,9 +1173,57 @@ async function rbSaveSettings(){
  rbCheck(await supabase.from("bumdes").update(p).eq("id",rbTenant()));rbToast("Pengaturan berhasil disimpan.",true);
 }
 async function rbLoadClosing(){
- const id=rbTenant(),[p,c]=await Promise.all([supabase.from("account_periods").select("*").eq("bumdes_id",id).order("start_date",{ascending:false}),supabase.from("closing_books").select("*").eq("bumdes_id",id).order("year",{ascending:false})]);
- if(p.error)throw p.error;if(c.error)throw c.error;
- rbTable("rbClosingTable",["Periode","Tanggal","Status","Tutup Buku"],(p.data||[]).map(x=>`<tr><td>${rbEsc(x.period_type)}</td><td>${rbDate(x.start_date)} – ${rbDate(x.end_date)}</td><td>${rbEsc(x.status)}</td><td>${x.status==="open"?"Belum ditutup":"Ditutup"}</td></tr>`),"Belum ada periode.");
+ const id=rbTenant();
+ const [p,c,j,t,tr]=await Promise.all([
+  supabase.from("account_periods").select("*").eq("bumdes_id",id).order("start_date",{ascending:false}),
+  supabase.from("closing_books").select("*").eq("bumdes_id",id).order("year",{ascending:false}),
+  supabase.from("journal_entries").select("id,unit_id,journal_date,journal_no").eq("bumdes_id",id).eq("status","draft"),
+  supabase.from("transactions").select("id,transaction_date,transaction_number").eq("bumdes_id",id).eq("status","draft"),
+  supabase.from("interunit_transfers").select("id,transfer_no,transfer_date,status").eq("bumdes_id",id).in("status",["draft","approved"])
+ ]);
+ for(const q of [p,c,j,t,tr])if(q.error)throw q.error;
+ const periods=p.data||[], closed=c.data||[], drafts=j.data||[], txDraft=t.data||[], pending=tr.data||[];
+ const rows=periods.map(x=>{
+  const close=closed.find(z=>z.period_id===x.id);
+  const jn=drafts.filter(z=>z.journal_date>=x.start_date&&z.journal_date<=x.end_date).length;
+  const tn=txDraft.filter(z=>z.transaction_date>=x.start_date&&z.transaction_date<=x.end_date).length;
+  const pn=pending.filter(z=>z.transfer_date>=x.start_date&&z.transfer_date<=x.end_date).length;
+  return `<tr><td>${rbEsc(x.period_type)}</td><td>${rbDate(x.start_date)} – ${rbDate(x.end_date)}</td><td>${rbEsc(x.status)}</td><td>${jn} jurnal draft · ${tn} transaksi draft · ${pn} transfer aktif</td><td>${close?`Tercatat ${rbDate(close.closed_at)} (${rbEsc(close.status)})`:jn===0&&tn===0&&pn===0?"Pemeriksaan dasar lolos":"Belum siap"}</td></tr>`;
+ });
+ rbTable("rbClosingTable",["Periode","Rentang Tanggal","Status Periode","Item Belum Selesai","Hasil Pemeriksaan"],rows,"Belum ada periode akuntansi.");
+ const open=periods.filter(x=>x.status==="open").length;
+ $("rbClosingNotice").textContent=`${periods.length} periode ditemukan · ${open} periode masih terbuka · ${drafts.length} jurnal draft · ${txDraft.length} transaksi draft · ${pending.length} transfer belum berstatus posted/dibatalkan. Penutupan otomatis belum diaktifkan karena perlu jurnal penutup laba-rugi dan validasi saldo akhir.`;
+}
+
+async function rbLoadTransfers(){
+ await rbLoadBase();
+ const r=await supabase.from("interunit_transfers").select("*").eq("bumdes_id",rbTenant()).order("transfer_date",{ascending:false}).order("created_at",{ascending:false});
+ if(r.error)throw r.error;
+ const names=Object.fromEntries(RB.units.map(u=>[u.id,u.name]));
+ rbTable("rbTransfersTable",["Nomor","Tanggal","Dari Unit","Ke Unit","Nominal","Status","Aksi"],(r.data||[]).map(x=>{
+  const actions=x.status==="draft"&&rbCanWrite()?`<button class="btn btn-light" data-rb-transfer-approve="${x.id}">Setujui</button> <button class="btn btn-light" data-rb-transfer-cancel="${x.id}">Batalkan</button>`:"—";
+  return `<tr><td>${rbEsc(x.transfer_no)}</td><td>${rbDate(x.transfer_date)}</td><td>${rbEsc(names[x.source_unit_id]||"Unit")}</td><td>${rbEsc(names[x.destination_unit_id]||"Unit")}</td><td>${rbMoney(x.amount)}</td><td>${rbEsc(x.status)}</td><td><div class="rb-actions">${actions}</div></td></tr>`;
+ }),"Belum ada transfer antarunit.");
+}
+async function rbOpenTransfer(){
+ if(!rbCanWrite())throw new Error("Pembuatan transfer melalui modul ini hanya dapat dilakukan Admin Pusat.");
+ await rbLoadBase();
+ const active=RB.units.filter(x=>x.status==="active");
+ if(active.length<2)throw new Error("Minimal harus ada dua unit aktif untuk melakukan transfer.");
+ const today=new Date().toISOString().slice(0,10);
+ rbModal("Buat Transfer Antar Unit",`<div class="rb-form-grid">${rbField("Tanggal Transfer","rbTransferDate","date",today)}<div class="rb-field"><label>Unit Asal</label><select id="rbTransferSource">${rbSelect(active,"id","name")}</select></div><div class="rb-field"><label>Unit Tujuan</label><select id="rbTransferDestination">${rbSelect(active,"id","name")}</select></div>${rbField("Nominal Transfer (Rp)","rbTransferAmount","number","","min=\\"1\\" step=\\"0.01\\"")}${rbTextArea("Keterangan","rbTransferDescription","")}</div><div class="rb-note">Transfer disimpan sebagai draft. Tidak menambah pendapatan atau beban. Setelah disetujui, buat jurnal antarunit sesuai COA yang digunakan BUMDes.</div>`,"Simpan Draft",async()=>{
+ const date=$("rbTransferDate").value,source=$("rbTransferSource").value,dest=$("rbTransferDestination").value,amount=Number($("rbTransferAmount").value);
+ if(!date||!source||!dest||source===dest||!(amount>0))throw new Error("Lengkapi tanggal, unit asal/tujuan berbeda, dan nominal lebih dari nol.");
+ const transferNo="TRF-"+date.replaceAll("-","")+"-"+Date.now().toString().slice(-6);
+ rbCheck(await supabase.from("interunit_transfers").insert({bumdes_id:rbTenant(),transfer_no:transferNo,transfer_date:date,source_unit_id:source,destination_unit_id:dest,amount,description:$("rbTransferDescription").value.trim()||null,status:"draft",created_by:currentUser?.id||null}));
+ await rbLoadTransfers();
+ });
+}
+async function rbSetTransferStatus(id,status){
+ if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengubah status transfer.");
+ if(!confirm(status==="approved"?"Setujui transfer ini?":"Batalkan transfer ini?"))return;
+ rbCheck(await supabase.from("interunit_transfers").update({status}).eq("id",id).eq("bumdes_id",rbTenant()).eq("status","draft"));
+ await rbLoadTransfers();
 }
 async function rbLoadShu(){
  const id=rbTenant(),[a,d]=await Promise.all([
@@ -1254,7 +1312,7 @@ async function rbInitReports(){
  const now=new Date();$("rbReportFrom").value=`${now.getFullYear()}-01-01`;$("rbReportTo").value=now.toISOString().slice(0,10);
 }
 async function rbRefreshModule(id){
- const map={dashboard:rbLoadDashboard,units:rbLoadUnits,transactions:rbLoadTransactions,cash:rbLoadCash,coa:rbLoadCoa,journals:rbLoadJournals,ledger:rbLoadLedgerOptions,opening:rbLoadOpening,adjustments:rbLoadAdjustments,closing:rbLoadClosing,shu:rbLoadShu,assets:rbLoadAssets,reports:rbInitReports,users:rbLoadUsers,settings:rbLoadSettings};
+ const map={dashboard:rbLoadDashboard,units:rbLoadUnits,transactions:rbLoadTransactions,cash:rbLoadCash,coa:rbLoadCoa,journals:rbLoadJournals,ledger:rbLoadLedgerOptions,opening:rbLoadOpening,adjustments:rbLoadAdjustments,closing:rbLoadClosing,transfers:rbLoadTransfers,shu:rbLoadShu,assets:rbLoadAssets,reports:rbInitReports,users:rbLoadUsers,settings:rbLoadSettings};
  if(map[id])await map[id]();
 }
 function rbBind(){
@@ -1266,7 +1324,7 @@ function rbBind(){
  on("rbAddJournal",()=>rbOpenJournal());on("rbReloadJournals",rbLoadJournals);
  on("rbAddOpening",rbOpenOpening);on("rbReloadOpening",rbLoadOpening);
  on("rbAddAdjustment",()=>rbOpenJournal(null,"adjustment"));
- on("rbReloadClosing",rbLoadClosing);on("rbAddShu",rbOpenShu);on("rbAddDistribution",rbCreateDistribution);
+ on("rbReloadClosing",rbLoadClosing);on("rbAddTransfer",rbOpenTransfer);on("rbReloadTransfers",rbLoadTransfers);on("rbAddShu",rbOpenShu);on("rbAddDistribution",rbCreateDistribution);
  on("rbAddAsset",()=>rbOpenAsset());on("rbReloadAssets",rbLoadAssets);
  on("rbRunReport",rbLoadReport);on("rbPrintReport",()=>window.print());
  on("rbAddUser",rbOpenUser);on("rbReloadUsers",rbLoadUsers);on("rbSaveSettings",rbSaveSettings);on("rbAddPeriod",rbAddPeriod);
@@ -1285,6 +1343,8 @@ function rbBind(){
   const dp=e.target.closest("[data-rb-depreciate]");if(dp)rbCreateDepreciationDraft(dp.dataset.rbDepreciate).catch(rbErr);
   const si=e.target.closest("[data-rb-shu-items]");if(si)rbOpenShuItems(si.dataset.rbShuItems).catch(rbErr);
   const di=e.target.closest("[data-rb-dist-items]");if(di)rbOpenDistributionItems(di.dataset.rbDistItems).catch(rbErr);
+  const ta=e.target.closest("[data-rb-transfer-approve]");if(ta)rbSetTransferStatus(ta.dataset.rbTransferApprove,"approved").catch(rbErr);
+  const tc=e.target.closest("[data-rb-transfer-cancel]");if(tc)rbSetTransferStatus(tc.dataset.rbTransferCancel,"cancelled").catch(rbErr);
   const tm=e.target.closest("[data-rb-toggle-member]");if(tm)rbToggleMembership(tm.dataset.rbToggleMember,tm.dataset.active==="true").catch(rbErr);
   const tu=e.target.closest("[data-rb-toggle-unitaccess]");if(tu)rbToggleUnitAccess(tu.dataset.rbToggleUnitaccess,tu.dataset.active==="true").catch(rbErr);
  });
