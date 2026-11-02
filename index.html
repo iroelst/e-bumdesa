@@ -207,7 +207,7 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
   <section class="view" id="opening"><div class="welcome"><div><h1>Saldo Awal</h1><p class="sub">Saldo awal dicatat per periode, unit, dan akun.</p></div><button class="btn btn-primary" id="rbAddOpening">＋ Input Saldo Awal</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Saldo Awal</h3><button class="btn btn-light" id="rbReloadOpening">Muat ulang</button></div><div id="rbOpeningTable"></div></div></section>
   <section class="view" id="adjustments"><div class="welcome"><div><h1>Penyesuaian</h1><p class="sub">Penyesuaian dibuat sebagai jurnal draft dan diposting setelah debit-kredit seimbang.</p></div><button class="btn btn-primary" id="rbAddAdjustment">＋ Jurnal Penyesuaian</button></div><div class="card panel"><div id="rbAdjustmentInfo" class="notice">Gunakan jurnal penyesuaian dengan akun COA level 4 yang aktif.</div><div id="rbAdjustmentList"></div></div></section>
   <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Periode hanya dapat ditutup setelah pemeriksaan laporan dan saldo.</p></div><button class="btn btn-light" id="rbReloadClosing">Muat ulang</button></div><div class="card panel"><div id="rbClosingNotice" class="notice">Tutup buku tidak akan dijalankan otomatis sebelum jurnal penutup dan rekonsiliasi saldo disiapkan.</div><div id="rbClosingTable"></div></div></section>
-  <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Rencana alokasi, persentase, nilai, dan pembayaran SHU.</p></div><button class="btn btn-primary" id="rbAddShu">＋ Buat Alokasi SHU</button></div><div class="grid two-col"><div class="card panel"><div class="panel-head"><h3>Alokasi SHU</h3></div><div id="rbShuAllocations"></div></div><div class="card panel"><div class="panel-head"><h3>Distribusi SHU</h3></div><div id="rbShuDistributions"></div></div></div></section>
+  <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Rencana alokasi, persentase, nilai, dan pembayaran SHU.</p></div><div class="row-actions"><button class="btn btn-light" id="rbAddDistribution">＋ Distribusi SHU</button><button class="btn btn-primary" id="rbAddShu">＋ Buat Alokasi SHU</button></div></div><div class="grid two-col"><div class="card panel"><div class="panel-head"><h3>Alokasi SHU</h3></div><div id="rbShuAllocations"></div></div><div class="card panel"><div class="panel-head"><h3>Distribusi SHU</h3></div><div id="rbShuDistributions"></div></div></div></section>
   <section class="view" id="assets"><div class="welcome"><div><h1>Aset Tetap</h1><p class="sub">Daftar aset, biaya perolehan, umur manfaat, dan akumulasi penyusutan.</p></div><button class="btn btn-primary" id="rbAddAsset">＋ Tambah Aset</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Aset</h3><button class="btn btn-light" id="rbReloadAssets">Muat ulang</button></div><div id="rbAssetsTable"></div></div></section>
   <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan bersumber dari jurnal posted, bukan dari data contoh.</p></div><button class="btn btn-light" id="rbPrintReport">Cetak / Simpan PDF</button></div><div class="card panel"><div class="toolbar"><select id="rbReportType"><option value="pl">Laba Rugi</option><option value="bs">Neraca</option><option value="cash">Ringkasan Saldo Kas & Bank</option></select><input type="date" id="rbReportFrom"><input type="date" id="rbReportTo"><select id="rbReportUnit"><option value="">Konsolidasi BUMDes</option></select><button class="btn btn-primary" id="rbRunReport">Buat Laporan</button></div><div class="rb-note">Laporan dihitung dari jurnal posted. Pastikan seluruh akun COA sudah memiliki saldo normal dan klasifikasi yang benar sebelum angka laporan dipakai sebagai laporan resmi.</div><div id="rbReportResult"><div class="empty">Pilih jenis dan periode laporan.</div></div></div></section>
   <section class="view" id="users"><div class="welcome"><div><h1>Pengguna & Hak Akses</h1><p class="sub">Kelola membership BUMDes dan akses unit untuk akun yang sudah terdaftar di Supabase Auth.</p></div><button class="btn btn-primary" id="rbAddUser">＋ Beri Akses Pengguna</button></div><div class="card panel"><div class="panel-head"><h3>Keanggotaan BUMDes</h3><button class="btn btn-light" id="rbReloadUsers">Muat ulang</button></div><div id="rbUsersTable"></div></div><div class="card panel"><div class="panel-head"><h3>Akses Unit</h3></div><div id="rbUnitAccessTable"></div></div></section>
@@ -1092,17 +1092,45 @@ async function rbLoadCash(){
 async function rbLoadAssets(){
  const r=await supabase.from("fixed_assets").select("id,unit_id,asset_code,asset_name,acquisition_date,acquisition_cost,useful_life_months,depreciation_method,accumulated_depreciation,status").eq("bumdes_id",rbTenant()).order("acquisition_date",{ascending:false});if(r.error)throw r.error;RB.assets=r.data||[];
  const um=Object.fromEntries(RB.units.map(x=>[x.id,x.name]));
- rbTable("rbAssetsTable",["Kode","Nama Aset","Unit","Tanggal","Harga Perolehan","Umur (bln)","Akumulasi Penyusutan","Status","Aksi"],RB.assets.map(a=>`<tr><td>${rbEsc(a.asset_code)}</td><td>${rbEsc(a.asset_name)}</td><td>${rbEsc(um[a.unit_id]||"Pusat")}</td><td>${rbDate(a.acquisition_date)}</td><td>${rbMoney(a.acquisition_cost)}</td><td>${rbEsc(a.useful_life_months||"—")}</td><td>${rbMoney(a.accumulated_depreciation)}</td><td>${rbEsc(a.status)}</td><td><button class="btn btn-light" data-rb-edit-asset="${a.id}">Edit</button></td></tr>`),"Belum ada aset tetap.");
+ rbTable("rbAssetsTable",["Kode","Nama Aset","Unit","Tanggal","Harga Perolehan","Umur (bln)","Akumulasi Penyusutan","Status","Aksi"],RB.assets.map(a=>`<tr><td>${rbEsc(a.asset_code)}</td><td>${rbEsc(a.asset_name)}</td><td>${rbEsc(um[a.unit_id]||"Pusat")}</td><td>${rbDate(a.acquisition_date)}</td><td>${rbMoney(a.acquisition_cost)}</td><td>${rbEsc(a.useful_life_months||"—")}</td><td>${rbMoney(a.accumulated_depreciation)}</td><td>${rbEsc(a.status)}</td><td><button class="btn btn-light" data-rb-edit-asset="${a.id}">Edit</button> <button class="btn btn-light" data-rb-depreciate="${a.id}">Jurnal Penyusutan</button></td></tr>`),"Belum ada aset tetap.");
 }
 async function rbOpenAsset(a=null){
  if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengelola aset.");
  await rbLoadBase();
- rbModal(a?"Edit Aset":"Tambah Aset",`<div class="rb-form-grid">${rbField("Kode Aset","rbAssetCode","text",a?.asset_code||"")}${rbField("Nama Aset","rbAssetName","text",a?.asset_name||"")}<div class="rb-field"><label>Unit</label><select id="rbAssetUnit">${rbSelect(RB.units,"id","name",a?.unit_id||"","Pusat")}</select></div>${rbField("Tanggal Perolehan","rbAssetDate","date",a?.acquisition_date||new Date().toISOString().slice(0,10))}${rbField("Harga Perolehan","rbAssetCost","number",a?.acquisition_cost||"",'min="1" step="0.01"')}${rbField("Umur Manfaat (bulan)","rbAssetLife","number",a?.useful_life_months||"",'min="1" step="1"')}<div class="rb-field"><label>Metode</label><select id="rbAssetMethod"><option value="garis_lurus">Garis Lurus</option></select></div><div class="rb-field"><label>Status</label><select id="rbAssetStatus"><option value="aktif">Aktif</option><option value="dijual">Dijual</option><option value="dihapuskan">Dihapuskan</option></select></div></div><div class="rb-note">Form ini menyimpan register aset. Jurnal perolehan dan penyusutan harus dibuat melalui Jurnal Umum agar tidak ada posting otomatis ganda.</div>`,"Simpan",async()=>{
- const p={bumdes_id:rbTenant(),unit_id:$("rbAssetUnit").value||null,asset_code:$("rbAssetCode").value.trim(),asset_name:$("rbAssetName").value.trim(),acquisition_date:$("rbAssetDate").value,acquisition_cost:Number($("rbAssetCost").value),useful_life_months:Number($("rbAssetLife").value)||null,depreciation_method:$("rbAssetMethod").value,status:$("rbAssetStatus").value};
- if(!p.asset_code||!p.asset_name||!p.acquisition_date||p.acquisition_cost<=0)throw new Error("Lengkapi kode, nama, tanggal, dan harga perolehan.");
+ const coa=RB.coa.filter(x=>x.level===4&&x.is_active);
+ const coaSelect=(id,val)=>rbSelect(coa,"id","code",val||"","Pilih akun");
+ rbModal(a?"Edit Aset":"Tambah Aset",`<div class="rb-form-grid">${rbField("Kode Aset","rbAssetCode","text",a?.asset_code||"")}${rbField("Nama Aset","rbAssetName","text",a?.asset_name||"")}<div class="rb-field"><label>Unit</label><select id="rbAssetUnit">${rbSelect(RB.units,"id","name",a?.unit_id||"","Pusat")}</select></div>${rbField("Tanggal Perolehan","rbAssetDate","date",a?.acquisition_date||new Date().toISOString().slice(0,10))}${rbField("Harga Perolehan","rbAssetCost","number",a?.acquisition_cost||"",'min="1" step="0.01"')}${rbField("Umur Manfaat (bulan)","rbAssetLife","number",a?.useful_life_months||"",'min="1" step="1"')}<div class="rb-field"><label>Metode</label><select id="rbAssetMethod"><option value="garis_lurus" ${(!a||a.depreciation_method==="garis_lurus")?"selected":""}>Garis Lurus</option></select></div><div class="rb-field"><label>Status</label><select id="rbAssetStatus"><option value="aktif" ${(!a||a.status==="aktif")?"selected":""}>Aktif</option><option value="dijual" ${a?.status==="dijual"?"selected":""}>Dijual</option><option value="dihapuskan" ${a?.status==="dihapuskan"?"selected":""}>Dihapuskan</option></select></div><div class="rb-field"><label>Akun Aset Tetap</label><select id="rbAssetAccount">${coaSelect("asset",a?.asset_account_id)}</select></div><div class="rb-field"><label>Akun Akumulasi Penyusutan</label><select id="rbAssetAccumAccount">${coaSelect("accum",a?.accumulated_depreciation_account_id)}</select></div><div class="rb-field"><label>Akun Beban Penyusutan</label><select id="rbAssetExpenseAccount">${coaSelect("expense",a?.depreciation_expense_account_id)}</select></div></div><div class="rb-note">Akun harus COA level 4 yang aktif. Pencatatan perolehan aset tetap tetap dilakukan melalui transaksi/jurnal tersendiri. Tombol jurnal penyusutan membuat jurnal draft, tidak langsung memposting.</div>`,"Simpan",async()=>{
+ const p={bumdes_id:rbTenant(),unit_id:$("rbAssetUnit").value||null,asset_code:$("rbAssetCode").value.trim(),asset_name:$("rbAssetName").value.trim(),acquisition_date:$("rbAssetDate").value,acquisition_cost:Number($("rbAssetCost").value),useful_life_months:Number($("rbAssetLife").value)||null,depreciation_method:$("rbAssetMethod").value,status:$("rbAssetStatus").value,asset_account_id:$("rbAssetAccount").value||null,accumulated_depreciation_account_id:$("rbAssetAccumAccount").value||null,depreciation_expense_account_id:$("rbAssetExpenseAccount").value||null};
+ if(!p.asset_code||!p.asset_name||!p.acquisition_date||p.acquisition_cost<=0||!p.useful_life_months)throw new Error("Lengkapi kode, nama, tanggal, harga perolehan, dan umur manfaat.");
+ if(p.accumulated_depreciation_account_id&&p.accumulated_depreciation_account_id===p.depreciation_expense_account_id)throw new Error("Akun akumulasi dan beban penyusutan tidak boleh sama.");
  if(a)rbCheck(await supabase.from("fixed_assets").update(p).eq("id",a.id).eq("bumdes_id",rbTenant()));else rbCheck(await supabase.from("fixed_assets").insert(p));
  await rbLoadAssets();
  });
+}
+async function rbCreateDepreciationDraft(assetId){
+ if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat membuat jurnal penyusutan.");
+ await rbLoadBase();
+ const a=RB.assets.find(x=>x.id===assetId);if(!a)throw new Error("Aset tidak ditemukan.");
+ if(a.status!=="aktif")throw new Error("Aset tidak berstatus aktif.");
+ const full=rbCheck(await supabase.from("fixed_assets").select("*").eq("id",assetId).eq("bumdes_id",rbTenant()).single());
+ if(!full.asset_account_id||!full.accumulated_depreciation_account_id||!full.depreciation_expense_account_id)throw new Error("Lengkapi tiga akun aset pada form Edit Aset terlebih dahulu.");
+ const period=RB.activePeriod;if(!period||period.status!=="open")throw new Error("Tidak ada periode akuntansi terbuka.");
+ const month=new Date().toISOString().slice(0,7);
+ const monthDate=month+"-01";
+ if(monthDate<period.start_date||monthDate>period.end_date)throw new Error("Bulan berjalan tidak berada dalam periode akuntansi terbuka.");
+ if(monthDate<full.acquisition_date.slice(0,7)+"-01")throw new Error("Aset belum diperoleh pada bulan penyusutan ini.");
+ const existing=rbCheck(await supabase.from("journal_entries").select("id,journal_no,status").eq("bumdes_id",rbTenant()).eq("source_type","depreciation").eq("source_id",assetId).gte("journal_date",monthDate).lt("journal_date",new Date(new Date(monthDate).setMonth(new Date(monthDate).getMonth()+1)).toISOString().slice(0,10)));
+ if(existing.length)throw new Error("Jurnal penyusutan bulan ini sudah pernah dibuat ("+existing[0].journal_no+").");
+ const monthly=Math.min(Number(full.acquisition_cost)/Number(full.useful_life_months),Math.max(0,Number(full.acquisition_cost)-Number(full.accumulated_depreciation)));
+ if(monthly<=0)throw new Error("Nilai buku aset sudah habis disusutkan.");
+ const jno="DEP-"+month+"-"+String(full.asset_code).replace(/[^A-Za-z0-9]/g,"").slice(0,16);
+ const j=rbCheck(await supabase.from("journal_entries").insert({bumdes_id:rbTenant(),unit_id:full.unit_id,journal_no:jno,journal_date:monthDate,description:"Penyusutan "+full.asset_name+" - "+month,reference_no:full.asset_code,status:"draft",source_type:"depreciation",source_id:full.id,created_by:currentUser.id}).select("id").single());
+ rbCheck(await supabase.from("journal_lines").insert([
+  {bumdes_id:rbTenant(),journal_entry_id:j.id,account_id:full.depreciation_expense_account_id,line_no:1,description:"Beban penyusutan "+full.asset_name,debit:monthly,credit:0},
+  {bumdes_id:rbTenant(),journal_entry_id:j.id,account_id:full.accumulated_depreciation_account_id,line_no:2,description:"Akumulasi penyusutan "+full.asset_name,debit:0,credit:monthly}
+ ]));
+ rbToast("Jurnal penyusutan dibuat sebagai draft. Periksa jurnal sebelum diposting.",true);
+ await rbLoadJournals();
 }
 async function rbLoadUsers(){
  const id=rbTenant();const [m,a]=await Promise.all([supabase.from("bumdes_memberships").select("id,user_id,role,is_active,created_at").eq("bumdes_id",id).order("created_at",{ascending:false}),supabase.from("unit_user_access").select("id,unit_id,user_id,role,is_active,created_at").eq("bumdes_id",id).order("created_at",{ascending:false})]);
@@ -1140,17 +1168,67 @@ async function rbLoadClosing(){
  rbTable("rbClosingTable",["Periode","Tanggal","Status","Tutup Buku"],(p.data||[]).map(x=>`<tr><td>${rbEsc(x.period_type)}</td><td>${rbDate(x.start_date)} – ${rbDate(x.end_date)}</td><td>${rbEsc(x.status)}</td><td>${x.status==="open"?"Belum ditutup":"Ditutup"}</td></tr>`),"Belum ada periode.");
 }
 async function rbLoadShu(){
- const id=rbTenant(),[a,d]=await Promise.all([supabase.from("profit_allocations").select("id,period_id,total_amount,total_percentage,status,created_at").eq("bumdes_id",id).order("created_at",{ascending:false}),supabase.from("profit_distributions").select("id,period_id,total_profit,total_percentage,status,created_at").eq("bumdes_id",id).order("created_at",{ascending:false})]);
+ const id=rbTenant(),[a,d]=await Promise.all([
+  supabase.from("profit_allocations").select("id,period_id,total_amount,total_percentage,status,created_at").eq("bumdes_id",id).order("created_at",{ascending:false}),
+  supabase.from("profit_distributions").select("id,period_id,total_profit,total_percentage,status,created_at").eq("bumdes_id",id).order("created_at",{ascending:false})
+ ]);
  if(a.error)throw a.error;if(d.error)throw d.error;
- rbTable("rbShuAllocations",["Periode","Total","Persentase","Status"],(a.data||[]).map(x=>`<tr><td>${rbEsc(x.period_id)}</td><td>${rbMoney(x.total_amount)}</td><td>${x.total_percentage}%</td><td>${rbEsc(x.status)}</td></tr>`),"Belum ada alokasi SHU.");
- rbTable("rbShuDistributions",["Periode","Laba","Persentase","Status"],(d.data||[]).map(x=>`<tr><td>${rbEsc(x.period_id)}</td><td>${rbMoney(x.total_profit)}</td><td>${x.total_percentage}%</td><td>${rbEsc(x.status)}</td></tr>`),"Belum ada distribusi SHU.");
+ const periods=Object.fromEntries(RB.periods.map(x=>[x.id,`${rbDate(x.start_date)} – ${rbDate(x.end_date)}`]));
+ rbTable("rbShuAllocations",["Periode","Total SHU","Persentase","Status","Rincian"],(a.data||[]).map(x=>`<tr><td>${rbEsc(periods[x.period_id]||x.period_id)}</td><td>${rbMoney(x.total_amount)}</td><td>${x.total_percentage}%</td><td>${rbEsc(x.status)}</td><td><button class="btn btn-light" data-rb-shu-items="${x.id}">Kelola Rincian</button></td></tr>`),"Belum ada alokasi SHU.");
+ rbTable("rbShuDistributions",["Periode","Total Laba","Persentase","Status","Rincian"],(d.data||[]).map(x=>`<tr><td>${rbEsc(periods[x.period_id]||x.period_id)}</td><td>${rbMoney(x.total_profit)}</td><td>${x.total_percentage}%</td><td>${rbEsc(x.status)}</td><td><button class="btn btn-light" data-rb-dist-items="${x.id}">Kelola Rincian</button></td></tr>`),"Belum ada distribusi SHU.");
 }
 async function rbOpenShu(){
  if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat membuat alokasi SHU.");
  await rbLoadBase();if(!RB.periods.length)throw new Error("Buat periode akuntansi terlebih dahulu.");
- rbModal("Buat Alokasi SHU",`<div class="rb-form-grid"><div class="rb-field"><label>Periode</label><select id="rbShuPeriod">${rbSelect(RB.periods,"id","start_date")}</select></div>${rbField("Total SHU","rbShuAmount","number","0",'min="0" step="0.01"')}${rbField("Total Persentase","rbShuPct","number","100",'min="0" max="100" step="0.01"')}</div>`,"Buat Draft",async()=>{
- const amount=Number($("rbShuAmount").value),pct=Number($("rbShuPct").value);if(amount<0||pct<0||pct>100)throw new Error("Nilai SHU/persentase tidak valid.");
+ rbModal("Buat Alokasi SHU",`<div class="rb-form-grid"><div class="rb-field"><label>Periode</label><select id="rbShuPeriod">${rbSelect(RB.periods,"id","start_date")}</select></div>${rbField("Total SHU","rbShuAmount","number","0",'min="0" step="0.01"')}${rbField("Total Persentase","rbShuPct","number","100",'min="0" max="100" step="0.01"')}</div><div class="rb-note">Alokasi dibuat sebagai draft. Tambahkan rincian pos alokasi setelah draft tersimpan.</div>`,"Buat Draft",async()=>{
+ const amount=Number($("rbShuAmount").value),pct=Number($("rbShuPct").value);if(amount<=0||pct!==100)throw new Error("Total SHU harus lebih dari nol dan persentase total harus 100%.");
  rbCheck(await supabase.from("profit_allocations").insert({bumdes_id:rbTenant(),period_id:$("rbShuPeriod").value,total_amount:amount,total_percentage:pct,status:"draft",created_by:currentUser.id}));
+ await rbLoadShu();
+ });
+}
+async function rbOpenShuItems(id){
+ if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengubah rincian SHU.");
+ const [head,items]=await Promise.all([
+  supabase.from("profit_allocations").select("*").eq("id",id).eq("bumdes_id",rbTenant()).single(),
+  supabase.from("profit_allocation_items").select("*").eq("allocation_id",id).eq("bumdes_id",rbTenant()).order("urutan")
+ ]);
+ if(head.error)throw head.error;if(items.error)throw items.error;
+ if(head.data.status!=="draft")throw new Error("Alokasi sudah dikunci dan tidak dapat diubah.");
+ const accounts=RB.coa.filter(x=>x.level===4&&x.is_active);
+ const body=`<div class="rb-note">Tambahkan pos pembagian. Persentase rincian harus tepat 100% sebelum alokasi dapat disahkan. Nilai dihitung dari total SHU ${rbMoney(head.data.total_amount)}.</div><div class="rb-form-grid">${rbField("Nama Pos Alokasi","rbShuItemName")}${rbField("Persentase (%)","rbShuItemPct","number","0",'min="0" max="100" step="0.01"')}<div class="rb-field"><label>Akun Sumber</label><select id="rbShuSource">${rbSelect(accounts,"id","code")}</select></div><div class="rb-field"><label>Akun Tujuan (opsional)</label><select id="rbShuDest">${rbSelect(accounts,"id","code","","Tidak ditentukan")}</select></div><div class="rb-field"><label>Akun Pembayaran (opsional)</label><select id="rbShuPay">${rbSelect(accounts,"id","code","","Tidak ditentukan")}</select></div></div><div id="rbShuItemsCurrent" class="rb-table-wrap"></div>`;
+ rbModal("Rincian Alokasi SHU",body,"Tambah Pos",async()=>{
+  const name=$("rbShuItemName").value.trim(),pct=Number($("rbShuItemPct").value),source=$("rbShuSource").value;
+  if(!name||pct<=0||pct>100||!source)throw new Error("Isi nama pos, persentase, dan akun sumber.");
+  const sum=items.data.reduce((s,x)=>s+Number(x.persentase),0)+pct;if(sum>100.00001)throw new Error("Total persentase rincian tidak boleh melebihi 100%.");
+  const value=Number(head.data.total_amount)*pct/100;
+  rbCheck(await supabase.from("profit_allocation_items").insert({bumdes_id:rbTenant(),allocation_id:id,source_account_id:source,nama_alokasi:name,persentase:pct,nilai:value,urutan:items.data.length+1,destination_account_id:$("rbShuDest").value||null,payment_account_id:$("rbShuPay").value||null}));
+  await rbLoadShu();rbToast("Pos alokasi ditambahkan.",true);
+ });
+ $("rbShuItemsCurrent").innerHTML=items.data.length?`<table class="rb-table"><thead><tr><th>Pos</th><th>%</th><th>Nilai</th></tr></thead><tbody>${items.data.map(x=>`<tr><td>${rbEsc(x.nama_alokasi)}</td><td>${x.persentase}%</td><td>${rbMoney(x.nilai)}</td></tr>`).join("")}<tr><th>Total</th><th>${items.data.reduce((s,x)=>s+Number(x.persentase),0)}%</th><th>${rbMoney(items.data.reduce((s,x)=>s+Number(x.nilai),0))}</th></tr></tbody></table>`:"Belum ada rincian.";
+}
+async function rbOpenDistributionItems(id){
+ if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat mengubah rincian distribusi SHU.");
+ const [head,items]=await Promise.all([
+  supabase.from("profit_distributions").select("*").eq("id",id).eq("bumdes_id",rbTenant()).single(),
+  supabase.from("profit_distribution_items").select("*").eq("distribution_id",id).eq("bumdes_id",rbTenant()).order("urutan")
+ ]);
+ if(head.error)throw head.error;if(items.error)throw items.error;
+ if(head.data.status!=="draft")throw new Error("Distribusi sudah dikunci dan tidak dapat diubah.");
+ const accounts=RB.coa.filter(x=>x.level===4&&x.is_active);
+ rbModal("Rincian Distribusi SHU",`<div class="rb-note">Total laba yang akan didistribusikan: ${rbMoney(head.data.total_profit)}. Persentase seluruh pos harus tepat 100%.</div><div class="rb-form-grid">${rbField("Nama Pos","rbDistName")}${rbField("Persentase (%)","rbDistPct","number","0",'min="0" max="100" step="0.01"')}<div class="rb-field"><label>Akun Tujuan</label><select id="rbDistAccount">${rbSelect(accounts,"id","code")}</select></div></div><div class="rb-table-wrap">${items.data.length?`<table class="rb-table"><thead><tr><th>Pos</th><th>%</th><th>Nilai</th></tr></thead><tbody>${items.data.map(x=>`<tr><td>${rbEsc(x.nama_pos)}</td><td>${x.persentase}%</td><td>${rbMoney(x.nilai)}</td></tr>`).join("")}</tbody></table>`:"Belum ada rincian."}</div>`,"Tambah Pos",async()=>{
+  const name=$("rbDistName").value.trim(),pct=Number($("rbDistPct").value),account=$("rbDistAccount").value;
+  if(!name||pct<=0||pct>100||!account)throw new Error("Isi nama pos, persentase, dan akun tujuan.");
+  const sum=items.data.reduce((s,x)=>s+Number(x.persentase),0)+pct;if(sum>100.00001)throw new Error("Total persentase tidak boleh melebihi 100%.");
+  rbCheck(await supabase.from("profit_distribution_items").insert({bumdes_id:rbTenant(),distribution_id:id,account_id:account,nama_pos:name,persentase:pct,nilai:Number(head.data.total_profit)*pct/100,urutan:items.data.length+1}));
+  await rbLoadShu();rbToast("Pos distribusi ditambahkan.",true);
+ });
+}
+async function rbCreateDistribution(){
+ if(!rbCanWrite())throw new Error("Hanya Admin Pusat yang dapat membuat distribusi SHU.");
+ await rbLoadBase();if(!RB.periods.length)throw new Error("Buat periode akuntansi terlebih dahulu.");
+ rbModal("Buat Distribusi SHU",`<div class="rb-form-grid"><div class="rb-field"><label>Periode</label><select id="rbDistPeriod">${rbSelect(RB.periods,"id","start_date")}</select></div>${rbField("Total Laba yang Dibagikan","rbDistProfit","number","0",'min="1" step="0.01"')}</div>`,"Buat Draft",async()=>{
+ const amount=Number($("rbDistProfit").value);if(amount<=0)throw new Error("Total laba harus lebih dari nol.");
+ rbCheck(await supabase.from("profit_distributions").insert({bumdes_id:rbTenant(),period_id:$("rbDistPeriod").value,total_profit:amount,total_percentage:100,status:"draft",created_by:currentUser.id}));
  await rbLoadShu();
  });
 }
@@ -1188,7 +1266,7 @@ function rbBind(){
  on("rbAddJournal",()=>rbOpenJournal());on("rbReloadJournals",rbLoadJournals);
  on("rbAddOpening",rbOpenOpening);on("rbReloadOpening",rbLoadOpening);
  on("rbAddAdjustment",()=>rbOpenJournal(null,"adjustment"));
- on("rbReloadClosing",rbLoadClosing);on("rbAddShu",rbOpenShu);
+ on("rbReloadClosing",rbLoadClosing);on("rbAddShu",rbOpenShu);on("rbAddDistribution",rbCreateDistribution);
  on("rbAddAsset",()=>rbOpenAsset());on("rbReloadAssets",rbLoadAssets);
  on("rbRunReport",rbLoadReport);on("rbPrintReport",()=>window.print());
  on("rbAddUser",rbOpenUser);on("rbReloadUsers",rbLoadUsers);on("rbSaveSettings",rbSaveSettings);on("rbAddPeriod",rbAddPeriod);
@@ -1204,6 +1282,9 @@ function rbBind(){
   const oa=e.target.closest("[data-rb-edit-opening]");if(oa)rbEditOpening(oa.dataset.rbEditOpening).catch(rbErr);
   const od=e.target.closest("[data-rb-del-opening]");if(od)rbDeleteOpening(od.dataset.rbDelOpening).catch(rbErr);
   const ae=e.target.closest("[data-rb-edit-asset]");if(ae){const a=RB.assets.find(x=>x.id===ae.dataset.rbEditAsset);rbOpenAsset(a).catch(rbErr);}
+  const dp=e.target.closest("[data-rb-depreciate]");if(dp)rbCreateDepreciationDraft(dp.dataset.rbDepreciate).catch(rbErr);
+  const si=e.target.closest("[data-rb-shu-items]");if(si)rbOpenShuItems(si.dataset.rbShuItems).catch(rbErr);
+  const di=e.target.closest("[data-rb-dist-items]");if(di)rbOpenDistributionItems(di.dataset.rbDistItems).catch(rbErr);
   const tm=e.target.closest("[data-rb-toggle-member]");if(tm)rbToggleMembership(tm.dataset.rbToggleMember,tm.dataset.active==="true").catch(rbErr);
   const tu=e.target.closest("[data-rb-toggle-unitaccess]");if(tu)rbToggleUnitAccess(tu.dataset.rbToggleUnitaccess,tu.dataset.active==="true").catch(rbErr);
  });
