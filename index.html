@@ -160,6 +160,96 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 @media print{body{background:#fff}.sidebar,.topbar,.welcome,.toolbar,#rbPrintReport,.rb-note{display:none!important}.main{margin:0}.content{padding:0;max-width:none}.view{display:none!important}#reports{display:block!important}.card.panel{border:0;box-shadow:none;padding:0}.report-print-head{display:block!important}.rb-table{min-width:0}.rb-table th,.rb-table td{font-size:10px;padding:7px;border:1px solid #d9e0e8}.notice{break-inside:avoid}}
 </style>
 
+
+<style id="ebumdesa-visual-refinement-v1">
+/* Penyempurnaan visual global — tidak mengubah autentikasi, query, atau logika transaksi. */
+:root{
+ --navy:#102b4c;--navy2:#1c4775;--blue:#2868d7;--blue-soft:#edf4ff;
+ --ink:#17263b;--muted:#718096;--line:#e4eaf2;--bg:#f3f6fb;
+ --shadow:0 10px 28px rgba(20,45,78,.065);--radius:15px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);letter-spacing:.005em}
+button,input,select,textarea{font:inherit}
+button{transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #8bb8ff;outline-offset:2px}
+.sidebar{background:linear-gradient(180deg,#102b4c 0%,#15395f 100%);box-shadow:8px 0 28px rgba(13,34,59,.08)}
+.brand{padding-bottom:21px}
+.brand-mark{background:#ffffff12;padding:4px}
+.nav-label{color:#9bb0ca}
+.nav{gap:4px}
+.nav button{min-height:42px;border:1px solid transparent;transition:all .18s ease}
+.nav button:hover{background:#ffffff12;transform:translateX(2px)}
+.nav button.active{background:linear-gradient(90deg,#ffffff20,#ffffff0b);border-color:#ffffff14;box-shadow:inset 3px 0 #79b4ff;color:#fff}
+.ico{flex:0 0 20px}
+.topbar{box-shadow:0 3px 14px rgba(20,45,78,.035);backdrop-filter:blur(10px)}
+.eyebrow{letter-spacing:.025em}
+.page-title{color:#183657}
+.content{padding-top:30px;padding-bottom:48px}
+h1{color:#173554;font-weight:780}
+.sub{line-height:1.65}
+.card,.po-card{border-color:#e5ebf3;box-shadow:var(--shadow);transition:box-shadow .18s ease,border-color .18s ease}
+.card:hover{border-color:#d8e3f1}
+.panel{padding:22px}
+.panel-head{flex-wrap:wrap}
+.panel-head h3{color:#203c5c}
+.stat{position:relative;overflow:hidden}
+.stat:after{content:"";position:absolute;width:88px;height:88px;border-radius:50%;right:-36px;top:-40px;background:linear-gradient(135deg,#eaf2ff88,#d9e8ff22);pointer-events:none}
+.stat-value{color:#183b65;font-variant-numeric:tabular-nums}
+.btn{min-height:38px;border-radius:9px;padding:10px 15px;box-shadow:0 2px 5px rgba(20,45,78,.08)}
+.btn:hover{box-shadow:0 5px 13px rgba(30,91,180,.17);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-light{border:1px solid #dfe8f3;background:#f5f8fc;color:#31577f;box-shadow:none}
+.btn-light:hover{background:#eaf2fc;border-color:#cbdcf1}
+.role-select,.toolbar input,.toolbar select,.po-search{min-height:38px;border:1px solid #dce5f0;border-radius:9px;background:#fff;color:#344b66;padding:8px 11px}
+.field input,.field select,.rb-field input,.rb-field select,.rb-field textarea{min-height:42px;border:1px solid #dce5f0;border-radius:9px;padding:10px 12px;background:#fff;color:#233b57;transition:border-color .18s,box-shadow .18s}
+.field input:focus,.field select:focus,.rb-field input:focus,.rb-field select:focus,.rb-field textarea:focus{border-color:#78a8eb;box-shadow:0 0 0 3px #eaf2ff;outline:none}
+.rb-table-wrap,.table-wrap,.po-table-wrap{border:1px solid #e8edf4;border-radius:11px;background:#fff}
+.rb-table{border-collapse:separate;border-spacing:0}
+.rb-table th{position:sticky;top:0;background:#f4f7fb;color:#64758b;font-size:11px;letter-spacing:.035em}
+.rb-table td{color:#33475f}
+.rb-table tbody tr:nth-child(even){background:#fbfcfe}
+.rb-table tbody tr:hover{background:#f0f6ff}
+.rb-badge{border:1px solid #e0e9f5}
+.rb-modal{border:1px solid #e6edf5;border-radius:18px}
+.rb-modal-head{background:#fbfcfe;position:sticky;top:0;z-index:2}
+.rb-modal-foot{background:#fbfcfe;position:sticky;bottom:0;z-index:2}
+.rb-note{border:1px solid #e3ebf5;background:#f5f8fd}
+.notice{border-radius:11px;line-height:1.6}
+.empty,.rb-empty{border-radius:12px}
+.po-top{box-shadow:0 3px 16px rgba(20,45,78,.06)}
+.po-sidebar{background:linear-gradient(180deg,#102b4c,#173d66)}
+.po-nav button{border:1px solid transparent;border-radius:9px}
+.po-nav button:hover,.po-nav button.active{background:#ffffff17;border-color:#ffffff16}
+.po-kpi{border:1px solid #e5ebf3;box-shadow:var(--shadow);border-radius:14px}
+.po-card{border-radius:15px}
+.report-print-head h2{color:#183b65}
+@media(max-width:760px){
+ .content{padding:19px 13px 34px}
+ .panel{padding:16px}
+ .topbar{box-shadow:0 2px 10px rgba(20,45,78,.04)}
+ .welcome{margin-bottom:18px}
+ .welcome h1{font-size:21px}
+ .panel-head{align-items:flex-start}
+ .panel-head .toolbar{width:100%}
+ .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+ .toolbar>*{flex:1 1 145px;min-width:0}
+ .rb-modal-backdrop{align-items:flex-end;padding:8px}
+ .rb-modal{width:100%;max-height:94dvh;border-radius:18px 18px 10px 10px}
+ .rb-modal-head,.rb-modal-body,.rb-modal-foot{padding-left:16px;padding-right:16px}
+ .po-card{padding:15px}
+}
+@media(max-width:430px){
+ .top-actions{gap:6px}
+ .top-actions .btn{padding:8px 10px;font-size:11px}
+ .role-select{font-size:11px}
+ .stat-value{font-size:19px}
+ .panel-head{gap:10px}
+ .rb-table{min-width:620px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+
 </head>
 <body>
 <div class="app" id="app" style="display:none">
@@ -368,6 +458,29 @@ function deny(message) {
   showLogin();
 }
 
+async function pickLoginContext(options){
+ if(!Array.isArray(options)||!options.length)throw new Error("Tidak ada akses yang dapat dipilih.");
+ if(options.length===1)return options[0].access;
+ return await new Promise(resolve=>{
+  const old=document.getElementById("accessPickerBackdrop");if(old)old.remove();
+  const wrap=document.createElement("div");wrap.id="accessPickerBackdrop";
+  wrap.style.cssText="position:fixed;inset:0;z-index:10050;background:rgba(12,28,48,.62);display:grid;place-items:center;padding:18px";
+  const card=document.createElement("div");card.style.cssText="width:min(520px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.25);color:#17324f";
+  const heading=document.createElement("h2");heading.textContent="Pilih akses BUMDes / unit";heading.style.cssText="font-size:19px;margin:0 0 6px";
+  const desc=document.createElement("p");desc.textContent="Akun ini memiliki lebih dari satu akses aktif. Pilih ruang kerja yang ingin dibuka.";desc.style.cssText="color:#64748b;font-size:13px;margin:0 0 16px";
+  card.append(heading,desc);
+  options.forEach((item,index)=>{
+   const btn=document.createElement("button");btn.type="button";
+   btn.style.cssText="display:block;width:100%;text-align:left;padding:13px 14px;margin:8px 0;border:1px solid #dbe5f0;border-radius:12px;background:#f8fbff;color:#17324f;cursor:pointer";
+   const strong=document.createElement("strong");strong.textContent=item.title;
+   const small=document.createElement("small");small.textContent=item.subtitle||"";small.style.cssText="display:block;color:#64748b;margin-top:4px";
+   btn.append(strong,small);btn.addEventListener("click",()=>{wrap.remove();resolve(item.access);});card.appendChild(btn);
+  });
+  const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Kembali ke Login";cancel.style.cssText="margin-top:8px;padding:10px 14px;border:0;border-radius:10px;background:#eef2f7;color:#334155;cursor:pointer";
+  cancel.addEventListener("click",()=>{wrap.remove();resolve(null);});card.appendChild(cancel);wrap.appendChild(card);document.body.appendChild(wrap);
+ });
+}
+
 async function resolveAccess(user) {
   addDiagnostic("Sesi terdeteksi untuk user ID: " + user.id);
   // Prioritas 1: Platform Owner
@@ -405,10 +518,15 @@ async function resolveAccess(user) {
   }
 
   if (memberships?.length) {
-    if (memberships.length > 1) {
-      throw new Error("Akun memiliki akses ke lebih dari satu BUMDes. Pemilihan tenant perlu disiapkan sebelum akun ini digunakan.");
+    let membership=memberships[0];
+    if(memberships.length>1){
+      const tenantRows=await withTimeout(supabase.from("bumdes").select("id,name").in("id",memberships.map(x=>x.bumdes_id)),"daftar BUMDes");
+      if(tenantRows.error)throw new Error("Gagal memuat daftar BUMDes: "+tenantRows.error.message);
+      const tenantMap=Object.fromEntries((tenantRows.data||[]).map(x=>[x.id,x.name]));
+      const selected=await pickLoginContext(memberships.map(m=>({title:tenantMap[m.bumdes_id]||"BUMDes",subtitle:(m.role||"Pengguna")+" · Membership BUMDes",access:m})));
+      if(!selected)throw new Error("Pemilihan akses dibatalkan.");
+      membership=selected;
     }
-    const membership = memberships[0];
     setMessage("Memuat identitas BUMDes...", true);
     const { data: tenant, error: tenantError } = await withTimeout(
       supabase.from("bumdes")
@@ -450,10 +568,20 @@ async function resolveAccess(user) {
     throw new Error("Gagal memeriksa akses unit: " + accessError.message);
   }
   if (accesses?.length) {
-    if (accesses.length > 1) {
-      throw new Error("Akun memiliki akses ke beberapa unit. Pemilihan unit perlu disiapkan sebelum akun ini digunakan.");
+    let access=accesses[0];
+    if(accesses.length>1){
+      const [unitRows,tenantRows]=await Promise.all([
+        withTimeout(supabase.from("units").select("id,name,bumdes_id").in("id",accesses.map(x=>x.unit_id)),"daftar unit"),
+        withTimeout(supabase.from("bumdes").select("id,name").in("id",[...new Set(accesses.map(x=>x.bumdes_id))]),"daftar BUMDes")
+      ]);
+      if(unitRows.error)throw new Error("Gagal memuat daftar unit: "+unitRows.error.message);
+      if(tenantRows.error)throw new Error("Gagal memuat daftar BUMDes: "+tenantRows.error.message);
+      const unitMap=Object.fromEntries((unitRows.data||[]).map(x=>[x.id,x]));
+      const tenantMap=Object.fromEntries((tenantRows.data||[]).map(x=>[x.id,x.name]));
+      const selected=await pickLoginContext(accesses.map(a=>({title:unitMap[a.unit_id]?.name||"Unit Usaha",subtitle:(tenantMap[a.bumdes_id]||"BUMDes")+" · "+(a.role||"Pengguna"),access:a})));
+      if(!selected)throw new Error("Pemilihan akses dibatalkan.");
+      access=selected;
     }
-    const access = accesses[0];
     setMessage("Memuat data unit usaha...", true);
     const { data: unit, error: unitError } = await withTimeout(
       supabase.from("units")
@@ -834,6 +962,18 @@ const rbTable = (id,heads,rows,empty="Belum ada data.") => {
 const rbToast = (msg,ok=false) => { if(typeof showAppToast==="function") showAppToast(msg,ok?"success":"error"); else alert(msg); };
 const rbErr = e => { console.error("[e-BumDesa]",e); rbToast(e?.message||String(e)); };
 const rbCheck = (res) => { if(res.error) throw res.error; return res.data; };
+// Ambil seluruh baris secara bertahap agar laporan tidak terpotong oleh batas
+// maksimum baris PostgREST/Supabase pada satu respons.
+async function rbFetchAll(query,pageSize=1000){
+ const out=[];
+ for(let start=0;;start+=pageSize){
+  const res=await query.range(start,start+pageSize-1);
+  if(res.error)throw res.error;
+  const batch=res.data||[];out.push(...batch);
+  if(batch.length<pageSize)break;
+ }
+ return out;
+}
 const rbModal = (title,body,submitLabel="Simpan",onSubmit=null) => {
  const old=$("rbModalBackdrop"); if(old)old.remove();
  const wrap=document.createElement("div");wrap.id="rbModalBackdrop";wrap.className="rb-modal-backdrop";
@@ -1328,11 +1468,16 @@ async function rbLoadReport(){
  if(type==="pl"||type==="cf"||type==="equity")q=q.gte("journal_date",needOpening?period.start_date:from);
  if(type==="bs"||type==="calk")q=q.gte("journal_date",period?.start_date||"0001-01-01");
  if(unit)q=q.eq("unit_id",unit);
- const journals=rbCheck(await q.order("journal_date",{ascending:true}).limit(5000))||[];
+ const journals=await rbFetchAll(q.order("journal_date",{ascending:true}).order("id",{ascending:true}),1000);
  const ids=journals.map(x=>x.id);let lines=[];
- if(ids.length){
-  const l=await supabase.from("journal_lines").select("journal_entry_id,account_id,debit,credit,line_no,description").eq("bumdes_id",rbTenant()).in("journal_entry_id",ids).limit(20000);
-  if(l.error)throw l.error;lines=l.data||[];
+ // Pecah daftar ID agar URL/query tidak terlalu besar, lalu paginasi setiap batch.
+ for(let i=0;i<ids.length;i+=100){
+  const batchIds=ids.slice(i,i+100);
+  const lineQuery=supabase.from("journal_lines")
+   .select("journal_entry_id,account_id,debit,credit,line_no,description")
+   .eq("bumdes_id",rbTenant()).in("journal_entry_id",batchIds)
+   .order("journal_entry_id",{ascending:true}).order("line_no",{ascending:true});
+  lines.push(...await rbFetchAll(lineQuery,1000));
  }
  const cmap=Object.fromEntries(RB.coa.map(a=>[a.id,a]));
  const journalMap=Object.fromEntries(journals.map(j=>[j.id,j]));
@@ -1350,7 +1495,7 @@ async function rbLoadReport(){
  let title="",body="";
  if(type==="pl"){
   title="Laporan Laba Rugi";
-  const periodLines=lines.filter(l=>{const j=journals.find(x=>x.id===l.journal_entry_id);return j&&j.journal_date>=from&&j.journal_date<=to;});
+  const periodLines=lines.filter(l=>{const j=journalMap[l.journal_entry_id];return j&&j.journal_date>=from&&j.journal_date<=to;});
   const sums={};for(const l of periodLines){const a=cmap[l.account_id];if(!a)continue;sums[a.id]=(sums[a.id]||0)+rbSigned(a,l.debit,l.credit);}
   const income=accountRows(a=>rbAccountClass(a)==="income",sums),expense=accountRows(a=>rbAccountClass(a)==="expense",sums);
   const totalIncome=income.reduce((n,a)=>n+Number(sums[a.id]||0),0),totalExpense=expense.reduce((n,a)=>n+Number(sums[a.id]||0),0),profit=totalIncome-totalExpense;
@@ -1392,7 +1537,7 @@ async function rbLoadReport(){
   title="Laporan Perubahan Ekuitas";
   const openingEq={};for(const x of opening){const a=cmap[x.account_id];if(a&&rbAccountClass(a)==="equity")openingEq[x.account_id]=(openingEq[x.account_id]||0)+rbSigned(a,x.debit,x.credit);}
   const begin={...openingEq},movement={};
-  for(const l of lines){const j=journals.find(x=>x.id===l.journal_entry_id);const a=cmap[l.account_id];if(!j||!a||rbAccountClass(a)!=="equity")continue;const v=rbSigned(a,l.debit,l.credit);if(j.journal_date<from)begin[a.id]=(begin[a.id]||0)+v;else movement[a.id]=(movement[a.id]||0)+v;}
+  for(const l of lines){const j=journalMap[l.journal_entry_id];const a=cmap[l.account_id];if(!j||!a||rbAccountClass(a)!=="equity")continue;const v=rbSigned(a,l.debit,l.credit);if(j.journal_date<from)begin[a.id]=(begin[a.id]||0)+v;else movement[a.id]=(movement[a.id]||0)+v;}
   const eqAccounts=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="equity").sort((a,b)=>String(a.code).localeCompare(String(b.code),"en",{numeric:true}));
   const beginTotal=eqAccounts.reduce((n,a)=>n+Number(begin[a.id]||0),0),moveTotal=eqAccounts.reduce((n,a)=>n+Number(movement[a.id]||0),0);
   const inc=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="income").reduce((n,a)=>n+Number(reportSums[a.id]||0),0),exp=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="expense").reduce((n,a)=>n+Number(reportSums[a.id]||0),0),profit=inc-exp;
