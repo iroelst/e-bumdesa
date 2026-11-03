@@ -130,6 +130,35 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 @media(max-width:1000px){.po-kpis{grid-template-columns:repeat(2,1fr)}.po-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.po-layout{grid-template-columns:1fr}.po-sidebar{padding:10px;overflow:auto}.po-nav{display:flex;min-width:max-content}.po-nav button{padding:10px}.po-main{padding:18px 13px}.po-top{padding:0 14px}.po-user span{display:none}.po-heading{display:block}.po-heading .po-btn{margin-top:12px}}
 
+
+/* Formulir transaksi dan formulir modal — penyelarasan struktur visual File 1 */
+.rb-modal{border-radius:12px!important;box-shadow:0 18px 55px rgba(25,45,75,.16)!important;overflow:hidden}
+.rb-modal-head{padding:17px 22px!important;background:#f8fafc;border-bottom:1px solid #e4e9f0!important;color:#26384d}
+.rb-modal-head>b{font-size:17px;font-weight:750}
+.rb-modal-body{padding:22px!important;background:#fff}
+.rb-modal-foot{padding:14px 22px!important;background:#f8fafc;border-top:1px solid #e4e9f0!important}
+.rb-form-reference{display:flex;align-items:flex-start;gap:13px;padding:15px 16px;margin-bottom:18px;background:#f2f6fc;border:1px solid #dce6f2;border-left:4px solid #2f67b7;border-radius:9px}
+.rb-form-reference-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;background:#e1ecfa;color:#2f67b7;border-radius:9px;font-size:19px}
+.rb-form-reference strong{display:block;color:#2b4058;font-size:14px;margin:1px 0 3px}
+.rb-form-reference p{margin:0;color:#718096;font-size:12px;line-height:1.5}
+.rb-form-section{padding:17px 18px 8px;margin:0 0 15px;border:1px solid #dfe5ed;border-radius:10px;background:#fff}
+.rb-form-section-title{display:flex;align-items:center;gap:11px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #edf0f4}
+.rb-form-section-title>span{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:#eaf1fb;color:#2f67b7;font-size:11px;font-weight:800}
+.rb-form-section-title strong{display:block;color:#30445a;font-size:13px}
+.rb-form-section-title small{display:block;color:#8794a4;font-size:10px;margin-top:2px}
+.rb-form-grid.rb-tx-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+.rb-tx-grid .rb-field{margin-bottom:8px}
+.rb-tx-grid .rb-field:nth-child(3){grid-column:1/-1}
+.rb-tx-journal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rb-field{gap:5px;margin-bottom:10px}
+.rb-field label{font-size:12px;color:#465a70;font-weight:650}
+.rb-field input,.rb-field select,.rb-field textarea{width:100%;min-height:39px;padding:8px 11px;border:1px solid #cfd8e3;border-radius:7px;background:#fff;color:#26384d;font-size:13px;box-shadow:none}
+.rb-field textarea{min-height:78px;resize:vertical}
+.rb-field input:focus,.rb-field select:focus,.rb-field textarea:focus{border-color:#6d9bd4;outline:0;box-shadow:0 0 0 2px rgba(47,103,183,.10)}
+.rb-tx-balance-note{display:flex;gap:9px;align-items:flex-start;margin:3px 0 10px;padding:10px 12px;border-radius:7px;background:#f7f9fc;color:#6b7d91;font-size:11px;line-height:1.5}
+.rb-tx-balance-note i{color:#2f67b7;font-size:14px}
+@media(max-width:700px){.rb-modal-body{padding:15px!important}.rb-form-section{padding:14px 12px 6px}.rb-form-grid.rb-tx-grid,.rb-tx-journal-grid{grid-template-columns:1fr}.rb-tx-grid .rb-field:nth-child(3){grid-column:auto}.rb-modal-head,.rb-modal-foot{padding-left:15px!important;padding-right:15px!important}}
+
 </style>
 
 <style id="rebuild-style">
@@ -1073,9 +1102,35 @@ function rbTxForm(){
  const unitUser=currentAccess?.kind==="unit_user";
  const fixedUnit=unitUser?(RB.units.find(u=>u.id===currentAccess.unitId)||null):null;
  const unitControl=unitUser
-  ? `<div class="rb-field"><label>Unit Usaha</label><input value="${rbEsc(fixedUnit?.name||"Unit Anda")}" disabled><input id="rbTxUnit" type="hidden" value="${rbEsc(currentAccess.unitId)}"></div>`
-  : `<div class="rb-field"><label>Unit Usaha</label><select id="rbTxUnit">${rbSelect(RB.units,"id","name","","Pusat / tidak terkait unit")}</select></div>`;
- return `<div class="rb-note">Transaksi disimpan melalui satu proses database yang atomik: nomor transaksi dibuat berurutan, jurnal dibentuk, diperiksa keseimbangannya, lalu diposting. Jika salah satu tahap gagal, seluruh proses dibatalkan sehingga tidak meninggalkan transaksi/jurnal setengah jadi. Pilih akun berdasarkan bukti transaksi.</div><div class="rb-form-grid">${rbField("Tanggal","rbTxDate","date",new Date().toISOString().slice(0,10))}${unitControl}${rbField("Keterangan","rbTxDesc","text","")}${rbField("Nominal","rbTxAmount","number","","min=\"1\" step=\"0.01\"")}<div class="rb-field"><label>Jenis Transaksi</label><select id="rbTxType"><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option><option value="pemindahan">Pemindahan Kas/Bank</option><option value="modal">Tambahan Modal</option><option value="lainnya">Lainnya</option></select></div><div class="rb-field"><label>Akun Debit</label><select id="rbTxDebit">${rbSelect(leaf,"id","code")}</select></div><div class="rb-field"><label>Akun Kredit</label><select id="rbTxCredit">${rbSelect(leaf,"id","code")}</select></div>${rbTextArea("Catatan / Referensi Bukti","rbTxNote","")}</div>`;
+  ? `<div class="rb-field"><label>Unit / Lokasi</label><input value="${rbEsc(fixedUnit?.name||"Unit Anda")}" disabled><input id="rbTxUnit" type="hidden" value="${rbEsc(currentAccess.unitId)}"></div>`
+  : `<div class="rb-field"><label for="rbTxUnit">Unit / Lokasi</label><select id="rbTxUnit">${rbSelect(RB.units,"id","name","","Pusat / tidak terkait unit")}</select></div>`;
+ const accountOptions=`<option value="">Pilih akun detail</option>`+leaf.map(a=>`<option value="${rbEsc(a.id)}">${rbEsc(a.code)} — ${rbEsc(a.name)}</option>`).join("");
+ return `<div class="rb-form-reference">
+   <div class="rb-form-reference-icon"><i class="bi bi-journal-plus"></i></div>
+   <div><strong>Formulir Pencatatan Transaksi</strong><p>Isi informasi transaksi dan tentukan akun debit serta kredit. Total debit dan kredit dicatat dengan nominal yang sama.</p></div>
+ </div>
+ <div class="rb-form-section">
+  <div class="rb-form-section-title"><span>01</span><div><strong>Informasi Transaksi</strong><small>Identitas dan rincian transaksi</small></div></div>
+  <div class="rb-form-grid rb-tx-grid">
+   ${rbField("Tanggal Transaksi","rbTxDate","date",new Date().toISOString().slice(0,10))}
+   ${unitControl}
+   ${rbField("Keterangan Transaksi","rbTxDesc","text","")}
+   ${rbField("Nominal Transaksi (Rp)","rbTxAmount","number","","min="1" step="0.01"")}
+   <div class="rb-field"><label for="rbTxType">Jenis Transaksi</label><select id="rbTxType"><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option><option value="pemindahan">Pemindahan Kas/Bank</option><option value="modal">Tambahan Modal</option><option value="lainnya">Lainnya</option></select></div>
+  </div>
+ </div>
+ <div class="rb-form-section">
+  <div class="rb-form-section-title"><span>02</span><div><strong>Jurnal Transaksi</strong><small>Pilih akun detail level 4 yang sesuai</small></div></div>
+  <div class="rb-tx-journal-grid">
+   <div class="rb-field"><label for="rbTxDebit">Akun Debit</label><select id="rbTxDebit">${accountOptions}</select></div>
+   <div class="rb-field"><label for="rbTxCredit">Akun Kredit</label><select id="rbTxCredit">${accountOptions}</select></div>
+  </div>
+  <div class="rb-tx-balance-note"><i class="bi bi-info-circle"></i><span>Jurnal akan dibuat berpasangan oleh sistem. Pastikan akun debit dan kredit berbeda serta sesuai bukti transaksi.</span></div>
+ </div>
+ <div class="rb-form-section">
+  <div class="rb-form-section-title"><span>03</span><div><strong>Catatan Pendukung</strong><small>Referensi atau keterangan tambahan</small></div></div>
+  ${rbTextArea("Catatan / Referensi Bukti","rbTxNote","")}
+ </div>`;
 }
 async function rbCreateTransaction(){
  if(!(rbCanCentral() || (currentAccess?.kind==="unit_user" && ["admin_unit","staf_unit"].includes(rbRole()))))
