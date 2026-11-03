@@ -131,6 +131,19 @@ h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px}.sub{color:var(--muted);ma
 @media(max-width:700px){.po-layout{grid-template-columns:1fr}.po-sidebar{padding:10px;overflow:auto}.po-nav{display:flex;min-width:max-content}.po-nav button{padding:10px}.po-main{padding:18px 13px}.po-top{padding:0 14px}.po-user span{display:none}.po-heading{display:block}.po-heading .po-btn{margin-top:12px}}
 
 
+/* Penyelarasan seluruh modal/form V2 dengan panel formulir File 1 */
+.rb-modal-eyebrow{display:block;color:#8190a3;font-size:9px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;margin-bottom:4px}
+.rb-modal-head{gap:14px;align-items:center}
+.rb-modal-head>div{min-width:0}
+.rb-modal-head>b{display:block}
+.rb-generic-form-section{margin-bottom:15px;padding:17px 18px 7px;background:#fff;border:1px solid #e0e6ee;border-radius:10px}
+.rb-generic-form-section .rb-form-grid{gap:12px 16px}
+.rb-modal-body>.rb-note{margin:0 0 15px;padding:12px 14px;border-left:3px solid #6d91bd;background:#f5f8fc;border-radius:7px}
+.rb-modal-body .rb-table-wrap{margin-top:12px;border:1px solid #e2e8f0;border-radius:9px}
+.rb-modal-body .rb-line-grid{padding:12px;background:#f8fafc;border:1px solid #e7edf4;border-radius:9px;margin:9px 0}
+.rb-modal-foot .btn{min-width:92px;font-weight:650}
+@media(max-width:700px){.rb-generic-form-section{padding:14px 12px 6px}.rb-modal{max-height:94vh}.rb-modal-foot{gap:8px}}
+
 /* Formulir transaksi dan formulir modal — penyelarasan struktur visual File 1 */
 .rb-modal{border-radius:12px!important;box-shadow:0 18px 55px rgba(25,45,75,.16)!important;overflow:hidden}
 .rb-modal-head{padding:17px 22px!important;background:#f8fafc;border-bottom:1px solid #e4e9f0!important;color:#26384d}
@@ -1028,8 +1041,14 @@ async function rbFetchAll(query,pageSize=1000){
 }
 const rbModal = (title,body,submitLabel="Simpan",onSubmit=null) => {
  const old=$("rbModalBackdrop"); if(old)old.remove();
+ // Form modal V2 memakai panel pengisian yang konsisten, tanpa mengubah ID,
+ // nilai input, callback, maupun alur penyimpanan Supabase.
+ let modalBody=body;
+ if(modalBody.includes('class="rb-form-grid"') && !modalBody.includes('class="rb-form-section"')){
+  modalBody=modalBody.replace(/<div class="rb-form-grid">([\s\S]*?)<\/div>/,`<section class="rb-form-section rb-generic-form-section"><div class="rb-form-section-title"><span>01</span><div><strong>Detail Pengisian</strong><small>Lengkapi informasi berikut dengan benar</small></div></div><div class="rb-form-grid">$1</div></section>`);
+ }
  const wrap=document.createElement("div");wrap.id="rbModalBackdrop";wrap.className="rb-modal-backdrop";
- wrap.innerHTML=`<div class="rb-modal"><div class="rb-modal-head"><b>${rbEsc(title)}</b><button class="btn btn-light" type="button" id="rbModalClose">Tutup ✕</button></div><div class="rb-modal-body">${body}</div><div class="rb-modal-foot"><button class="btn btn-light" type="button" id="rbModalCancel">Batal</button><button class="btn btn-primary" type="button" id="rbModalSubmit">${rbEsc(submitLabel)}</button></div></div>`;
+ wrap.innerHTML=`<div class="rb-modal"><div class="rb-modal-head"><div><small class="rb-modal-eyebrow">e-BUMDesa · Formulir</small><b>${rbEsc(title)}</b></div><button class="btn btn-light" type="button" id="rbModalClose">Tutup ✕</button></div><div class="rb-modal-body">${modalBody}</div><div class="rb-modal-foot"><button class="btn btn-light" type="button" id="rbModalCancel">Batal</button><button class="btn btn-primary" type="button" id="rbModalSubmit">${rbEsc(submitLabel)}</button></div></div>`;
  document.body.appendChild(wrap);
  const close=()=>wrap.remove();$("rbModalClose").onclick=close;$("rbModalCancel").onclick=close;
  $("rbModalSubmit").onclick=async()=>{const b=$("rbModalSubmit");b.disabled=true;b.textContent="Menyimpan...";try{if(onSubmit)await onSubmit(wrap);close();}catch(e){rbErr(e);b.disabled=false;b.textContent=submitLabel;}};
@@ -1115,7 +1134,7 @@ function rbTxForm(){
    ${rbField("Tanggal Transaksi","rbTxDate","date",new Date().toISOString().slice(0,10))}
    ${unitControl}
    ${rbField("Keterangan Transaksi","rbTxDesc","text","")}
-   ${rbField("Nominal Transaksi (Rp)","rbTxAmount","number","","min="1" step="0.01"")}
+   ${rbField("Nominal Transaksi (Rp)","rbTxAmount","number","",'min="1" step="0.01"')}
    <div class="rb-field"><label for="rbTxType">Jenis Transaksi</label><select id="rbTxType"><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option><option value="pemindahan">Pemindahan Kas/Bank</option><option value="modal">Tambahan Modal</option><option value="lainnya">Lainnya</option></select></div>
   </div>
  </div>
