@@ -250,7 +250,6 @@ h1{color:#173554;font-weight:780}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 
-
 <style id="file1-global-visual-system">
 /* Sistem visual menyeluruh: mengikuti gaya dashboard Bootstrap pada File 1 */
 :root{--primary:#2f67b7;--primary-dark:#24549a;--accent:#f5b900;--green:#6b9b45;--bg:#f4f6f9;--border:#d9dee7;--text:#25313c;--muted:#71808f;--navy:#17365d;--blue:#2f67b7;--radius:12px;--shadow:0 4px 16px rgba(24,48,79,.055)}
@@ -274,7 +273,6 @@ h1{font-size:22px;color:#25313c;font-weight:700;letter-spacing:0;margin:0 0 4px}
 @media(max-width:760px){.sidebar{width:250px}.main{margin-left:0}.content{padding:18px 13px 30px}.topbar{padding:0 13px}.panel{padding:15px}.rb-modal-backdrop{align-items:flex-end;padding:7px}.rb-modal{max-height:95dvh;border-radius:12px 12px 8px 8px}.rb-modal-body{padding:14px}.po-layout{grid-template-columns:1fr}.po-main{padding:17px 13px}}
 @media print{.sidebar,.topbar{display:none!important}.main{margin:0}.content{padding:0}}
 </style>
-
 </head>
 <body>
 <div class="app" id="app" style="display:none">
@@ -1345,41 +1343,22 @@ async function rbLoadClosing(){
  const [p,c,j,t,tr]=await Promise.all([
   supabase.from("account_periods").select("*").eq("bumdes_id",id).order("start_date",{ascending:false}),
   supabase.from("closing_books").select("*").eq("bumdes_id",id).order("year",{ascending:false}),
-  supabase.from("journal_entries").select("id,unit_id,journal_date,journal_no,status").eq("bumdes_id",id),
-  supabase.from("transactions").select("id,transaction_date,transaction_number,status").eq("bumdes_id",id),
-  supabase.from("interunit_transfers").select("id,transfer_no,transfer_date,status,source_journal_id,destination_journal_id").eq("bumdes_id",id).in("status",["draft","approved"])
+  supabase.from("journal_entries").select("id,unit_id,journal_date,journal_no").eq("bumdes_id",id).eq("status","draft"),
+  supabase.from("transactions").select("id,transaction_date,transaction_number").eq("bumdes_id",id).eq("status","draft"),
+  supabase.from("interunit_transfers").select("id,transfer_no,transfer_date,status").eq("bumdes_id",id).in("status",["draft","approved"])
  ]);
  for(const q of [p,c,j,t,tr])if(q.error)throw q.error;
- const periods=p.data||[], closed=c.data||[], journals=j.data||[], transactions=t.data||[], pending=tr.data||[];
- const journalIds=journals.map(x=>x.id);
- let lineRows=[];
- if(journalIds.length){
-  const lr=await supabase.from("journal_lines").select("journal_entry_id,debit,credit").eq("bumdes_id",id).in("journal_entry_id",journalIds);
-  if(lr.error)throw lr.error;lineRows=lr.data||[];
- }
- const lineTotals={};
- for(const line of lineRows){const z=lineTotals[line.journal_entry_id]||(lineTotals[line.journal_entry_id]={count:0,debit:0,credit:0});z.count++;z.debit+=Number(line.debit||0);z.credit+=Number(line.credit||0);}
+ const periods=p.data||[], closed=c.data||[], drafts=j.data||[], txDraft=t.data||[], pending=tr.data||[];
  const rows=periods.map(x=>{
   const close=closed.find(z=>z.period_id===x.id);
-  const inRange=(v)=>v>=x.start_date&&v<=x.end_date;
-  const periodJournals=journals.filter(z=>inRange(z.journal_date));
-  const drafts=periodJournals.filter(z=>z.status==="draft");
-  const unbalanced=periodJournals.filter(z=>z.status==="posted").filter(z=>{const q=lineTotals[z.id]||{count:0,debit:0,credit:0};return q.count<2||Math.abs(q.debit-q.credit)>0.005;});
-  const txDraft=transactions.filter(z=>inRange(z.transaction_date)&&z.status==="draft");
-  const txCancelled=transactions.filter(z=>inRange(z.transaction_date)&&z.status==="cancelled");
-  const periodTransfers=pending.filter(z=>inRange(z.transfer_date));
-  const transferNoJournal=periodTransfers.filter(z=>z.status==="approved"&&(!z.source_journal_id||!z.destination_journal_id));
-  const issues=drafts.length+unbalanced.length+txDraft.length+periodTransfers.length;
-  const check=close?`Tercatat ${rbDate(close.closed_at)} (${rbEsc(close.status)})`:issues===0?"Pemeriksaan dasar lolos":"Belum siap";
-  return `<tr><td>${rbEsc(x.period_type)}</td><td>${rbDate(x.start_date)} – ${rbDate(x.end_date)}</td><td>${rbEsc(x.status)}</td><td>${drafts.length} jurnal draft · ${unbalanced.length} jurnal posted tidak seimbang · ${txDraft.length} transaksi draft · ${periodTransfers.length} transfer aktif</td><td>${check}${transferNoJournal.length?`<br><small class="text-danger">${transferNoJournal.length} transfer disetujui belum memiliki jurnal pasangan</small>`:""}${txCancelled.length?`<br><small>${txCancelled.length} transaksi dibatalkan (tidak dihitung)</small>`:""}</td></tr>`;
+  const jn=drafts.filter(z=>z.journal_date>=x.start_date&&z.journal_date<=x.end_date).length;
+  const tn=txDraft.filter(z=>z.transaction_date>=x.start_date&&z.transaction_date<=x.end_date).length;
+  const pn=pending.filter(z=>z.transfer_date>=x.start_date&&z.transfer_date<=x.end_date).length;
+  return `<tr><td>${rbEsc(x.period_type)}</td><td>${rbDate(x.start_date)} – ${rbDate(x.end_date)}</td><td>${rbEsc(x.status)}</td><td>${jn} jurnal draft · ${tn} transaksi draft · ${pn} transfer aktif</td><td>${close?`Tercatat ${rbDate(close.closed_at)} (${rbEsc(close.status)})`:jn===0&&tn===0&&pn===0?"Pemeriksaan dasar lolos":"Belum siap"}</td></tr>`;
  });
  rbTable("rbClosingTable",["Periode","Rentang Tanggal","Status Periode","Item Belum Selesai","Hasil Pemeriksaan"],rows,"Belum ada periode akuntansi.");
  const open=periods.filter(x=>x.status==="open").length;
- const draftJ=journals.filter(x=>x.status==="draft").length;
- const unbalancedAll=journals.filter(z=>z.status==="posted").filter(z=>{const q=lineTotals[z.id]||{count:0,debit:0,credit:0};return q.count<2||Math.abs(q.debit-q.credit)>0.005;}).length;
- const txDraft=transactions.filter(x=>x.status==="draft").length;
- const transferUnfinished=pending.length;
- $("rbClosingNotice").textContent=`${periods.length} periode ditemukan · ${open} periode terbuka · ${draftJ} jurnal draft · ${unbalancedAll} jurnal posted tidak seimbang · ${txDraft} transaksi draft · ${transferUnfinished} transfer draft/disetujui. Pemeriksaan ini belum menutup buku; jurnal penutup laba-rugi, saldo awal periode berikutnya, dan validasi COA tetap harus diselesaikan sebelum penutupan final.`;
+ $("rbClosingNotice").textContent=`${periods.length} periode ditemukan · ${open} periode masih terbuka · ${drafts.length} jurnal draft · ${txDraft.length} transaksi draft · ${pending.length} transfer belum berstatus posted/dibatalkan. Penutupan otomatis belum diaktifkan karena perlu jurnal penutup laba-rugi dan validasi saldo akhir.`;
 }
 
 async function rbLoadTransfers(){
