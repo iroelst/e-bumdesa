@@ -3069,7 +3069,8 @@
     </main>
 </section>
 
-<script>
+<script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
     // =========================================================
     // SUPABASE CONFIG
     // =========================================================
@@ -3079,10 +3080,8 @@
     // Supabase > Project Settings > API
     const SUPABASE_ANON_KEY = "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
 
-    const supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
+    // Samakan inisialisasi SDK dengan file lama yang terbukti berhasil login.
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // =========================================================
     // HELPERS
@@ -3368,8 +3367,7 @@
     // =========================================================
     $("pusatLoginBtn").addEventListener("click", async () => {
         const btn = $("pusatLoginBtn");
-        const email = $("pusatLoginEmail").value.trim().toLowerCase();
-        // Password sengaja tidak di-trim: spasi bisa menjadi bagian password yang sah.
+        const email = $("pusatLoginEmail").value.trim();
         const password = $("pusatLoginPassword").value;
         hideError("loginMessage");
 
@@ -3387,7 +3385,6 @@
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menghubungkan...`;
-        let authenticatedUser = null;
         try {
             const { data, error } = await withLoginTimeout(
                 supabaseClient.auth.signInWithPassword({ email, password }),
@@ -3395,25 +3392,13 @@
             );
             if (error) throw error;
             if (!data?.user) throw new Error("Login berhasil tetapi data pengguna tidak ditemukan.");
-            authenticatedUser = data.user;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memuat profil dan hak akses...`;
             await withLoginTimeout(handleUser(data.user), "Pemeriksaan profil / pemuatan dashboard", 30000);
         } catch (error) {
             console.error("Login gagal:", error);
-            const authCode = error?.code || error?.status || "";
-            const authMessage = String(error?.message || "");
-            if (authCode === "invalid_credentials" || /invalid login credentials/i.test(authMessage)) {
-                showError("loginMessage", "Supabase menolak email atau password. Akun dan hak akses aplikasi belum diperiksa pada tahap ini. Sesi yang sudah ada tidak dihapus.");
-            } else {
-                showError("loginMessage", authMessage || "Login gagal. Periksa koneksi dan hak akses akun.");
-            }
-            // Jangan signOut jika autentikasi sendiri gagal. Itu dapat menghapus sesi
-            // aktif sebelumnya dan bukan solusi untuk Invalid login credentials.
-            // Bersihkan sesi hanya bila Auth sukses tetapi pemetaan hak akses gagal.
-            if (authenticatedUser) {
-                try { await supabaseClient.auth.signOut(); }
-                catch (signOutError) { console.warn("Gagal membersihkan sesi setelah pemeriksaan hak akses:", signOutError); }
-            }
+            showError("loginMessage", error.message || "Login gagal. Periksa email, password, dan koneksi.");
+            // Jangan menghapus sesi saat autentikasi ditolak. Ini mengikuti perilaku
+            // file lama yang terbukti berhasil login dan menjaga sesi yang sudah ada.
             showOnly("loginPage");
         } finally {
             btn.disabled = false;
