@@ -683,7 +683,8 @@ async function login() {
   }
 }
 
-$("authSubmit").type = "button";\n$("authSubmit").addEventListener("click", event => { event.preventDefault(); login(); });
+$("authSubmit").type = "button";
+$("authSubmit").onclick = login;
 $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
 $("logoutBtn").addEventListener("click", async ()=>{
@@ -728,7 +729,8 @@ function restoreLoginForm(){
   $("authFields").innerHTML = `<div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="nama@email.com" required></div><div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required></div>`;
   $("authSubmit").textContent = "Masuk";
   $("authSubmit").disabled = false;
-  $("authSubmit").type = "button";\n$("authSubmit").addEventListener("click", event => { event.preventDefault(); login(); });
+  $("authSubmit").type = "button";
+  $("authSubmit").onclick = login;
   $("backLink").textContent = "Tutup halaman login";
   $("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
   $("loginEmail").addEventListener("keydown", e=>{ if(e.key==="Enter") $("loginPassword").focus(); });
@@ -1211,7 +1213,7 @@ async function rbOpenTransfer(){
  const active=RB.units.filter(x=>x.status==="active");
  if(active.length<2)throw new Error("Minimal harus ada dua unit aktif untuk melakukan transfer.");
  const today=new Date().toISOString().slice(0,10);
- rbModal("Buat Transfer Antar Unit",`<div class="rb-form-grid">${rbField("Tanggal Transfer","rbTransferDate","date",today)}<div class="rb-field"><label>Unit Asal</label><select id="rbTransferSource">${rbSelect(active,"id","name")}</select></div><div class="rb-field"><label>Unit Tujuan</label><select id="rbTransferDestination">${rbSelect(active,"id","name")}</select></div>${rbField("Nominal Transfer (Rp)","rbTransferAmount","number","","min=\\"1\\" step=\\"0.01\\"")}${rbTextArea("Keterangan","rbTransferDescription","")}</div><div class="rb-note">Transfer disimpan sebagai draft. Tidak menambah pendapatan atau beban. Setelah disetujui, buat jurnal antarunit sesuai COA yang digunakan BUMDes.</div>`,"Simpan Draft",async()=>{
+ rbModal("Buat Transfer Antar Unit",`<div class="rb-form-grid">${rbField("Tanggal Transfer","rbTransferDate","date",today)}<div class="rb-field"><label>Unit Asal</label><select id="rbTransferSource">${rbSelect(active,"id","name")}</select></div><div class="rb-field"><label>Unit Tujuan</label><select id="rbTransferDestination">${rbSelect(active,"id","name")}</select></div>${rbField("Nominal Transfer (Rp)","rbTransferAmount","number","",'min="1" step="0.01"')}${rbTextArea("Keterangan","rbTransferDescription","")}</div><div class="rb-note">Transfer disimpan sebagai draft. Tidak menambah pendapatan atau beban. Setelah disetujui, buat jurnal antarunit sesuai COA yang digunakan BUMDes.</div>`,"Simpan Draft",async()=>{
  const date=$("rbTransferDate").value,source=$("rbTransferSource").value,dest=$("rbTransferDestination").value,amount=Number($("rbTransferAmount").value);
  if(!date||!source||!dest||source===dest||!(amount>0))throw new Error("Lengkapi tanggal, unit asal/tujuan berbeda, dan nominal lebih dari nol.");
  const transferNo="TRF-"+date.replaceAll("-","")+"-"+Date.now().toString().slice(-6);
