@@ -250,6 +250,7 @@ h1{color:#173554;font-weight:780}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-_McO0oBNksRNwDb1"></script>
 </head>
 <body>
 <div class="app" id="app" style="display:none">
@@ -272,6 +273,7 @@ h1{color:#173554;font-weight:780}
   <button data-view="shu"><span class="ico">◉</span>Pembagian & Pembayaran SHU</button>
   <button data-view="assets"><span class="ico">▦</span>Aset</button>
   <button data-view="reports"><span class="ico">▥</span>Laporan Keuangan</button>
+  <button data-view="subscription" id="rbSubscriptionNav" style="display:none"><span class="ico">▣</span>Langganan & Pembayaran</button>
  </nav>
  <div class="nav-label">Pengaturan</div>
  <nav class="nav">
@@ -311,6 +313,7 @@ h1{color:#173554;font-weight:780}
   <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Rencana alokasi, persentase, nilai, dan pembayaran SHU.</p></div><div class="row-actions"><button class="btn btn-light" id="rbAddDistribution">＋ Distribusi SHU</button><button class="btn btn-primary" id="rbAddShu">＋ Buat Alokasi SHU</button></div></div><div class="grid two-col"><div class="card panel"><div class="panel-head"><h3>Alokasi SHU</h3></div><div id="rbShuAllocations"></div></div><div class="card panel"><div class="panel-head"><h3>Distribusi SHU</h3></div><div id="rbShuDistributions"></div></div></div></section>
   <section class="view" id="assets"><div class="welcome"><div><h1>Aset Tetap</h1><p class="sub">Daftar aset, biaya perolehan, umur manfaat, dan akumulasi penyusutan.</p></div><button class="btn btn-primary" id="rbAddAsset">＋ Tambah Aset</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Aset</h3><button class="btn btn-light" id="rbReloadAssets">Muat ulang</button></div><div id="rbAssetsTable"></div></div></section>
   <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan bersumber dari jurnal posted, bukan dari data contoh.</p></div><button class="btn btn-light" id="rbPrintReport">Cetak / Simpan PDF</button></div><div class="card panel"><div class="toolbar"><select id="rbReportType"><option value="pl">Laporan Laba Rugi</option><option value="bs">Neraca</option><option value="cf">Laporan Arus Kas</option><option value="equity">Perubahan Ekuitas</option><option value="calk">Catatan atas Laporan Keuangan (CALK)</option></select><input type="date" id="rbReportFrom"><input type="date" id="rbReportTo"><select id="rbReportUnit"><option value="">Konsolidasi BUMDes</option></select><button class="btn btn-primary" id="rbRunReport">Buat Laporan</button></div><div class="rb-note">Lima laporan keuangan dihitung dari jurnal berstatus posted dan saldo awal periode. Neraca disajikan per tanggal akhir; laporan lainnya untuk rentang tanggal. Klasifikasi arus kas dan CALK mengikuti kode/nama akun sehingga tetap perlu ditinjau sebelum disahkan.</div><div id="rbReportResult"><div class="empty">Pilih jenis dan periode laporan.</div></div></div></section>
+  <section class="view" id="subscription"><div class="welcome"><div><h1>Langganan & Pembayaran</h1><p class="sub">Status paket dan riwayat invoice BUMDes. Pembayaran diproses melalui Midtrans Edge Functions yang sudah dikonfigurasi.</p></div><button class="btn btn-light" id="rbReloadSubscription">Muat ulang</button></div><div class="grid stats" id="rbSubscriptionCards"><div class="card stat"><div class="stat-head">Status Langganan</div><div class="stat-value">—</div></div><div class="card stat"><div class="stat-head">Paket</div><div class="stat-value">—</div></div><div class="card stat"><div class="stat-head">Berlaku Sampai</div><div class="stat-value">—</div></div><div class="card stat"><div class="stat-head">Invoice Belum Lunas</div><div class="stat-value">—</div></div></div><div class="card panel"><div class="panel-head"><h3>Riwayat Pembayaran</h3><span class="panel-note" id="rbSubscriptionMessage">Memuat data...</span></div><div id="rbSubscriptionPayments"></div></div><div class="notice">Catatan: menu ini membaca tabel <code>subscriptions</code> dan <code>payments</code>. Tombol Bayar/Batal memerlukan Edge Functions <code>create-midtrans-payment</code> dan <code>cancel-midtrans-payment</code>. Pembuatan invoice baru dan webhook status pembayaran tetap dikelola backend, bukan browser.</div></section>
   <section class="view" id="users"><div class="welcome"><div><h1>Pengguna & Hak Akses</h1><p class="sub">Kelola membership BUMDes dan akses unit untuk akun yang sudah terdaftar di Supabase Auth.</p></div><button class="btn btn-primary" id="rbAddUser">＋ Beri Akses Pengguna</button></div><div class="card panel"><div class="panel-head"><h3>Keanggotaan BUMDes</h3><button class="btn btn-light" id="rbReloadUsers">Muat ulang</button></div><div id="rbUsersTable"></div></div><div class="card panel"><div class="panel-head"><h3>Akses Unit</h3></div><div id="rbUnitAccessTable"></div></div></section>
   <section class="view" id="settings"><div class="welcome"><div><h1>Pengaturan BUMDes</h1><p class="sub">Identitas BUMDes dan periode pembukuan.</p></div><button class="btn btn-primary" id="rbSaveSettings">Simpan Pengaturan</button></div><div class="card panel"><div id="rbSettingsForm"><div class="empty">Memuat pengaturan...</div></div></div><div class="card panel"><div class="panel-head"><h3>Periode Akuntansi</h3><button class="btn btn-light" id="rbAddPeriod">＋ Periode Baru</button></div><div id="rbPeriodsTable"></div></div></section>
  </div>
@@ -395,7 +398,7 @@ const SUPABASE_URL = "https://caqbwgquyfthgzpjiblx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-const titles={dashboard:"Dashboard",ledger:"Buku Besar",opening:"Saldo Awal",adjustments:"Penyesuaian",closing:"Tutup Buku",shu:"Pembagian & Pembayaran SHU",assets:"Aset",units:"Unit Usaha",transactions:"Transaksi Keuangan",cash:"Kas & Bank",coa:"Daftar Akun (COA)",journals:"Jurnal Umum",reports:"Laporan Keuangan",users:"Pengguna & Hak Akses",settings:"Pengaturan BUMDes"};
+const titles={dashboard:"Dashboard",ledger:"Buku Besar",opening:"Saldo Awal",adjustments:"Penyesuaian",closing:"Tutup Buku",shu:"Pembagian & Pembayaran SHU",assets:"Aset",units:"Unit Usaha",transactions:"Transaksi Keuangan",cash:"Kas & Bank",coa:"Daftar Akun (COA)",journals:"Jurnal Umum",reports:"Laporan Keuangan",users:"Pengguna & Hak Akses",settings:"Pengaturan BUMDes",subscription:"Langganan & Pembayaran"};
 const $ = (id) => document.getElementById(id);
 let currentUser = null;
 let currentAccess = null;
@@ -668,6 +671,7 @@ async function enterWithSession(session) {
     setMessage("");
     // Tombol tulis pusat mengikuti role; RLS tetap menjadi pengaman utama.
     const centralWrite=["admin_pusat","super_admin"].includes(currentAccess.roleCode);
+    const subNav=$("rbSubscriptionNav");if(subNav)subNav.style.display=centralWrite?"flex":"none";
     document.querySelectorAll("#rbAddUnit,#rbAddCoa,#rbAddOpening,#rbAddAsset,#rbAddUser,#rbSaveSettings,#rbAddPeriod,#rbAddShu").forEach(el=>el.style.display=centralWrite?"":"none");
     const canRecordTx=centralWrite||(currentAccess.kind==="unit_user"&&["admin_unit","staf_unit"].includes(currentAccess.role));
     document.querySelectorAll("#rbAddTransaction").forEach(el=>el.style.display=canRecordTx?"":"none");
@@ -1880,14 +1884,48 @@ async function rbInitReports(){
  const unitUser=currentAccess?.kind==="unit_user";
  if(unitUser){
   const u=RB.units.find(x=>x.id===currentAccess.unitId);
-  $("rbReportUnit").innerHTML=u?`<option value="unit:${rbEsc(u.id)}">Unit Usaha — ${rbEsc(u.name)}</option>`:"<option value="">Unit Anda tidak ditemukan</option>";
+  $("rbReportUnit").innerHTML=u?`<option value="unit:${rbEsc(u.id)}">Unit Usaha — ${rbEsc(u.name)}</option>`:`<option value="">Unit Anda tidak ditemukan</option>`;
  }else{
   $("rbReportUnit").innerHTML=`<option value="pusat">Kantor Pusat</option><option value="gabungan" selected>Gabungan / Konsolidasian</option>`+RB.units.filter(u=>u.status!=="inactive").map(u=>`<option value="unit:${rbEsc(u.id)}">Unit Usaha — ${rbEsc(u.name)}</option>`).join("");
  }
  const now=new Date();$("rbReportFrom").value=`${now.getFullYear()}-01-01`;$("rbReportTo").value=now.toISOString().slice(0,10);
 }
+function rbInvoiceStatusLabel(status){const map={paid:"Lunas",pending:"Menunggu Pembayaran",failed:"Gagal",expired:"Kedaluwarsa",cancelled:"Dibatalkan",deny:"Ditolak"};return map[String(status||"").toLowerCase()]||status||"—";}
+async function rbLoadSubscription(){
+ if(!rbCanCentral())throw new Error("Informasi langganan hanya tersedia untuk Admin Pusat.");
+ const tenant=rbTenant();
+ const [sr,pr]=await Promise.all([
+  supabase.from("subscriptions").select("id,plan_code,plan_name,amount,billing_period_months,status,started_at,expires_at,payment_provider").eq("bumdes_id",tenant).maybeSingle(),
+  supabase.from("payments").select("id,subscription_id,invoice_number,amount,status,payment_provider,payment_method,payment_url,paid_at,expired_at,created_at").eq("bumdes_id",tenant).order("created_at",{ascending:false}).limit(100)
+ ]);
+ if(sr.error)throw sr.error;if(pr.error)throw pr.error;
+ const sub=sr.data, payments=pr.data||[],pending=payments.filter(p=>p.status==="pending").length;
+ const cards=[
+  ["Status Langganan",sub?.status||"Belum ada"],
+  ["Paket",sub?.plan_name||"—"],
+  ["Berlaku Sampai",sub?.expires_at?rbDate(sub.expires_at):"—"],
+  ["Invoice Belum Lunas",String(pending)]
+ ];
+ $("rbSubscriptionCards").innerHTML=cards.map(([label,value])=>`<div class="card stat"><div class="stat-head">${rbEsc(label)}</div><div class="stat-value" style="font-size:19px">${rbEsc(value)}</div>${label==="Paket"&&sub?.amount?`<div class="stat-foot">${rbMoney(sub.amount)} / ${Number(sub.billing_period_months||1)} bulan</div>`:""}</div>`).join("");
+ $("rbSubscriptionMessage").textContent=`${payments.length} invoice ditemukan`;
+ rbTable("rbSubscriptionPayments",["Tanggal","Nomor Invoice","Nominal","Metode","Status","Jatuh Tempo","Aksi"],payments.map(p=>{const canPay=["pending","expired","cancelled","failed"].includes(p.status);const canCancel=p.status==="pending";return `<tr><td>${rbDate(p.created_at)}</td><td>${rbEsc(p.invoice_number||"—")}</td><td>${rbMoney(p.amount)}</td><td>${rbEsc(p.payment_method||p.payment_provider||"—")}</td><td><span class="rb-badge">${rbEsc(rbInvoiceStatusLabel(p.status))}</span></td><td>${p.expired_at?rbDate(p.expired_at):"—"}</td><td><div class="rb-actions">${canPay?`<button class="btn btn-light" data-rb-pay-invoice="${rbEsc(p.id)}">Bayar</button>`:""}${canCancel?`<button class="btn btn-light" data-rb-cancel-invoice="${rbEsc(p.id)}">Batalkan</button>`:""}</div></td></tr>`;}),"Belum ada invoice.");
+}
+async function rbPayInvoice(id){
+ const {data,error}=await supabase.functions.invoke("create-midtrans-payment",{body:{invoice_id:id}});
+ if(error)throw error;if(data?.already_paid){rbToast("Invoice sudah lunas.",true);return;}
+ if(!data?.snap_token)throw new Error(data?.message||"Token pembayaran Midtrans tidak tersedia.");
+ if(typeof window.snap?.pay!=="function")throw new Error("Midtrans Snap belum dimuat. Periksa script Snap dan konfigurasi Client Key.");
+ window.snap.pay(data.snap_token,{onSuccess:async()=>{rbToast("Pembayaran berhasil diproses. Status akhir mengikuti webhook Midtrans.",true);await rbLoadSubscription();},onPending:async()=>{rbToast("Pembayaran menunggu penyelesaian.",true);await rbLoadSubscription();},onError:async()=>{rbToast("Pembayaran gagal. Periksa kembali invoice.");await rbLoadSubscription();},onClose:()=>{rbLoadSubscription().catch(rbErr);}});
+}
+async function rbCancelInvoice(id){
+ if(!confirm("Batalkan invoice yang masih pending?"))return;
+ const {data,error}=await supabase.functions.invoke("cancel-midtrans-payment",{body:{invoice_id:id}});
+ if(error)throw error;if(data?.already_paid)throw new Error("Invoice sudah dibayar dan tidak dapat dibatalkan.");
+ if(!(data?.cancelled||data?.already_cancelled||data?.expired))throw new Error(data?.message||"Pembatalan belum dikonfirmasi backend.");
+ rbToast(data?.cancelled?"Invoice berhasil dibatalkan.":"Status invoice sudah berubah.",true);await rbLoadSubscription();
+}
 async function rbRefreshModule(id){
- const map={dashboard:rbLoadDashboard,units:rbLoadUnits,transactions:rbLoadTransactions,cash:rbLoadCash,coa:rbLoadCoa,journals:rbLoadJournals,ledger:rbLoadLedgerOptions,opening:rbLoadOpening,adjustments:rbLoadAdjustments,closing:rbLoadClosing,transfers:rbLoadTransfers,shu:rbLoadShu,assets:rbLoadAssets,reports:rbInitReports,users:rbLoadUsers,settings:rbLoadSettings};
+ const map={dashboard:rbLoadDashboard,units:rbLoadUnits,transactions:rbLoadTransactions,cash:rbLoadCash,coa:rbLoadCoa,journals:rbLoadJournals,ledger:rbLoadLedgerOptions,opening:rbLoadOpening,adjustments:rbLoadAdjustments,closing:rbLoadClosing,transfers:rbLoadTransfers,shu:rbLoadShu,assets:rbLoadAssets,reports:rbInitReports,users:rbLoadUsers,settings:rbLoadSettings,subscription:rbLoadSubscription};
  if(map[id])await map[id]();
 }
 function rbBind(){
@@ -1904,6 +1942,7 @@ function rbBind(){
  on("rbRunReport",rbLoadReport);on("rbPrintReport",()=>window.print());
  on("rbAddUser",rbOpenUser);on("rbReloadUsers",rbLoadUsers);on("rbSaveSettings",rbSaveSettings);on("rbAddPeriod",rbAddPeriod);
  on("rbRunLedger",rbRunLedger);
+ on("rbReloadSubscription",rbLoadSubscription);
  $("rbUnitSearch")?.addEventListener("input",()=>{const term=$("rbUnitSearch").value.toLowerCase();document.querySelectorAll("#rbUnitsTable tbody tr").forEach(tr=>tr.style.display=tr.textContent.toLowerCase().includes(term)?"":"none");});
  $("rbCoaSearch")?.addEventListener("input",()=>rbLoadCoa().catch(rbErr));$("rbCoaStatus")?.addEventListener("change",()=>rbLoadCoa().catch(rbErr));
  document.addEventListener("click",e=>{
@@ -1920,6 +1959,8 @@ function rbBind(){
   const di=e.target.closest("[data-rb-dist-items]");if(di)rbOpenDistributionItems(di.dataset.rbDistItems).catch(rbErr);
   const ta=e.target.closest("[data-rb-transfer-approve]");if(ta)rbSetTransferStatus(ta.dataset.rbTransferApprove,"approved").catch(rbErr);
   const tc=e.target.closest("[data-rb-transfer-cancel]");if(tc)rbSetTransferStatus(tc.dataset.rbTransferCancel,"cancelled").catch(rbErr);
+  const pay=e.target.closest("[data-rb-pay-invoice]");if(pay)rbPayInvoice(pay.dataset.rbPayInvoice).catch(rbErr);
+  const cancel=e.target.closest("[data-rb-cancel-invoice]");if(cancel)rbCancelInvoice(cancel.dataset.rbCancelInvoice).catch(rbErr);
   const tm=e.target.closest("[data-rb-toggle-member]");if(tm)rbToggleMembership(tm.dataset.rbToggleMember,tm.dataset.active==="true").catch(rbErr);
   const tu=e.target.closest("[data-rb-toggle-unitaccess]");if(tu)rbToggleUnitAccess(tu.dataset.rbToggleUnitaccess,tu.dataset.active==="true").catch(rbErr);
  });
