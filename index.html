@@ -3435,7 +3435,8 @@
         const btn = $("sendPusatRecoveryBtn");
         btn.disabled = true; btn.textContent = "Mengirim...";
         try {
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+            const recoveryRedirect = new URL("/", window.location.origin).toString();
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: recoveryRedirect });
             if (error) throw error;
             msg.style.color = "#16865b";
             msg.textContent = "Jika email terdaftar, tautan pengaturan password akan dikirim. Periksa Inbox dan Spam.";
@@ -11448,18 +11449,42 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     // =========================================================
     // AUTH STATE
     // =========================================================
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === "SIGNED_OUT") {
             showOnly("loginPage");
         } else if (event === "PASSWORD_RECOVERY" && session?.user) {
+            // Tautan pemulihan valid: tampilkan form password baru, bukan dashboard/login lama.
             showOnly("loginPage");
             $("pusatLoginPanel").classList.add("active");
             $("unitLoginPanel").classList.remove("active");
             $("pusatNewPasswordBox").classList.remove("hidden");
             $("pusatPasswordRecoveryBox").classList.add("hidden");
             $("loginMessage").classList.add("hidden");
+            $("savePusatPasswordMessage").textContent = "";
+            $("pusatNewPassword").value = "";
+            $("pusatNewPasswordConfirm").value = "";
         }
     });
+
+    // Tampilkan penjelasan jika Supabase mengembalikan tautan yang kedaluwarsa/tidak valid.
+    // Hash dibersihkan setelah dibaca agar pesan error tidak muncul terus saat halaman dibuka ulang.
+    (() => {
+        const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const errorCode = params.get("error_code");
+        const errorDescription = params.get("error_description");
+        if (errorCode) {
+            showOnly("loginPage");
+            $("pusatLoginPanel").classList.add("active");
+            $("unitLoginPanel").classList.remove("active");
+            $("pusatPasswordRecoveryBox").classList.remove("hidden");
+            $("pusatRecoveryMessage").style.color = "#c44747";
+            $("pusatRecoveryMessage").textContent =
+                errorCode === "otp_expired"
+                    ? "Tautan pemulihan sudah kedaluwarsa atau tidak valid. Minta tautan baru, lalu buka email terbaru segera setelah diterima."
+                    : (errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, " ")) : "Tautan pemulihan tidak dapat digunakan. Silakan minta tautan baru.");
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+    })();
 
     $("loginYear").textContent = new Date().getFullYear();
     $("subscriptionYear").textContent = new Date().getFullYear();
