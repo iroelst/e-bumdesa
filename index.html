@@ -2364,10 +2364,10 @@
                 <h2>Selamat Datang</h2>
 
                 <p class="login-intro">
-                    Pilih akses untuk masuk ke sistem e-BUMDesa
+                    Masuk ke sistem e-BUMDesa
                 </p>
 
-                <div class="login-role-switch" role="tablist" aria-label="Pilih jenis akses">
+                <div class="login-role-switch" role="tablist" aria-label="Pilih jenis akses" style="display:none">
                     <button type="button" id="rolePusatBtn" class="login-role-btn active" role="tab" aria-selected="true">
                         <i class="bi bi-building"></i><span>Admin Pusat</span>
                     </button>
@@ -2378,10 +2378,7 @@
 
                 <div id="pusatLoginPanel" class="role-login-panel active">
                     <div class="unit-login-box">
-                        <div class="unit-login-heading">
-                            <div class="unit-login-icon"><i class="bi bi-building"></i></div>
-                            <div><strong>Login Admin Pusat</strong><span>Masuk menggunakan email dan password akun terdaftar.</span></div>
-                        </div>
+
                         <div class="mb-2">
                             <label for="pusatLoginEmail" class="form-label small fw-semibold">Email</label>
                             <input id="pusatLoginEmail" type="email" class="form-control" placeholder="nama@email.com" autocomplete="username">
@@ -2394,11 +2391,11 @@
                             </div>
                         </div>
                         <button id="pusatLoginBtn" type="button" class="btn btn-primary w-100">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Masuk sebagai Admin Pusat
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Masuk
                         </button>
                         <button id="forgotPusatPasswordBtn" type="button" class="btn btn-link btn-sm w-100 mt-2">Belum punya password / lupa password?</button>
                         <div id="pusatPasswordRecoveryBox" class="mt-3 p-3 border rounded-3 hidden">
-                            <strong class="d-block mb-2">Buat password Admin Pusat</strong>
+                            <strong class="d-block mb-2">Atur password akun</strong>
                             <p class="small text-muted mb-2">Masukkan email akun. Kami akan mengirim tautan untuk membuat atau mengatur ulang password.</p>
                             <button id="sendPusatRecoveryBtn" type="button" class="btn btn-outline-primary btn-sm w-100">Kirim tautan pengaturan password</button>
                             <div id="pusatRecoveryMessage" class="small mt-2" role="status"></div>
@@ -2413,10 +2410,10 @@
                         <button id="savePusatNewPasswordBtn" type="button" class="btn btn-primary w-100">Simpan password</button>
                         <div id="savePusatPasswordMessage" class="small mt-2" role="status"></div>
                     </div>
-                    <div class="login-role-hint"><i class="bi bi-shield-check"></i> Gunakan email dan password akun Admin Pusat.</div>
+                    
                 </div>
 
-                <div id="unitLoginPanel" class="role-login-panel">
+                <div id="unitLoginPanel" class="role-login-panel" style="display:none">
                     <div class="unit-login-box">
                     <div class="unit-login-heading">
                         <div class="unit-login-icon"><i class="bi bi-shop"></i></div>
@@ -3367,7 +3364,7 @@
     }
 
     // =========================================================
-    // LOGIN ADMIN PUSAT — EMAIL & PASSWORD (TANPA GOOGLE OAUTH)
+    // LOGIN EMAIL & PASSWORD — HAK AKSES DITENTUKAN OTOMATIS DARI DATABASE
     // =========================================================
     $("pusatLoginBtn").addEventListener("click", async () => {
         const btn = $("pusatLoginBtn");
@@ -3376,7 +3373,7 @@
         hideError("loginMessage");
 
         if (!email) {
-            showError("loginMessage", "Email Admin Pusat wajib diisi.");
+            showError("loginMessage", "Email wajib diisi.");
             $("pusatLoginEmail").focus();
             return;
         }
@@ -3399,7 +3396,7 @@
             btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memuat profil dan hak akses...`;
             await withLoginTimeout(handleUser(data.user), "Pemeriksaan profil / pemuatan dashboard", 30000);
         } catch (error) {
-            console.error("Login Admin Pusat gagal:", error);
+            console.error("Login gagal:", error);
             showError("loginMessage", error.message || "Login gagal. Periksa email, password, dan koneksi.");
             // Jika autentikasi berhasil tetapi pemuatan profil gagal, keluarkan sesi
             // agar pengguna tidak tertinggal dalam kondisi setengah login.
@@ -3434,7 +3431,7 @@
         const email = $("pusatLoginEmail").value.trim();
         const msg = $("pusatRecoveryMessage");
         msg.style.color = "#c44747";
-        if (!email) { msg.textContent = "Masukkan email Admin Pusat terlebih dahulu."; $("pusatLoginEmail").focus(); return; }
+        if (!email) { msg.textContent = "Masukkan email terlebih dahulu."; $("pusatLoginEmail").focus(); return; }
         const btn = $("sendPusatRecoveryBtn");
         btn.disabled = true; btn.textContent = "Mengirim...";
         try {
