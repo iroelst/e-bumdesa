@@ -307,7 +307,7 @@ h1{color:#173554;font-weight:780}
   <section class="view" id="ledger"><div class="welcome"><div><h1>Buku Besar</h1><p class="sub">Mutasi akun dari jurnal yang sudah diposting.</p></div></div><div class="card panel"><div class="toolbar"><select id="rbLedgerAccount"><option value="">Pilih akun</option></select><input type="date" id="rbLedgerFrom"><input type="date" id="rbLedgerTo"><button class="btn btn-primary" id="rbRunLedger">Tampilkan</button></div><div id="rbLedgerResult"><div class="empty">Pilih akun untuk melihat buku besar.</div></div></div></section>
   <section class="view" id="opening"><div class="welcome"><div><h1>Saldo Awal</h1><p class="sub">Saldo awal dicatat per periode, unit, dan akun.</p></div><button class="btn btn-primary" id="rbAddOpening">＋ Input Saldo Awal</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Saldo Awal</h3><button class="btn btn-light" id="rbReloadOpening">Muat ulang</button></div><div id="rbOpeningTable"></div></div></section>
   <section class="view" id="adjustments"><div class="welcome"><div><h1>Penyesuaian</h1><p class="sub">Penyesuaian dibuat sebagai jurnal draft dan diposting setelah debit-kredit seimbang.</p></div><button class="btn btn-primary" id="rbAddAdjustment">＋ Jurnal Penyesuaian</button></div><div class="card panel"><div id="rbAdjustmentInfo" class="notice">Gunakan jurnal penyesuaian dengan akun COA level 4 yang aktif.</div><div id="rbAdjustmentList"></div></div></section>
-  <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Pemeriksaan kesiapan periode sebelum proses penutupan.</p></div><button class="btn btn-light" id="rbReloadClosing">Muat ulang</button></div><div class="card panel"><div id="rbClosingNotice" class="notice">Pemeriksaan akan menampilkan jurnal draft, transaksi belum diposting, dan transfer belum selesai. Penutupan periode tetap dilakukan setelah jurnal penutup disiapkan dan saldo direkonsiliasi.</div><div id="rbClosingTable"></div></div></section>
+  <section class="view" id="closing"><div class="welcome"><div><h1>Tutup Buku</h1><p class="sub">Pemeriksaan kesiapan periode. Penutupan final memerlukan jurnal penutup dan rekonsiliasi saldo.</p></div><button class="btn btn-light" id="rbReloadClosing">Muat ulang</button></div><div class="card panel"><div id="rbClosingNotice" class="notice">Pemeriksaan akan menampilkan jurnal draft, transaksi belum diposting, dan transfer belum selesai. Penutupan periode tetap dilakukan setelah jurnal penutup disiapkan dan saldo direkonsiliasi.</div><div id="rbClosingTable"></div></div></section>
   <section class="view" id="shu"><div class="welcome"><div><h1>Pembagian & Pembayaran SHU</h1><p class="sub">Rencana alokasi, persentase, nilai, dan pembayaran SHU.</p></div><div class="row-actions"><button class="btn btn-light" id="rbAddDistribution">＋ Distribusi SHU</button><button class="btn btn-primary" id="rbAddShu">＋ Buat Alokasi SHU</button></div></div><div class="grid two-col"><div class="card panel"><div class="panel-head"><h3>Alokasi SHU</h3></div><div id="rbShuAllocations"></div></div><div class="card panel"><div class="panel-head"><h3>Distribusi SHU</h3></div><div id="rbShuDistributions"></div></div></div></section>
   <section class="view" id="assets"><div class="welcome"><div><h1>Aset Tetap</h1><p class="sub">Daftar aset, biaya perolehan, umur manfaat, dan akumulasi penyusutan.</p></div><button class="btn btn-primary" id="rbAddAsset">＋ Tambah Aset</button></div><div class="card panel"><div class="panel-head"><h3>Daftar Aset</h3><button class="btn btn-light" id="rbReloadAssets">Muat ulang</button></div><div id="rbAssetsTable"></div></div></section>
   <section class="view" id="reports"><div class="welcome"><div><h1>Laporan Keuangan</h1><p class="sub">Laporan bersumber dari jurnal posted, bukan dari data contoh.</p></div><button class="btn btn-light" id="rbPrintReport">Cetak / Simpan PDF</button></div><div class="card panel"><div class="toolbar"><select id="rbReportType"><option value="pl">Laporan Laba Rugi</option><option value="bs">Neraca</option><option value="cf">Laporan Arus Kas</option><option value="equity">Perubahan Ekuitas</option><option value="calk">Catatan atas Laporan Keuangan (CALK)</option></select><input type="date" id="rbReportFrom"><input type="date" id="rbReportTo"><select id="rbReportUnit"><option value="">Konsolidasi BUMDes</option></select><button class="btn btn-primary" id="rbRunReport">Buat Laporan</button></div><div class="rb-note">Lima laporan keuangan dihitung dari jurnal berstatus posted dan saldo awal periode. Neraca disajikan per tanggal akhir; laporan lainnya untuk rentang tanggal. Klasifikasi arus kas dan CALK mengikuti kode/nama akun sehingga tetap perlu ditinjau sebelum disahkan.</div><div id="rbReportResult"><div class="empty">Pilih jenis dan periode laporan.</div></div></div></section>
@@ -999,10 +999,9 @@ async function rbLoadBase(){
 async function rbLoadDashboard(){
  await rbLoadBase();
  const id=rbTenant(), now=new Date(), first=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10), today=now.toISOString().slice(0,10);
- const {data,error}=await supabase.from("journal_entries").select("id,journal_no,journal_date,description,unit_id,status").eq("bumdes_id",id).eq("status","posted").gte("journal_date",first).lte("journal_date",today).order("journal_date",{ascending:false}).limit(500);
- if(error)throw error;RB.journals=data||[];
+ RB.journals=await rbFetchAll(supabase.from("journal_entries").select("id,journal_no,journal_date,description,unit_id,status").eq("bumdes_id",id).eq("status","posted").gte("journal_date",first).lte("journal_date",today).order("journal_date",{ascending:false}).order("id",{ascending:false}),1000);
  let ids=RB.journals.map(x=>x.id), lines=[];
- if(ids.length){const q=await supabase.from("journal_lines").select("journal_entry_id,account_id,debit,credit").eq("bumdes_id",id).in("journal_entry_id",ids);if(q.error)throw q.error;lines=q.data||[];}
+ for(let i=0;i<ids.length;i+=100){const batch=ids.slice(i,i+100);const q=await rbFetchAll(supabase.from("journal_lines").select("journal_entry_id,account_id,debit,credit").eq("bumdes_id",id).in("journal_entry_id",batch).order("journal_entry_id",{ascending:true}).order("id",{ascending:true}),1000);lines.push(...q);}
  const cmap=Object.fromEntries(RB.coa.map(x=>[x.id,x]));
  let income=0,expense=0;
  for(const l of lines){const a=cmap[l.account_id];if(!a)continue;const code=String(a.code||"");if(code.startsWith("4"))income+=Number(l.credit)-Number(l.debit);if(code.startsWith("5"))expense+=Number(l.debit)-Number(l.credit);}
@@ -1184,9 +1183,9 @@ async function rbRunLedger(){
  if(to>period.end_date)throw new Error("Untuk menjaga saldo awal tidak terhitung ganda, pilih rentang dalam satu periode akuntansi.");
  const ob=rbCheck(await supabase.from("opening_balances").select("debit,credit,unit_id").eq("bumdes_id",rbTenant()).eq("period_id",period.id).eq("account_id",account));
  let balance=ob.reduce((s,x)=>s+(a.normal_balance==="debit"?Number(x.debit)-Number(x.credit):Number(x.credit)-Number(x.debit)),0);
- const jr=rbCheck(await supabase.from("journal_entries").select("id,journal_no,journal_date,description,unit_id").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",period.start_date).lte("journal_date",to).order("journal_date",{ascending:true}).limit(1000));
+ const jr=await rbFetchAll(supabase.from("journal_entries").select("id,journal_no,journal_date,description,unit_id").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",period.start_date).lte("journal_date",to).order("journal_date",{ascending:true}).order("id",{ascending:true}),1000);
  const ids=jr.map(x=>x.id);let lines=[];
- if(ids.length)lines=rbCheck(await supabase.from("journal_lines").select("journal_entry_id,debit,credit,line_no,description").eq("bumdes_id",rbTenant()).eq("account_id",account).in("journal_entry_id",ids));
+ for(let i=0;i<ids.length;i+=100){const batch=ids.slice(i,i+100);lines.push(...await rbFetchAll(supabase.from("journal_lines").select("journal_entry_id,debit,credit,line_no,description").eq("bumdes_id",rbTenant()).eq("account_id",account).in("journal_entry_id",batch).order("journal_entry_id",{ascending:true}).order("line_no",{ascending:true}),1000));}
  const jmap=Object.fromEntries(jr.map(x=>[x.id,x]));
  lines.sort((x,y)=>String(jmap[x.journal_entry_id]?.journal_date).localeCompare(String(jmap[y.journal_entry_id]?.journal_date))||(x.line_no||0)-(y.line_no||0));
  const rows=[`<tr><td>${rbDate(period.start_date)}</td><td>Saldo Awal</td><td>Saldo awal periode</td><td>—</td><td>—</td><td>${rbMoney(balance)}</td></tr>`];
@@ -1229,10 +1228,11 @@ async function rbLoadCash(){
   if(RB.activePeriod){
    const ob=rbCheck(await supabase.from("opening_balances").select("account_id,debit,credit").eq("bumdes_id",rbTenant()).eq("period_id",RB.activePeriod.id).in("account_id",cashAccounts.map(a=>a.id)));
    for(const x of ob)grouped[x.account_id]=(grouped[x.account_id]||0)+Number(x.debit)-Number(x.credit);
-   const j=rbCheck(await supabase.from("journal_entries").select("id").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",RB.activePeriod.start_date).lte("journal_date",new Date().toISOString().slice(0,10)).limit(1000));
+   const j=await rbFetchAll(supabase.from("journal_entries").select("id").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",RB.activePeriod.start_date).lte("journal_date",new Date().toISOString().slice(0,10)).order("id",{ascending:true}),1000);
    const ids=j.map(x=>x.id);
-   if(ids.length){
-    const lines=rbCheck(await supabase.from("journal_lines").select("account_id,debit,credit").eq("bumdes_id",rbTenant()).in("account_id",cashAccounts.map(a=>a.id)).in("journal_entry_id",ids));
+   for(let i=0;i<ids.length;i+=100){
+    const batch=ids.slice(i,i+100);
+    const lines=await rbFetchAll(supabase.from("journal_lines").select("account_id,debit,credit").eq("bumdes_id",rbTenant()).in("account_id",cashAccounts.map(a=>a.id)).in("journal_entry_id",batch).order("journal_entry_id",{ascending:true}).order("id",{ascending:true}),1000);
     for(const l of lines)grouped[l.account_id]=(grouped[l.account_id]||0)+Number(l.debit)-Number(l.credit);
    }
   }else{
@@ -1449,125 +1449,441 @@ function rbAccountClass(a){
  return "other";
 }
 function rbIsCashAccount(a){return /kas|bank|rekening|setara kas/i.test(`${a.name||""} ${a.code||""}`);}
-function rbSigned(a,debit,credit){return a.normal_balance==="kredit"?Number(credit||0)-Number(debit||0):Number(debit||0)-Number(credit||0);}
+function rbSigned(a,debit,credit){return a.normal_balance==="CREDIT"?Number(credit||0)-Number(debit||0):Number(debit||0)-Number(credit||0);}
+
+function rbReportSigned(v){const n=Number(v||0);return n<0?`(${rbMoney(Math.abs(n))})`:rbMoney(n);}
+function rbV1_reportRowsForGroup(data,prefix,mapName='balances',indent=1){return data.leafAccounts.filter(a=>String(a.code||'').startsWith(prefix)).map(a=>({name:a.name,code:a.code,value:Number((data[mapName]||{})[a.id]||0),indent}));}
+function rbV1_reportGroupTotal(data,prefix,mapName='balances'){return data.leafAccounts.filter(a=>String(a.code||'').startsWith(prefix)).reduce((s,a)=>s+Number((data[mapName]||{})[a.id]||0),0);}
+function rptGroup(data,prefix,mapName){return rbV1_reportGroupTotal(data,prefix,mapName);}
+function rbV1_reportSHUAllocationTotal(data,beneficiaryType){return Number((data.shuAllocationByBeneficiary||{})[beneficiaryType]||0);}
+function rbV1_reportSHUPaymentTotal(data,mapName='balances'){return data.leafAccounts.filter(a=>String(a.code||'').startsWith('3.2.')).reduce((s,a)=>s+Number((data[mapName]||{})[a.id]||0),0);}
+
+function rbV1_renderReportRows(rows){let n=0;return rows.map(r=>{const cls=r.type||'',indent=r.indent?`indent-${Math.min(2,r.indent)}`:'',value=r.value;const valCell=typeof value==='number'?`<td class="num ${value<0?'report-negative':value>0?'report-positive':''}">${rbReportSigned(value)}</td>`:'<td class="num">–</td>';if(r.type==='section')return `<tr class="section"><td colspan="3">${rbEsc(r.name)}</td></tr>`;if(r.type==='group')return `<tr class="group"><td></td><td class="${indent}">${rbEsc(r.name)}</td>${valCell}</tr>`;n++;return `<tr class="${cls}"><td class="no">${n}</td><td class="${indent}">${rbEsc(r.name||'')}</td>${valCell}</tr>`;}).join('');}
+function rbV1_renderBalanceRows(rows){let n=0;return rows.map(r=>{const cls=r.type||'',indent=r.indent?`indent-${Math.min(2,r.indent)}`:'',v=Number(r.value||0),pv=Number(r.priorValue||0);if(r.type==='section')return `<tr class="section"><td colspan="4">${rbEsc(r.name)}</td></tr>`;n++;return `<tr class="${cls}"><td class="no">${n}</td><td class="${indent}">${rbEsc(r.name||'')}</td><td class="num">${rbReportSigned(pv)}</td><td class="num current-year">${rbReportSigned(v)}</td></tr>`;}).join('');}
+
+
+
+
+
+function rbV1_buildProfitLossReport(data){
+        const grossRevenue=rbV1_reportGroupTotal(data,'4.','movements');
+        const hppGoods=rbV1_reportGroupTotal(data,'5.1.','movements');
+        const hppFinished=rbV1_reportGroupTotal(data,'5.2.','movements');
+        // 5.3 Harga Pokok Produksi tidak ditampilkan sebagai baris tersendiri
+        // pada contoh format halaman 42–43; akun tersebut tetap berada di COA aplikasi.
+        const hpp=hppGoods+hppFinished;
+        const opExpense=rbV1_reportGroupTotal(data,'6.','movements');
+        const otherIncome=rbV1_reportGroupTotal(data,'7.1.','movements');
+        const otherExpense=rbV1_reportGroupTotal(data,'7.2.','movements');
+        const taxExpense=rbV1_reportGroupTotal(data,'7.3.','movements');
+        const service=rbV1_reportGroupTotal(data,'4.1.','movements');
+        const goods=rbV1_reportGroupTotal(data,'4.2.','movements');
+        const finished=rbV1_reportGroupTotal(data,'4.3.','movements');
+        const gross=service+goods+finished-hpp;
+        const op=gross-opExpense;
+        const otherNet=otherIncome-otherExpense-taxExpense;
+        const beforeBagiHasil=op+otherNet;
+        // Akun 3.2.xx adalah distribusi/pembagian ekuitas, bukan pendapatan atau
+        // beban periode berjalan. Nilainya tetap dikumpulkan sebagai data untuk
+        // Laporan Perubahan Ekuitas, tetapi tidak mengurangi laba/rugi periode ini.
+        // Bagi hasil berasal dari jurnal penetapan Alokasi SHU, bukan dari saldo
+        // berjalan akun 3.2.xx. Dengan demikian pembayaran sebagian/bertahap tidak
+        // mengubah nilai bagi hasil yang telah ditetapkan.
+        const bagiDesa=rbV1_reportSHUAllocationTotal(data,'desa');
+        const bagiMasyarakat=rbV1_reportSHUAllocationTotal(data,'masyarakat');
+        const net=beforeBagiHasil-bagiDesa-bagiMasyarakat;
+
+        const rows=[];
+        rows.push({type:'section',name:'PENDAPATAN USAHA'});
+        ['4.1.','4.2.','4.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                rbV1_reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push(r));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Total Pendapatan',value:grossRevenue});
+
+        rows.push({type:'section',name:'HARGA POKOK PENJUALAN'});
+        ['5.1.','5.2.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                rbV1_reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:-rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Laba (Rugi) Kotor',value:gross});
+
+        rows.push({type:'section',name:'BEBAN-BEBAN USAHA'});
+        ['6.1.','6.2.','6.3.'].forEach(pref=>{
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                rows.push({type:'group',name:g.nama});
+                rbV1_reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+                rows.push({type:'subtotal',name:`Total ${g.nama}`,value:-rptGroup(data,g.kode.replace(/\.00$/,''),'movements')});
+            });
+        });
+        rows.push({type:'grand',name:'Laba (Rugi) Operasi',value:op});
+
+        rows.push({type:'section',name:'PENDAPATAN DAN BEBAN LAIN-LAIN'});
+        rows.push({type:'group',name:'Pendapatan Lain-lain'});
+        data.groupAccounts.filter(g=>g.kode.startsWith('7.1.')).forEach(g=>{
+            rbV1_reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push(r));
+        });
+        rows.push({type:'subtotal',name:'Total Pendapatan Lain-lain',value:otherIncome});
+        rows.push({type:'group',name:'Beban Lain-lain'});
+        data.groupAccounts.filter(g=>g.kode.startsWith('7.2.')).forEach(g=>{
+            rbV1_reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+        });
+        rows.push({type:'subtotal',name:'Total Beban Lain-lain',value:-otherExpense});
+        rows.push({type:'group',name:'Beban Pajak'});
+        data.groupAccounts.filter(g=>g.kode.startsWith('7.3.')).forEach(g=>{
+            rbV1_reportRowsForGroup(data,g.kode.replace(/\.00$/,''),'movements',2).forEach(r=>rows.push({...r,value:-r.value}));
+        });
+        rows.push({type:'subtotal',name:'Total Beban Pajak',value:-taxExpense});
+        rows.push({type:'grand',name:'Total Pendapatan dan Beban Lain-lain',value:otherNet});
+
+        rows.push({type:'grand',name:'LABA (RUGI) SEBELUM BAGI HASIL',value:beforeBagiHasil});
+        rows.push({type:'group',name:'BAGI HASIL KEPADA PEMILIK'});
+        rows.push({name:'Bagi Hasil Penyertaan Modal Desa',value:-bagiDesa,indent:2});
+        rows.push({name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-bagiMasyarakat,indent:2});
+        rows.push({type:'grand',name:'LABA (RUGI) BERSIH SETELAH BAGI HASIL KE PEMILIK',value:net});
+        return {rows,net,beforeBagiHasil,bagiDesa,bagiMasyarakat,grossRevenue,hpp,opExpense,otherIncome,otherExpense,taxExpense,otherNet};
+    }
+function rbV1_buildBalanceSheetReport(data){
+        const sections=[
+            {title:'ASET LANCAR',sub:['1.1.01.','1.1.02.','1.1.03.','1.1.04.','1.1.05.','1.1.06.','1.1.07.','1.1.98.'],includeRK:data.scope==='pusat'},
+            {title:'INVESTASI',sub:['1.2.01.']},
+            {title:'ASET TETAP',sub:['1.3.01.','1.3.02.','1.3.03.','1.3.04.','1.3.05.','1.3.06.','1.3.07.','1.3.99.']},
+            {title:'ASET TAKBERWUJUD',sub:['1.4.01.','1.4.02.']},
+            {title:'ASET LAIN-LAIN',sub:['1.9.01.','1.9.02.']}
+        ];
+        const rows=[]; let totalAssets=0, priorTotalAssets=0;
+        sections.forEach(sec=>{
+            rows.push({type:'section',name:sec.title}); let secTotal=0, secPrior=0;
+            const prefs=[...sec.sub];
+            if(sec.includeRK) prefs.push('1.1.99.');
+            prefs.forEach(pref=>{
+                const g=data.groupAccounts.find(a=>a.kode.startsWith(pref)); if(!g)return;
+                const val=rbV1_reportGroupTotal(data,pref,'balances');
+                const pv=rbV1_reportGroupTotal(data,pref,'priors');
+                secTotal+=val; secPrior+=pv;
+                rows.push({type:'group',name:g.nama,value:val,priorValue:pv});
+                rbV1_reportRowsForGroup(data,pref,'balances',2).forEach(r=>{
+                    const a=data.leafAccounts.find(x=>x.kode===r.code);
+                    rows.push({...r,priorValue:a?Number((data.priors||{})[a.id]||0):0});
+                });
+            });
+            rows.push({type:'subtotal',name:`Total ${sec.title.replace(/^ASET /,'Aset ')}`,value:secTotal,priorValue:secPrior});
+            totalAssets+=secTotal; priorTotalAssets+=secPrior;
+        });
+        rows.push({type:'grand',name:'TOTAL ASET',value:totalAssets,priorValue:priorTotalAssets});
+
+        rows.push({type:'section',name:'KEWAJIBAN'}); let totalLiab=0, priorTotalLiab=0;
+        [['2.1.','KEWAJIBAN JANGKA PENDEK'],['2.2.','KEWAJIBAN JANGKA PANJANG']].forEach(([pref,title])=>{
+            const val=rbV1_reportGroupTotal(data,pref,'balances'); const pv=rbV1_reportGroupTotal(data,pref,'priors');
+            totalLiab+=val; priorTotalLiab+=pv;
+            rows.push({type:'group',name:title,value:val,priorValue:pv});
+            data.groupAccounts.filter(g=>g.kode.startsWith(pref)).forEach(g=>{
+                const gp=g.kode.replace(/\.00$/,'');
+                rows.push({type:'group',name:g.nama,value:rbV1_reportGroupTotal(data,gp,'balances'),priorValue:rbV1_reportGroupTotal(data,gp,'priors')});
+                rbV1_reportRowsForGroup(data,gp,'balances',2).forEach(r=>{
+                    const a=data.leafAccounts.find(x=>x.kode===r.code);
+                    rows.push({...r,priorValue:a?Number((data.priors||{})[a.id]||0):0});
+                });
+            });
+            rows.push({type:'subtotal',name:`Total ${title}`,value:val,priorValue:pv});
+        });
+        rows.push({type:'grand',name:'TOTAL KEWAJIBAN',value:totalLiab,priorValue:priorTotalLiab});
+
+        rows.push({type:'section',name:'EKUITAS'});
+        // 3.2 adalah pengambilan/bagi hasil pemilik (saldo normal debit), sehingga
+        // mengurangi ekuitas. 3.8 RK Pusat hanya disajikan pada laporan Unit Usaha;
+        // pada Kantor Pusat akun RK Unit Usaha berada di Aset Lancar. Pada konsolidasi
+        // kedua akun resiprokal sudah dieliminasi.
+        // Akun 3.2.xx adalah bagi hasil/pengambilan pemilik dengan saldo normal
+        // Debit, sehingga menjadi pengurang ekuitas. Jangan memasukkannya sebagai
+        // beban laba rugi; pengurangannya dilakukan langsung pada total ekuitas.
+        const bagiHasilEkuitas=rbV1_reportSHUPaymentTotal(data,'balances');
+        const bagiHasilEkuitasPrior=rbV1_reportSHUPaymentTotal(data,'priors');
+        // Akun 3.2 tidak dikurangkan lagi di sini. Pada alokasi SHU, jurnal
+        // Dr Saldo Laba / Cr 3.2 sudah mengurangi saldo 3.3 secara langsung.
+        // Mengurangkan saldo 3.2 sekali lagi akan menghitung distribusi SHU dua kali.
+        // Saat pembayaran, Dr 3.2 / Cr Kas hanya menyelesaikan akun distribusi dan
+        // tidak boleh mengubah total ekuitas.
+        const equityBase=(rbV1_reportGroupTotal(data,'3.1.','balances')+
+            rbV1_reportGroupTotal(data,'3.3.','balances')+
+            rbV1_reportGroupTotal(data,'3.4.','balances')+
+            (String(data.scope).startsWith('unit:') ? rbV1_reportGroupTotal(data,'3.8.','balances') : 0));
+        const priorEquityBase=(rbV1_reportGroupTotal(data,'3.1.','priors')+
+            rbV1_reportGroupTotal(data,'3.3.','priors')+
+            rbV1_reportGroupTotal(data,'3.4.','priors')+
+            (String(data.scope).startsWith('unit:') ? rbV1_reportGroupTotal(data,'3.8.','priors') : 0));
+        const p=rbV1_buildProfitLossReport(data);
+        // Jika laporan belum melalui jurnal penutup, laba/rugi bersih periode berjalan
+        // menambah ekuitas. Jika sudah ditutup dan laba telah masuk saldo laba, current
+        // P&L pada akun pendapatan/beban tidak lagi muncul; dalam kondisi itu gunakan
+        // saldo ekuitas yang sudah tercatat.
+        const pNetAlreadyClosed=Math.abs(p.net)<0.000001;
+        const equity=equityBase + (pNetAlreadyClosed ? 0 : p.net);
+        const priorEquity=priorEquityBase;
+        rows.push({type:'group',name:'Ekuitas Akhir',value:equity,priorValue:priorEquity});
+        rows.push({type:'grand',name:'TOTAL EKUITAS',value:equity,priorValue:priorEquity});
+        rows.push({type:'grand',name:'TOTAL KEWAJIBAN DAN EKUITAS',value:totalLiab+equity,priorValue:priorTotalLiab+priorEquity});
+        return {rows,totalAssets,totalLiab,equity,priorTotalAssets,priorTotalLiab,priorEquity};
+    }
+function rbV1_buildEquityReport(data,profitReport){
+        const modalDesaAwal=rbV1_reportGroupTotal(data,'3.1.01.','priors');
+        const modalMasyAwal=rbV1_reportGroupTotal(data,'3.1.02.','priors');
+        const modalDesaTambah=rbV1_reportGroupTotal(data,'3.1.01.','movements');
+        const modalMasyTambah=rbV1_reportGroupTotal(data,'3.1.02.','movements');
+        const modalDesaAkhir=modalDesaAwal+modalDesaTambah;
+        const modalMasyAkhir=modalMasyAwal+modalMasyTambah;
+        const saldoTidak=rbV1_reportGroupTotal(data,'3.3.01.01','priors');
+        const saldoCad=rbV1_reportGroupTotal(data,'3.3.01.02','priors')+rbV1_reportGroupTotal(data,'3.3.01.03','priors');
+        const bagiDesa=profitReport.bagiDesa;
+        const bagiMasyarakat=profitReport.bagiMasyarakat;
+        // Laporan Perubahan Ekuitas harus menunjukkan laba/rugi periode berjalan
+        // sebelum jurnal penutupan, sesuai format resmi. Pembayaran Bagi Hasil
+        // (akun 3.2.xx) bukan beban periode pembayaran dan tidak boleh mengurangi
+        // laba/rugi periode berjalan. Pos 3.2.xx tetap ditampilkan tersendiri pada
+        // bagian "Bagi Hasil Penyertaan".
+        // Dashboard dan Laporan Laba Rugi berjalan tetap menggunakan profitReport (current).
+        const equityMovementData={...data,movements:data.preClosingMovements||data.movements};
+
+        // Keluarkan akun 3.2.xx dari perhitungan laba/rugi Laporan Perubahan Ekuitas.
+        // Pembayaran SHU/PADes adalah distribusi laba, bukan beban.
+        const equityProfitMovements={...equityMovementData.movements};
+        equityMovementData.leafAccounts.forEach(a=>{
+            if(String(a.kode||'').startsWith('3.2.')){
+                equityProfitMovements[a.id]=0;
+            }
+        });
+        const equityProfitReport=rbV1_buildProfitLossReport({
+            ...equityMovementData,
+            movements:equityProfitMovements
+        });
+        const profitBersih=equityProfitReport.net;
+        const donasi=rbV1_reportGroupTotal(data,'3.4.01.','balances');
+        const saldoLabaAkhir=saldoTidak+saldoCad+profitBersih-bagiDesa-bagiMasyarakat;
+        const equityEnd=modalDesaAkhir+modalMasyAkhir+saldoLabaAkhir+donasi;
+        const rows=[
+            {type:'section',name:'PENYERTAAN MODAL'},
+            {type:'group',name:'Penyertaan modal awal:'},
+            {name:'Penyertaan Modal Desa',value:modalDesaAwal,indent:2},
+            {name:'Penyertaan Modal Masyarakat',value:modalMasyAwal,indent:2},
+            {type:'group',name:'Penambahan Investasi periode berjalan:'},
+            {name:'Penyertaan Modal Desa',value:modalDesaTambah,indent:2},
+            {name:'Penyertaan Modal Masyarakat',value:modalMasyTambah,indent:2},
+            {type:'subtotal',name:'Penyertaan Modal Akhir',value:modalDesaAkhir+modalMasyAkhir},
+            {type:'section',name:'SALDO LABA'},
+            {name:'Saldo Laba Awal — Tidak Dicadangkan',value:saldoTidak,indent:1},
+            {name:'Saldo Laba Awal — Dicadangkan',value:saldoCad,indent:1},
+            {name:'Laba (Rugi) periode berjalan',value:profitBersih,indent:1},
+            {type:'group',name:'Bagi Hasil Penyertaan:'},
+            {name:'Bagi Hasil Penyertaan Modal Desa',value:-bagiDesa,indent:2},
+            {name:'Bagi Hasil Penyertaan Modal Masyarakat',value:-bagiMasyarakat,indent:2},
+            {type:'subtotal',name:'Saldo Laba Akhir',value:saldoLabaAkhir},
+            {type:'section',name:'MODAL DONASI/SUMBANGAN'},
+            {name:'Modal Donasi/Sumbangan',value:donasi,indent:1},
+            {type:'grand',name:'EKUITAS AKHIR',value:equityEnd}
+        ];
+        return {rows,equityEnd};
+    }
+function rbV1_buildCashFlowReport(data,profitReport){
+        const cashAccounts=data.leafAccounts.filter(a=>a.kode.startsWith('1.1.01.')||a.kode.startsWith('1.1.02.'));
+        const cashIds=new Set(cashAccounts.map(a=>a.id));
+        const byTx=new Map();
+        data.journals.filter(j=>j.journal_date>=data.startDate&&j.journal_date<=data.endDate).forEach(j=>{
+            if(!byTx.has(j.transaction_id))byTx.set(j.transaction_id,[]);
+            byTx.get(j.transaction_id).push(j);
+        });
+        const flow={
+            operasi:{penjualan:0,bungaDividen:0,pemasok:0,gaji:0,pajak:0,bunga:0,lain:0},
+            investasi:{penjualanAset:0,penjualanInvestasi:0,pembelianAset:0,pembelianInvestasi:0},
+            pendanaan:{modalDesa:0,modalMasyarakat:0,donasi:0,utangJangkaPanjang:0,bagiDesa:0,bagiMasyarakat:0,pokokUtangJangkaPanjang:0}
+        };
+        const classify=(a)=>{
+            const c=String(a?.kode||'');
+            if(c.startsWith('1.2.')||c.startsWith('1.3.')||c.startsWith('1.4.')||c.startsWith('1.9.')||c.startsWith('7.1.05.')||c.startsWith('7.2.04.')) return 'investasi';
+            if(c.startsWith('3.1.01.')) return 'modalDesa';
+            if(c.startsWith('3.1.02.')) return 'modalMasyarakat';
+            if(c.startsWith('3.4.')) return 'donasi';
+            if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'desa') return 'bagiDesa';
+            if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'masyarakat') return 'bagiMasyarakat';
+            if(c.startsWith('2.2.')) return 'utangJangkaPanjang';
+            if(c.startsWith('1.1.03.')||c.startsWith('1.1.04.')||c.startsWith('2.1.')||c.startsWith('4.')||c.startsWith('5.')||c.startsWith('6.')||c.startsWith('7.1.')||c.startsWith('7.2.')||c.startsWith('7.3.')) return 'operasi';
+            return 'operasi';
+        };
+        const addFlow=(kind,incoming,v)=>{
+            if(kind==='operasi') return;
+            if(kind==='investasi') return;
+        };
+        byTx.forEach(lines=>{
+            const cash=lines.filter(j=>cashIds.has(j.account_id));
+            const others=lines.filter(j=>!cashIds.has(j.account_id));
+            if(!cash.length||!others.length)return;
+
+            // Pada laporan Gabungan/Konsolidasian, transfer internal Pusat <-> Unit
+            // bukan arus kas eksternal. Transaksi yang hanya mempertemukan kas dengan
+            // akun RK resiprokal dieliminasi seluruhnya dari Laporan Arus Kas.
+            if(data.isConsolidated){
+                const isReciprocalRK = others.every(j=>{
+                    const a=data.accountMap.get(j.account_id);
+                    const code=String(a?.kode||'');
+                    return code.startsWith('1.1.99.') || code.startsWith('3.8.');
+                });
+                if(isReciprocalRK)return;
+            }
+
+            const totalOtherAbs=others.reduce((s,j)=>s+Math.abs(Number(j.debit||0)-Number(j.credit||0)),0)||1;
+            cash.forEach(c=>{
+                const cashDelta=Number(c.debit||0)-Number(c.credit||0);
+                if(!cashDelta)return;
+                const incoming=cashDelta>0;
+                others.forEach(o=>{
+                    const a=data.accountMap.get(o.account_id); if(!a)return;
+                    const weight=Math.abs(Number(o.debit||0)-Number(o.credit||0))/totalOtherAbs;
+                    const amount=Math.abs(cashDelta)*weight;
+                    const code=String(a.kode||'');
+                    if(code.startsWith('1.3.')||code.startsWith('7.1.05.')||code.startsWith('7.2.04.')){
+                        if(incoming) flow.investasi.penjualanAset+=amount; else flow.investasi.pembelianAset+=amount;
+                    } else if(code.startsWith('1.2.')){
+                        if(incoming) flow.investasi.penjualanInvestasi+=amount; else flow.investasi.pembelianInvestasi+=amount;
+                    } else if(code.startsWith('1.4.')||code.startsWith('1.9.')){
+                        if(incoming) flow.investasi.penjualanInvestasi+=amount; else flow.investasi.pembelianInvestasi+=amount;
+                    } else if(code.startsWith('3.1.01.')){
+                        if(incoming) flow.pendanaan.modalDesa+=amount;
+                    } else if(code.startsWith('3.1.02.')){
+                        if(incoming) flow.pendanaan.modalMasyarakat+=amount;
+                    } else if(code.startsWith('3.4.')){
+                        if(incoming) flow.pendanaan.donasi+=amount;
+                    } else if(code.startsWith('2.2.')){
+                        if(incoming) flow.pendanaan.utangJangkaPanjang+=amount; else flow.pendanaan.pokokUtangJangkaPanjang+=amount;
+                    } else if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'desa'){
+                        if(!incoming) flow.pendanaan.bagiDesa+=amount;
+                    } else if(a?.is_shu_payment_account === true && a?.shu_beneficiary_type === 'masyarakat'){
+                        if(!incoming) flow.pendanaan.bagiMasyarakat+=amount;
+                    } else if(code.startsWith('4.')){
+                        if(incoming) flow.operasi.penjualan+=amount; else flow.operasi.lain+=amount;
+                    } else if(code.startsWith('7.1.01.')||code.startsWith('7.1.02.')){
+                        if(incoming) flow.operasi.bungaDividen+=amount;
+                    } else if(code.startsWith('5.')||code.startsWith('2.1.01.')||code.startsWith('2.1.03.')||code.startsWith('2.1.04.')||code.startsWith('2.1.05.')||code.startsWith('2.1.99.')){
+                        if(!incoming) flow.operasi.pemasok+=amount;
+                    } else if(code.startsWith('6.1.01.')||code.startsWith('6.2.01.')||code.startsWith('6.3.01.')){
+                        if(!incoming) flow.operasi.gaji+=amount;
+                    } else if(code.startsWith('7.3.')||code.startsWith('2.1.02.')){
+                        if(!incoming) flow.operasi.pajak+=amount;
+                    } else if(code.startsWith('7.2.02.')){
+                        if(!incoming) flow.operasi.bunga+=amount;
+                    } else {
+                        if(incoming) flow.operasi.penjualan+=amount; else flow.operasi.lain+=amount;
+                    }
+                });
+            });
+        });
+        const opIn=flow.operasi.penjualan+flow.operasi.bungaDividen;
+        const opOut=flow.operasi.pemasok+flow.operasi.gaji+flow.operasi.pajak+flow.operasi.bunga+flow.operasi.lain;
+        const invIn=flow.investasi.penjualanAset+flow.investasi.penjualanInvestasi;
+        const invOut=flow.investasi.pembelianAset+flow.investasi.pembelianInvestasi;
+        const finIn=flow.pendanaan.modalDesa+flow.pendanaan.modalMasyarakat+flow.pendanaan.donasi+flow.pendanaan.utangJangkaPanjang;
+        const finOut=flow.pendanaan.bagiDesa+flow.pendanaan.bagiMasyarakat+flow.pendanaan.pokokUtangJangkaPanjang;
+        const netOp=opIn-opOut, netInv=invIn-invOut, netFin=finIn-finOut, increase=netOp+netInv+netFin;
+        const cashEnd=cashAccounts.reduce((s,a)=>s+Number(data.balances[a.id]||0),0);
+        // Saldo kas awal harus berasal dari posisi sebelum periode, bukan dihitung balik
+        // dari kenaikan kas. Untuk laporan konsolidasian, kas awal juga sudah mengikuti
+        // eliminasi akun resiprokal.
+        const cashOpen=cashAccounts.reduce((s,a)=>s+Number(data.priors[a.id]||0),0);
+        const rows=[
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS OPERASI'},
+            {type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan kas dari penjualan barang dan jasa',value:flow.operasi.penjualan,indent:2},{name:'Penerimaan kas dari bunga dan dividen',value:flow.operasi.bungaDividen,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas operasi',value:opIn},
+            {type:'group',name:'Arus Kas Keluar'},{name:'Pengeluaran kas untuk pembayaran ke pemasok barang dan jasa',value:-flow.operasi.pemasok,indent:2},{name:'Pengeluaran kas untuk pembayaran gaji/upah pegawai/karyawan',value:-flow.operasi.gaji,indent:2},{name:'Pengeluaran kas untuk pembayaran pajak',value:-flow.operasi.pajak,indent:2},{name:'Pengeluaran kas untuk pembayaran bunga',value:-flow.operasi.bunga,indent:2},{name:'Pengeluaran kas untuk pembayaran beban-beban yang lain',value:-flow.operasi.lain,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas operasi',value:-opOut},{type:'grand',name:'Arus kas bersih dari aktivitas operasi',value:netOp},
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS INVESTASI'},{type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan Kas dari Penjualan Aset Tetap',value:flow.investasi.penjualanAset,indent:2},{name:'Penerimaan Kas dari Penjualan Investasi',value:flow.investasi.penjualanInvestasi,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas Investasi',value:invIn},{type:'group',name:'Arus Kas Keluar'},{name:'Pengeluaran Kas untuk Pembelian Aset Tetap',value:-flow.investasi.pembelianAset,indent:2},{name:'Pengeluaran Kas untuk Pembelian Investasi',value:-flow.investasi.pembelianInvestasi,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas Investasi',value:-invOut},{type:'grand',name:'Arus kas bersih dari aktivitas Investasi',value:netInv},
+            {type:'section',name:'ARUS KAS DARI AKTIVITAS PENDANAAN'},{type:'group',name:'Arus Kas Masuk'},{name:'Penerimaan kas dari penyertaan modal desa',value:flow.pendanaan.modalDesa,indent:2},{name:'Penerimaan kas dari penyertaan modal masyarakat',value:flow.pendanaan.modalMasyarakat,indent:2},{name:'Penerimaan kas dari modal donasi/sumbangan',value:flow.pendanaan.donasi,indent:2},{name:'Penerimaan kas dari utang jangka panjang',value:flow.pendanaan.utangJangkaPanjang,indent:2},{type:'subtotal',name:'Jumlah arus kas masuk dari aktivitas Pendanaan',value:finIn},{type:'group',name:'Arus Kas Keluar'},{name:'Pembayaran bagi hasil penyertaan modal desa',value:-flow.pendanaan.bagiDesa,indent:2},{name:'Pembayaran bagi hasil penyertaan modal masyarakat',value:-flow.pendanaan.bagiMasyarakat,indent:2},{name:'Pembayaran pokok utang jangka panjang',value:-flow.pendanaan.pokokUtangJangkaPanjang,indent:2},{type:'subtotal',name:'Jumlah arus kas keluar dari aktivitas Pendanaan',value:-finOut},{type:'grand',name:'Arus kas bersih dari aktivitas Pendanaan',value:netFin},
+            {type:'grand',name:'Kenaikan (penurunan) Kas',value:increase},{name:(data.startDate.endsWith('-01-01')?'Saldo kas awal tahun':'Saldo kas awal periode'),value:cashOpen,indent:1},{type:'grand',name:(data.endDate.endsWith('-12-31')?'Saldo kas akhir tahun':'Saldo kas akhir periode'),value:cashEnd}
+        ];
+        return {rows,netOp,netInv,netFin,increase,cashOpen,cashEnd};
+    }
+
+
 async function rbLoadReport(){
- const type=$("rbReportType").value,from=$("rbReportFrom").value,to=$("rbReportTo").value,unit=$("rbReportUnit").value;
+ const type=$("rbReportType").value,from=$("rbReportFrom").value,to=$("rbReportTo").value,scope=$("rbReportUnit").value;
+ const unit=scope.startsWith("unit:")?scope.slice(5):"",isPusat=scope==="pusat",isConsolidated=scope==="gabungan";
  if(!from||!to||from>to)throw new Error("Pilih rentang tanggal laporan yang valid.");
  await rbLoadBase();
  const period=RB.periods.find(x=>x.start_date<=to&&x.end_date>=to)||null;
  const warnings=[];
- if(!period)warnings.push("Tidak ditemukan periode akuntansi yang mencakup tanggal akhir. Saldo awal tidak dapat dimasukkan secara otomatis; periksa periode dan input saldo awal.");
+ if(!period)warnings.push("Tidak ditemukan periode akuntansi yang mencakup tanggal akhir. Saldo awal tidak dapat dimasukkan otomatis.");
+ if(period&&from<period.start_date)warnings.push("Tanggal mulai berada sebelum awal periode akuntansi. Periksa saldo awal dan rentang laporan.");
  let opening=[];
- if(period&&(type==="bs"||type==="equity"||type==="calk"||type==="cf")){
-  let oq=supabase.from("opening_balances").select("account_id,debit,credit,unit_id").eq("bumdes_id",rbTenant()).eq("period_id",period.id);
-  if(unit)oq=oq.eq("unit_id",unit);
-  opening=rbCheck(await oq)||[];
- }
- let q=supabase.from("journal_entries").select("id,journal_no,journal_date,unit_id,description").eq("bumdes_id",rbTenant()).eq("status","posted").lte("journal_date",to);
- const needOpening=!!period&&(type==="bs"||type==="equity"||type==="calk"||type==="cf");
- if(type==="pl"||type==="cf"||type==="equity")q=q.gte("journal_date",needOpening?period.start_date:from);
- if(type==="bs"||type==="calk")q=q.gte("journal_date",period?.start_date||"0001-01-01");
- if(unit)q=q.eq("unit_id",unit);
- const journals=await rbFetchAll(q.order("journal_date",{ascending:true}).order("id",{ascending:true}),1000);
- const ids=journals.map(x=>x.id);let lines=[];
- // Pecah daftar ID agar URL/query tidak terlalu besar, lalu paginasi setiap batch.
- for(let i=0;i<ids.length;i+=100){
-  const batchIds=ids.slice(i,i+100);
-  const lineQuery=supabase.from("journal_lines")
-   .select("journal_entry_id,account_id,debit,credit,line_no,description")
-   .eq("bumdes_id",rbTenant()).in("journal_entry_id",batchIds)
-   .order("journal_entry_id",{ascending:true}).order("line_no",{ascending:true});
-  lines.push(...await rbFetchAll(lineQuery,1000));
- }
+ if(period){let oq=supabase.from("opening_balances").select("account_id,debit,credit,unit_id").eq("bumdes_id",rbTenant()).eq("period_id",period.id);if(unit)oq=oq.eq("unit_id",unit);else if(isPusat)oq=oq.is("unit_id",null);opening=await rbFetchAll(oq,1000);}
+ const journalStart=period?.start_date||from;
+ let q=supabase.from("journal_entries").select("id,journal_no,journal_date,unit_id,description").eq("bumdes_id",rbTenant()).eq("status","posted").gte("journal_date",journalStart).lte("journal_date",to);
+ if(unit)q=q.eq("unit_id",unit);else if(isPusat)q=q.is("unit_id",null);
+ const journalHeaders=await rbFetchAll(q.order("journal_date",{ascending:true}).order("id",{ascending:true}),1000);
+ const ids=journalHeaders.map(x=>x.id);let lines=[];
+ for(let i=0;i<ids.length;i+=100){const batch=ids.slice(i,i+100);const part=await rbFetchAll(supabase.from("journal_lines").select("journal_entry_id,account_id,debit,credit,line_no,description").eq("bumdes_id",rbTenant()).in("journal_entry_id",batch).order("journal_entry_id",{ascending:true}).order("line_no",{ascending:true}),1000);lines.push(...part);}
  const cmap=Object.fromEntries(RB.coa.map(a=>[a.id,a]));
- const journalMap=Object.fromEntries(journals.map(j=>[j.id,j]));
- const usedIds=new Set(lines.map(l=>l.account_id));
- const missing=RB.coa.filter(a=>usedIds.has(a.id)&&a.level===4&&!a.normal_balance);
- if(missing.length)throw new Error("Laporan belum dapat dihitung dengan benar. Saldo normal belum diatur pada: "+missing.slice(0,8).map(a=>a.code+" "+a.name).join(", ")+(missing.length>8?" dan akun lainnya.":"."));
- const openingSums={};
- for(const x of opening){const a=cmap[x.account_id];if(!a)continue;openingSums[x.account_id]=(openingSums[x.account_id]||0)+rbSigned(a,x.debit,x.credit);}
- const allSums={...openingSums}, periodSums={}, reportSums={};
- for(const l of lines){const a=cmap[l.account_id];if(!a)continue;const v=rbSigned(a,l.debit,l.credit);allSums[a.id]=(allSums[a.id]||0)+v;periodSums[a.id]=(periodSums[a.id]||0)+v;const j=journalMap[l.journal_entry_id];if(j&&j.journal_date>=from&&j.journal_date<=to)reportSums[a.id]=(reportSums[a.id]||0)+v;}
- const accountRows=(predicate,sums)=>RB.coa.filter(a=>a.level===4&&predicate(a)&&Math.abs(Number(sums[a.id]||0))>0.000001).sort((a,b)=>String(a.code).localeCompare(String(b.code),"en",{numeric:true}));
- const moneyRows=(accounts,sums)=>accounts.map(a=>`<tr><td>${rbEsc(a.code)}</td><td>${rbEsc(a.name)}</td><td style="text-align:right">${rbMoney(sums[a.id]||0)}</td></tr>`);
- const unitName=unit?(RB.units.find(x=>x.id===unit)?.name||"Unit terpilih"):"Konsolidasi BUMDes";
- const periodLabel=`${rbDate(from)} s.d. ${rbDate(to)}`;
- let title="",body="";
+ const journalMap=Object.fromEntries(journalHeaders.map(j=>[j.id,j]));
+ const checks={};for(const l of lines){const k=l.journal_entry_id;(checks[k]??={debit:0,credit:0,count:0}).debit+=Number(l.debit||0);checks[k].credit+=Number(l.credit||0);checks[k].count++;}
+ const unbalanced=journalHeaders.filter(j=>{const x=checks[j.id];return !x||x.count<2||Math.abs(x.debit-x.credit)>0.01;});
+ const unknown=lines.filter(l=>!cmap[l.account_id]).length;
+ if(unbalanced.length)warnings.push(`${unbalanced.length} jurnal posted tidak seimbang atau kurang dari dua baris.`);
+ if(unknown)warnings.push(`${unknown} baris jurnal mengacu pada COA yang tidak ditemukan.`);
+ const accountRows=RB.coa.filter(a=>Number(a.level)===4&&a.is_active===true).map(a=>({...a,kode:String(a.code||""),nama:String(a.name||""),account_type:rbAccountClass(a)==="income"?"pendapatan":rbAccountClass(a)==="expense"?"beban":rbAccountClass(a)==="asset"?"aset":rbAccountClass(a)==="liability"?"kewajiban":rbAccountClass(a)==="equity"?"ekuitas":"lain_lain",normal_balance:(String(a.normal_balance||"").toLowerCase()==="kredit"||String(a.normal_balance||"").toLowerCase()==="credit")?"CREDIT":(String(a.normal_balance||"").toLowerCase()==="debit"?"DEBIT":""),is_shu_payment_account:String(a.code||"").startsWith("3.2."),shu_beneficiary_type:/desa|pemdes|pemerintah desa/i.test(`${a.name||""} ${a.description||""}`)?"desa":/masyarakat|warga/i.test(`${a.name||""} ${a.description||""}`)?"masyarakat":null}));
+ const groupAccounts=RB.coa.filter(a=>Number(a.level)===3&&a.is_active===true).map(a=>({...a,kode:String(a.code||""),nama:String(a.name||"")}));
+ const accountMap=new Map(accountRows.map(a=>[a.id,a]));
+ const missingNormal=accountRows.filter(a=>lines.some(l=>l.account_id===a.id)&&!a.normal_balance);
+ if(missingNormal.length)throw new Error("Saldo normal belum diatur pada akun: "+missingNormal.slice(0,8).map(a=>a.code+" "+a.name).join(", "));
+ const normal=(a,d,c)=>a.normal_balance==="CREDIT"?Number(c||0)-Number(d||0):Number(d||0)-Number(c||0);
+ const balances={},movements={},priors={},preClosingMovements={};
+ const openingMap={};for(const x of opening){const a=accountMap.get(x.account_id);if(a)openingMap[x.account_id]=(openingMap[x.account_id]||0)+normal(a,x.debit,x.credit);}
+ const flatJournals=lines.map(l=>{const j=journalMap[l.journal_entry_id];return {...l,id:l.journal_entry_id,transaction_id:l.journal_entry_id,unit_id:j?.unit_id||null,journal_date:j?.journal_date||"",description:j?.description||l.description||""};});
+ const sums={...openingMap},prior={...openingMap},move={};
+ for(const l of flatJournals){const a=accountMap.get(l.account_id);if(!a)continue;const v=normal(a,l.debit,l.credit);sums[a.id]=(sums[a.id]||0)+v;if(l.journal_date<from)prior[a.id]=(prior[a.id]||0)+v;if(l.journal_date>=from&&l.journal_date<=to)move[a.id]=(move[a.id]||0)+v;}
+ for(const a of accountRows){balances[a.id]=sums[a.id]||0;priors[a.id]=prior[a.id]||0;movements[a.id]=move[a.id]||0;preClosingMovements[a.id]=move[a.id]||0;}
+ if(isConsolidated){for(const a of accountRows){if(a.kode.startsWith("1.1.99.")||a.kode.startsWith("3.8.")){balances[a.id]=0;priors[a.id]=0;movements[a.id]=0;preClosingMovements[a.id]=0;}}}
+ const data={accounts:accountRows,leafAccounts:accountRows,groupAccounts,accountMap,balances,movements,priors,preClosingMovements,journals:flatJournals,startDate:from,endDate:to,scope:isPusat?"pusat":unit?`unit:${unit}`:"gabungan",isConsolidated,shuAllocationByBeneficiary:{desa:0,masyarakat:0}};
+ // Validasi saldo normal dan data yang tidak dapat dipetakan.
+ const shuAccounts=accountRows.filter(a=>String(a.code||"").startsWith("3.2."));
+ if(shuAccounts.length){
+  warnings.push("File 2 belum memiliki alokasi SHU posted yang dapat dibaca seperti File 1. Baris bagi hasil Desa/Masyarakat pada laporan sementara bernilai 0 sampai alokasi SHU terhubung ke jurnal posted.");
+  if(shuAccounts.some(a=>!a.shu_beneficiary_type))warnings.push("Sebagian akun pembayaran SHU belum dapat dikenali penerima Desa/Masyarakat dari nama akun. Periksa klasifikasi COA sebelum mengesahkan Arus Kas.");
+ }
+ const unitName=isPusat?"Kantor Pusat":unit?(RB.units.find(x=>x.id===unit)?.name||"Unit terpilih"):"Gabungan / Konsolidasian";
+ const reportHead=`<div class="report-print-head"><h2>${type==="pl"?"Laporan Laba Rugi":type==="bs"?"Laporan Posisi Keuangan (Neraca)":type==="cf"?"Laporan Arus Kas":type==="equity"?"Laporan Perubahan Ekuitas":"Catatan atas Laporan Keuangan (CALK)"}</h2><p>${rbEsc(unitName)} · ${type==="bs"||type==="calk"?"Per tanggal "+rbDate(to):"Periode "+rbDate(from)+" s.d. "+rbDate(to)}</p></div>`;
+ let body="";
  if(type==="pl"){
-  title="Laporan Laba Rugi";
-  const periodLines=lines.filter(l=>{const j=journalMap[l.journal_entry_id];return j&&j.journal_date>=from&&j.journal_date<=to;});
-  const sums={};for(const l of periodLines){const a=cmap[l.account_id];if(!a)continue;sums[a.id]=(sums[a.id]||0)+rbSigned(a,l.debit,l.credit);}
-  const income=accountRows(a=>rbAccountClass(a)==="income",sums),expense=accountRows(a=>rbAccountClass(a)==="expense",sums);
-  const totalIncome=income.reduce((n,a)=>n+Number(sums[a.id]||0),0),totalExpense=expense.reduce((n,a)=>n+Number(sums[a.id]||0),0),profit=totalIncome-totalExpense;
-  body=rbReportSection("Pendapatan",rbReportTable(["Kode Akun","Nama Akun","Jumlah"],[...moneyRows(income,sums),`<tr><th colspan="2">Total Pendapatan</th><th style="text-align:right">${rbMoney(totalIncome)}</th></tr>`]))+
-   rbReportSection("Beban",rbReportTable(["Kode Akun","Nama Akun","Jumlah"],[...moneyRows(expense,sums),`<tr><th colspan="2">Total Beban</th><th style="text-align:right">${rbMoney(totalExpense)}</th></tr>`]))+
-   `<div class="rb-kpi" style="margin-top:18px">${profit>=0?"Laba Bersih":"Rugi Bersih"}: ${rbMoney(profit)}</div>`;
- } else if(type==="bs"){
-  title="Neraca";
-  const assets=accountRows(a=>rbAccountClass(a)==="asset",allSums),liabs=accountRows(a=>rbAccountClass(a)==="liability",allSums),equities=accountRows(a=>rbAccountClass(a)==="equity",allSums);
-  const income=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="income").reduce((n,a)=>n+Number(allSums[a.id]||0),0);
-  const expense=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="expense").reduce((n,a)=>n+Number(allSums[a.id]||0),0);
-  const currentProfit=income-expense;
-  const ta=assets.reduce((n,a)=>n+Number(allSums[a.id]||0),0),tl=liabs.reduce((n,a)=>n+Number(allSums[a.id]||0),0),te=equities.reduce((n,a)=>n+Number(allSums[a.id]||0),0)+currentProfit;
-  body=rbReportSection("Aset",rbReportTable(["Kode Akun","Nama Akun","Saldo"],[...moneyRows(assets,allSums),`<tr><th colspan="2">Total Aset</th><th style="text-align:right">${rbMoney(ta)}</th></tr>`]))+
-   rbReportSection("Liabilitas",rbReportTable(["Kode Akun","Nama Akun","Saldo"],[...moneyRows(liabs,allSums),`<tr><th colspan="2">Total Liabilitas</th><th style="text-align:right">${rbMoney(tl)}</th></tr>`]))+
-   rbReportSection("Ekuitas",rbReportTable(["Kode Akun","Nama Akun","Saldo"],[...moneyRows(equities,allSums),`<tr><td colspan="2">Laba / (Rugi) periode berjalan</td><td style="text-align:right">${rbMoney(currentProfit)}</td></tr>`,`<tr><th colspan="2">Total Ekuitas</th><th style="text-align:right">${rbMoney(te)}</th></tr>`]))+
-   `<div class="rb-kpi" style="margin-top:18px">Total Liabilitas dan Ekuitas: ${rbMoney(tl+te)}</div><p class="rb-note">Selisih keseimbangan neraca: ${rbMoney(ta-(tl+te))}. Jika tidak nol, periksa saldo awal, jurnal, akun COA, dan jurnal penutup.</p>`;
- } else if(type==="cf"){
-  title="Laporan Arus Kas";
-  const cashIds=new Set(RB.coa.filter(a=>a.level===4&&rbIsCashAccount(a)).map(a=>a.id));
-  if(!cashIds.size)warnings.push("Akun kas/bank belum dapat dikenali dari nama atau kode akun COA.");
-  let openingCash=0,changeBefore=0,flows={operating:0,investing:0,financing:0};
-  for(const x of opening){if(cashIds.has(x.account_id)){const a=cmap[x.account_id];openingCash+=rbSigned(a,x.debit,x.credit);}}
-  const byJournal={};for(const l of lines){(byJournal[l.journal_entry_id]??=[]).push(l);}
-  for(const j of journals){const jl=byJournal[j.id]||[];const cashMove=jl.filter(l=>cashIds.has(l.account_id)).reduce((n,l)=>n+Number(l.debit||0)-Number(l.credit||0),0);
-   if(j.journal_date<from){changeBefore+=cashMove;continue;}if(j.journal_date>to)continue;if(Math.abs(cashMove)<0.000001)continue;
-   const counterparts=jl.filter(l=>!cashIds.has(l.account_id)).map(l=>cmap[l.account_id]).filter(Boolean);
-   const isInvest=counterparts.some(a=>/aset tetap|tanah|bangunan|kendaraan|peralatan|mesin|investasi jangka/i.test(a.name||""));
-   const isFinance=counterparts.some(a=>rbAccountClass(a)==="liability"||rbAccountClass(a)==="equity"||/pinjaman|utang bank|modal/i.test(a.name||""));
-   const key=isInvest?"investing":isFinance?"financing":"operating";flows[key]+=cashMove;
-  }
-  const openingPeriodCash=openingCash+changeBefore,net=flows.operating+flows.investing+flows.financing,closing=openingPeriodCash+net;
-  body=rbReportSection("Arus Kas dari Aktivitas Operasi",rbReportTable(["Uraian","Jumlah"],[`<tr><td>Arus kas bersih aktivitas operasi</td><td style="text-align:right">${rbMoney(flows.operating)}</td></tr>`]))+
-   rbReportSection("Arus Kas dari Aktivitas Investasi",rbReportTable(["Uraian","Jumlah"],[`<tr><td>Arus kas bersih aktivitas investasi</td><td style="text-align:right">${rbMoney(flows.investing)}</td></tr>`]))+
-   rbReportSection("Arus Kas dari Aktivitas Pendanaan",rbReportTable(["Uraian","Jumlah"],[`<tr><td>Arus kas bersih aktivitas pendanaan</td><td style="text-align:right">${rbMoney(flows.financing)}</td></tr>`]))+
-   rbReportTable(["Ringkasan","Jumlah"],[`<tr><td>Kas dan setara kas awal periode</td><td style="text-align:right">${rbMoney(openingPeriodCash)}</td></tr>`,`<tr><td>Kenaikan / (Penurunan) kas</td><td style="text-align:right">${rbMoney(net)}</td></tr>`,`<tr><th>Kas dan setara kas akhir periode</th><th style="text-align:right">${rbMoney(closing)}</th></tr>`]);
-  warnings.push("Pengelompokan aktivitas arus kas diperkirakan dari nama akun lawan transaksi. Tinjau klasifikasi operasi, investasi, dan pendanaan sebelum laporan disahkan.");
- } else if(type==="equity"){
-  title="Laporan Perubahan Ekuitas";
-  const openingEq={};for(const x of opening){const a=cmap[x.account_id];if(a&&rbAccountClass(a)==="equity")openingEq[x.account_id]=(openingEq[x.account_id]||0)+rbSigned(a,x.debit,x.credit);}
-  const begin={...openingEq},movement={};
-  for(const l of lines){const j=journalMap[l.journal_entry_id];const a=cmap[l.account_id];if(!j||!a||rbAccountClass(a)!=="equity")continue;const v=rbSigned(a,l.debit,l.credit);if(j.journal_date<from)begin[a.id]=(begin[a.id]||0)+v;else movement[a.id]=(movement[a.id]||0)+v;}
-  const eqAccounts=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="equity").sort((a,b)=>String(a.code).localeCompare(String(b.code),"en",{numeric:true}));
-  const beginTotal=eqAccounts.reduce((n,a)=>n+Number(begin[a.id]||0),0),moveTotal=eqAccounts.reduce((n,a)=>n+Number(movement[a.id]||0),0);
-  const inc=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="income").reduce((n,a)=>n+Number(reportSums[a.id]||0),0),exp=RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="expense").reduce((n,a)=>n+Number(reportSums[a.id]||0),0),profit=inc-exp;
-  body=rbReportTable(["Komponen","Saldo Awal","Perubahan","Saldo Akhir"],[...eqAccounts.map(a=>`<tr><td>${rbEsc(a.code)} · ${rbEsc(a.name)}</td><td style="text-align:right">${rbMoney(begin[a.id]||0)}</td><td style="text-align:right">${rbMoney(movement[a.id]||0)}</td><td style="text-align:right">${rbMoney(Number(begin[a.id]||0)+Number(movement[a.id]||0))}</td></tr>`),`<tr><td>Laba / (Rugi) periode berjalan</td><td style="text-align:right">—</td><td style="text-align:right">${rbMoney(profit)}</td><td style="text-align:right">${rbMoney(profit)}</td></tr>`,`<tr><th>Total Ekuitas</th><th style="text-align:right">${rbMoney(beginTotal)}</th><th style="text-align:right">${rbMoney(moveTotal+profit)}</th><th style="text-align:right">${rbMoney(beginTotal+moveTotal+profit)}</th></tr>`]);
-  warnings.push("Perubahan ekuitas dihitung dari akun berkode 3 dan laba/rugi periode. Pembagian SHU atau koreksi langsung ekuitas perlu tercermin dalam jurnal posted.");
- } else if(type==="calk"){
-  title="Catatan atas Laporan Keuangan (CALK)";
-  const balances=allSums;
-  const totalBy=cls=>RB.coa.filter(a=>a.level===4&&rbAccountClass(a)===cls).reduce((n,a)=>n+Number(balances[a.id]||0),0);
-  const cash=RB.coa.filter(a=>a.level===4&&rbIsCashAccount(a)).reduce((n,a)=>n+Number(balances[a.id]||0),0);
-  const rows=[
-   ["1","Informasi umum","Laporan untuk "+unitName+". Identitas, alamat, maksud, dan kegiatan usaha mengikuti data profil BUMDes yang tersimpan pada pengaturan."],
-   ["2","Dasar penyusunan","Laporan disusun berdasarkan jurnal berstatus posted dan saldo awal pada periode akuntansi yang dipilih. Angka disajikan dalam Rupiah."],
-   ["3","Kas dan setara kas","Saldo akun yang nama/kodenya mengandung kas, bank, rekening, atau setara kas: "+rbMoney(cash)+"."],
-   ["4","Aset","Saldo akun kelompok kode 1: "+rbMoney(totalBy("asset"))+". Rincian per akun tersedia pada laporan neraca."],
-   ["5","Liabilitas","Saldo akun kelompok kode 2: "+rbMoney(totalBy("liability"))+"."],
-   ["6","Ekuitas","Saldo akun kelompok kode 3: "+rbMoney(totalBy("equity"))+"."],
-   ["7","Pendapatan dan beban","Pendapatan periode: "+rbMoney(RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="income").reduce((n,a)=>n+Number(reportSums[a.id]||0),0))+"; beban periode: "+rbMoney(RB.coa.filter(a=>a.level===4&&rbAccountClass(a)==="expense").reduce((n,a)=>n+Number(reportSums[a.id]||0),0))+"."],
-   ["8","Kebijakan dan estimasi akuntansi","Klasifikasi akun menggunakan awalan kode COA (1 aset, 2 liabilitas, 3 ekuitas, 4 pendapatan, 5 beban). Metode penyusutan, penilaian persediaan, pengakuan pendapatan, dan estimasi lain perlu ditetapkan serta ditinjau oleh pengelola BUMDes."],
-   ["9","Komitmen, kontinjensi, dan peristiwa setelah tanggal laporan","Belum tersedia kolom khusus yang dapat diverifikasi dari data aplikasi ini. Tambahkan pengungkapan manual berdasarkan dokumen dan informasi pendukung BUMDes sebelum laporan disahkan."]
-  ];
-  body=rbReportTable(["No.","Catatan","Penjelasan"],rows.map(r=>`<tr><td>${r[0]}</td><td><b>${rbEsc(r[1])}</b></td><td>${rbEsc(r[2])}</td></tr>`));
-  warnings.push("CALK ini merupakan draft otomatis. Informasi kebijakan akuntansi rinci, komitmen, kontinjensi, pihak berelasi, dan peristiwa setelah tanggal laporan harus dilengkapi secara manual.");
+  const p=rbV1_buildProfitLossReport(data);
+  body=`<div class="rb-kpi">Laba (Rugi) Bersih Setelah Bagi Hasil: ${rbReportSigned(p.net)}</div>${rbReportSection("Laporan Laba Rugi",rbReportTable(["No.","Uraian","Jumlah (Rp)"],[rbV1_renderReportRows(p.rows)]))}`;
+ }else if(type==="bs"){
+  const b=rbV1_buildBalanceSheetReport(data);
+  body=rbReportTable(["No.","Uraian","Saldo Awal Periode","Saldo Akhir Periode"],[rbV1_renderBalanceRows(b.rows)])+`<div class="rb-kpi">Total Aset: ${rbReportSigned(b.totalAssets)} · Total Kewajiban dan Ekuitas: ${rbReportSigned(b.totalLiab+b.equity)} · Selisih: ${rbReportSigned(b.totalAssets-(b.totalLiab+b.equity))}</div>`;
+ }else if(type==="cf"){
+  const p=rbV1_buildProfitLossReport(data),c=rbV1_buildCashFlowReport(data,p);
+  body=rbReportTable(["No.","Uraian","Jumlah (Rp)"],[rbV1_renderReportRows(c.rows)])+`<div class="rb-kpi">Saldo Kas Awal: ${rbReportSigned(c.cashOpen)} · Saldo Kas Akhir: ${rbReportSigned(c.cashEnd)}</div>`;
+ }else if(type==="equity"){
+  const p=rbV1_buildProfitLossReport(data),e=rbV1_buildEquityReport(data,p);
+  body=rbReportTable(["No.","Uraian","Jumlah (Rp)"],[rbV1_renderReportRows(e.rows)])+`<div class="rb-kpi">Ekuitas Akhir: ${rbReportSigned(e.equityEnd)}</div>`;
+ }else{
+  const b=rbV1_buildBalanceSheetReport(data),p=rbV1_buildProfitLossReport(data),e=rbV1_buildEquityReport(data,p);
+  const cash=rbV1_reportGroupTotal(data,"1.1.01.","balances")+rbV1_reportGroupTotal(data,"1.1.02.","balances"),receivable=rbV1_reportGroupTotal(data,"1.1.03.","balances")+rbV1_reportGroupTotal(data,"1.1.04.","balances"),inventory=rbV1_reportGroupTotal(data,"1.1.05.","balances"),fixedAssets=rbV1_reportGroupTotal(data,"1.3.","balances"),intangible=rbV1_reportGroupTotal(data,"1.4.","balances"),otherAssets=rbV1_reportGroupTotal(data,"1.9.","balances"),shortLiab=rbV1_reportGroupTotal(data,"2.1.","balances"),longLiab=rbV1_reportGroupTotal(data,"2.2.","balances");
+  const eqProfit=e.rows.find(r=>r.name==="Laba (Rugi) periode berjalan");const bagiD=e.rows.find(r=>r.name==="Bagi Hasil Penyertaan Modal Desa"),bagiM=e.rows.find(r=>r.name==="Bagi Hasil Penyertaan Modal Masyarakat");const bd=Math.abs(Number(bagiD?.value||0)),bm=Math.abs(Number(bagiM?.value||0)),profit=Number(eqProfit?.value||0),balanceCheck=b.totalAssets-(b.totalLiab+b.equity);
+  body=`<div class="calk-wrap"><section class="calk-section"><h3>A. PERNYATAAN LAPORAN KEUANGAN</h3><p>Laporan keuangan ${rbEsc(unitName)} untuk periode ${rbDate(from)} s/d ${rbDate(to)} disusun berdasarkan data COA, jurnal, dan saldo awal yang tersedia pada e-BUMDesa.</p></section><section class="calk-section"><h3>B. DASAR PENYUSUNAN LAPORAN KEUANGAN</h3><ol><li>Data bersumber dari jurnal berstatus posted dan saldo awal periode.</li><li>Laporan posisi keuangan menggunakan basis akrual; arus kas menggunakan transaksi kas.</li><li>Periode dan tanggal mengikuti rentang yang dipilih pengguna.</li><li>Nilai disajikan dalam Rupiah.</li></ol></section><section class="calk-section"><h3>C. RINGKASAN KEBIJAKAN AKUNTANSI SIGNIFIKAN</h3><p><b>Kas dan setara kas.</b> Mengikuti akun kas/bank pada COA.</p><p><b>Piutang dan persediaan.</b> Disajikan berdasarkan saldo akun yang tercatat.</p><p><b>Aset tetap.</b> Mengikuti akun aset tetap dan akumulasi penyusutan yang tercatat.</p><p><b>Kewajiban.</b> Diklasifikasikan jangka pendek dan jangka panjang menurut kode COA.</p><p><b>Ekuitas.</b> Meliputi penyertaan modal, saldo laba, donasi, dan akun ekuitas lain.</p><p><b>Pendapatan dan beban.</b> Dihitung dari mutasi akun sesuai kelompok COA File 1.</p></section><section class="calk-section"><h3>D. RINCIAN POS-POS LAPORAN KEUANGAN</h3>${rbReportTable(["Pos","Jumlah (Rp)"],[`<tr><td>Kas dan Setara Kas</td><td>${rbReportSigned(cash)}</td></tr>`,`<tr><td>Piutang Bersih</td><td>${rbReportSigned(receivable)}</td></tr>`,`<tr><td>Persediaan</td><td>${rbReportSigned(inventory)}</td></tr>`,`<tr><td>Aset Tetap Bersih</td><td>${rbReportSigned(fixedAssets)}</td></tr>`,`<tr><td>Aset Takberwujud</td><td>${rbReportSigned(intangible)}</td></tr>`,`<tr><td>Aset Lain-lain</td><td>${rbReportSigned(otherAssets)}</td></tr>`,`<tr><th>Total Aset</th><th>${rbReportSigned(b.totalAssets)}</th></tr>`,`<tr><td>Kewajiban Jangka Pendek</td><td>${rbReportSigned(shortLiab)}</td></tr>`,`<tr><td>Kewajiban Jangka Panjang</td><td>${rbReportSigned(longLiab)}</td></tr>`,`<tr><th>Total Kewajiban</th><th>${rbReportSigned(b.totalLiab)}</th></tr>`,`<tr><td>Ekuitas</td><td>${rbReportSigned(b.equity)}</td></tr>`,`<tr><th>Total Kewajiban dan Ekuitas</th><th>${rbReportSigned(b.totalLiab+b.equity)}</th></tr>`,`<tr><td>Pendapatan Usaha</td><td>${rbReportSigned(p.grossRevenue)}</td></tr>`,`<tr><td>Harga Pokok Penjualan</td><td>${rbReportSigned(-p.hpp)}</td></tr>`,`<tr><td>Beban Usaha</td><td>${rbReportSigned(-p.opExpense)}</td></tr>`,`<tr><td>Pendapatan Lain-lain</td><td>${rbReportSigned(p.otherIncome)}</td></tr>`,`<tr><td>Beban Lain-lain dan Pajak</td><td>${rbReportSigned(-(p.otherExpense+p.taxExpense))}</td></tr>`,`<tr><td>Laba/Rugi Sebelum Bagi Hasil</td><td>${rbReportSigned(p.beforeBagiHasil)}</td></tr>`,`<tr><td>Bagi Hasil Modal Desa</td><td>${rbReportSigned(-bd)}</td></tr>`,`<tr><td>Bagi Hasil Modal Masyarakat</td><td>${rbReportSigned(-bm)}</td></tr>`,`<tr><th>Laba/Rugi Bersih Setelah Bagi Hasil</th><th>${rbReportSigned(profit)}</th></tr>`])}</section><section class="calk-section"><h3>E. PENGUNGKAPAN LAIN</h3><p>Lingkup laporan: ${rbEsc(unitName)}. Data komitmen, kontinjensi, pihak berelasi, dan peristiwa setelah tanggal laporan perlu dilengkapi berdasarkan dokumen pendukung BUMDes.</p><div class="rb-note">Selisih Total Aset − (Total Kewajiban + Ekuitas): ${rbReportSigned(balanceCheck)}</div></section></div>`;
+  warnings.push("Sesuai File 1, CALK menampilkan lima bagian A–E. Pengungkapan naratif yang tidak tersedia di database tetap perlu dilengkapi manual.");
  }
  const warningHtml=warnings.length?`<div class="notice" style="margin-top:16px">${warnings.map(x=>`• ${rbEsc(x)}`).join("<br>")}</div>`:"";
- $("rbReportResult").innerHTML=`<div class="report-print-head"><h2 style="margin:0 0 6px">${title}</h2><p style="margin:0 0 16px;color:#718096">${rbEsc(unitName)} · ${type==="bs"||type==="calk"?"Per tanggal "+rbDate(to):"Periode "+periodLabel}</p></div>${body}${warningHtml}<p style="margin-top:24px;text-align:right;color:#718096;font-size:11px">Dicetak dari e-Bumdesa · ${new Date().toLocaleString("id-ID")}</p>`;
+ $("rbReportResult").innerHTML=reportHead+body+warningHtml+`<p style="margin-top:24px;text-align:right;color:#718096;font-size:11px">Dicetak dari e-BUMDesa · ${new Date().toLocaleString("id-ID")}</p>`;
 }
 
 async function rbInitReports(){
- await rbLoadBase();$("rbReportUnit").innerHTML=rbSelect(RB.units,"id","name","","Konsolidasi BUMDes");
+ await rbLoadBase();
+ const unitUser=currentAccess?.kind==="unit_user";
+ if(unitUser){
+  const u=RB.units.find(x=>x.id===currentAccess.unitId);
+  $("rbReportUnit").innerHTML=u?`<option value="unit:${rbEsc(u.id)}">Unit Usaha — ${rbEsc(u.name)}</option>`:"<option value="">Unit Anda tidak ditemukan</option>";
+ }else{
+  $("rbReportUnit").innerHTML=`<option value="pusat">Kantor Pusat</option><option value="gabungan" selected>Gabungan / Konsolidasian</option>`+RB.units.filter(u=>u.status!=="inactive").map(u=>`<option value="unit:${rbEsc(u.id)}">Unit Usaha — ${rbEsc(u.name)}</option>`).join("");
+ }
  const now=new Date();$("rbReportFrom").value=`${now.getFullYear()}-01-01`;$("rbReportTo").value=now.toISOString().slice(0,10);
 }
 async function rbRefreshModule(id){
