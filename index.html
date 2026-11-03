@@ -250,6 +250,23 @@ h1{color:#173554;font-weight:780}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 
+
+<style id="rb-transaction-form-style">
+.rb-tx-head{margin-top:14px;margin-bottom:18px}
+.rb-tx-journal-wrap{width:100%;overflow-x:auto;border:1px solid #e2e9f2;border-radius:11px;margin:10px 0 16px}
+.rb-tx-journal{width:100%;min-width:760px;border-collapse:collapse}
+.rb-tx-journal th,.rb-tx-journal td{padding:11px 10px;border-bottom:1px solid #e8edf4;text-align:left;vertical-align:middle}
+.rb-tx-journal thead th{background:#f4f7fb;color:#52667f;font-size:12px}
+.rb-tx-journal tbody tr:last-child td{border-bottom:1px solid #e8edf4}
+.rb-tx-journal select,.rb-tx-journal input{width:100%;min-height:40px;border:1px solid #dbe3ee;border-radius:8px;padding:8px 10px;background:#fff;color:#233b57}
+.rb-tx-journal .rb-tx-number{text-align:right;font-variant-numeric:tabular-nums}
+.rb-tx-dash{display:block;text-align:center;color:#9aa7b7}
+.rb-tx-journal tfoot th{background:#f8fafc;font-size:12px;color:#243e5e}
+.rb-tx-journal .rb-tx-total-label{text-align:right}
+.rb-tx-balance{color:#b96b13!important}
+.rb-tx-balance.is-balanced{color:#16865b!important}
+</style>
+
 </head>
 <body>
 <div class="app" id="app" style="display:none">
@@ -1046,50 +1063,77 @@ async function rbLoadTransactions(){
  rbTable("rbTransactionsTable",["Tanggal","Nomor","Keterangan","Unit","Jenis","Nominal","Status"],RB.tx.map(t=>`<tr><td>${rbDate(t.transaction_date)}</td><td>${rbEsc(t.transaction_number)}</td><td>${rbEsc(t.description)}</td><td>${rbEsc(unitMap[t.unit_id]||"Pusat")}</td><td>${rbEsc(t.transaction_type||"—")}</td><td>${rbMoney(t.amount)}</td><td><span class="rb-badge">${rbEsc(t.status)}</span></td></tr>`),"Belum ada transaksi.");
 }
 function rbTxForm(){
- const leaf=RB.coa.filter(a=>a.level===4&&a.is_active);
  const unitUser=currentAccess?.kind==="unit_user";
  const fixedUnit=unitUser?(RB.units.find(u=>u.id===currentAccess.unitId)||null):null;
  const unitControl=unitUser
   ? `<div class="rb-field"><label>Unit Usaha</label><input value="${rbEsc(fixedUnit?.name||"Unit Anda")}" disabled><input id="rbTxUnit" type="hidden" value="${rbEsc(currentAccess.unitId)}"></div>`
   : `<div class="rb-field"><label>Unit Usaha</label><select id="rbTxUnit">${rbSelect(RB.units,"id","name","","Pusat / tidak terkait unit")}</select></div>`;
- return `<div class="rb-note">Transaksi disimpan melalui satu proses database yang atomik: nomor transaksi dibuat berurutan, jurnal dibentuk, diperiksa keseimbangannya, lalu diposting. Jika salah satu tahap gagal, seluruh proses dibatalkan sehingga tidak meninggalkan transaksi/jurnal setengah jadi. Pilih akun berdasarkan bukti transaksi.</div><div class="rb-form-grid">${rbField("Tanggal","rbTxDate","date",new Date().toISOString().slice(0,10))}${unitControl}${rbField("Keterangan","rbTxDesc","text","")}${rbField("Nominal","rbTxAmount","number","","min=\"1\" step=\"0.01\"")}<div class="rb-field"><label>Jenis Transaksi</label><select id="rbTxType"><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option><option value="pemindahan">Pemindahan Kas/Bank</option><option value="modal">Tambahan Modal</option><option value="lainnya">Lainnya</option></select></div><div class="rb-field"><label>Akun Debit</label><select id="rbTxDebit">${rbSelect(leaf,"id","code")}</select></div><div class="rb-field"><label>Akun Kredit</label><select id="rbTxCredit">${rbSelect(leaf,"id","code")}</select></div>${rbTextArea("Catatan / Referensi Bukti","rbTxNote","")}</div>`;
+ const today=new Date();const localToday=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ const accounts=RB.coa.filter(a=>a.level===4&&a.is_active&&(!unitUser||a.allow_unit_use));
+ const opts=accounts.map(a=>`<option value="${rbEsc(a.id)}">${rbEsc(a.code)} - ${rbEsc(a.name)}</option>`).join("");
+ return `<div class="rb-note">Pencatatan menggunakan metode double-entry. Isi akun, debit, dan kredit pada tabel. Total debit dan kredit harus sama sebelum transaksi dapat diposting.</div>
+ <div class="rb-form-grid rb-tx-head">${rbField("Tanggal","rbTxDate","date",localToday)}${unitControl}${rbField("Keterangan transaksi","rbTxDesc","text","")}</div>
+ <div class="rb-tx-journal-wrap"><table class="rb-tx-journal"><thead><tr><th style="width:44%">Akun COA</th><th style="width:18%">Debit (Rp)</th><th style="width:18%">Kredit (Rp)</th><th>Keterangan</th></tr></thead><tbody>
+ <tr><td><select id="rbTxDebit" class="rb-tx-account"><option value="">Pilih akun Level 4</option>${opts}</select></td><td><input id="rbTxDebitAmount" type="number" min="0" step="0.01" value="0" class="rb-tx-number"></td><td><span class="rb-tx-dash">—</span></td><td><input id="rbTxDebitNote" maxlength="250" placeholder="Keterangan (opsional)"></td></tr>
+ <tr><td><select id="rbTxCredit" class="rb-tx-account"><option value="">Pilih akun Level 4</option>${opts}</select></td><td><span class="rb-tx-dash">—</span></td><td><input id="rbTxCreditAmount" type="number" min="0" step="0.01" value="0" class="rb-tx-number"></td><td><input id="rbTxCreditNote" maxlength="250" placeholder="Keterangan (opsional)"></td></tr>
+ </tbody><tfoot><tr><th class="rb-tx-total-label">Total</th><th id="rbTxDebitTotal">Rp 0</th><th id="rbTxCreditTotal">Rp 0</th><th id="rbTxBalance" class="rb-tx-balance">Belum seimbang</th></tr></tfoot></table></div>
+ ${rbTextArea("Catatan / Referensi Bukti","rbTxNote","")}`;
 }
 async function rbCreateTransaction(){
  if(!(rbCanCentral() || (currentAccess?.kind==="unit_user" && ["admin_unit","staf_unit"].includes(rbRole()))))
   throw new Error("Pencatatan transaksi hanya tersedia untuk Admin Pusat, Admin Unit, dan Staf Unit.");
  await rbLoadBase();
  rbModal("Catat Transaksi",rbTxForm(),"Simpan & Posting",async()=>{
-  const amount=Number($("rbTxAmount").value),date=$("rbTxDate").value,desc=$("rbTxDesc").value.trim();
+  const debitAmount=Number($("rbTxDebitAmount").value),creditAmount=Number($("rbTxCreditAmount").value);
+  const amount=debitAmount,date=$("rbTxDate").value,desc=$("rbTxDesc").value.trim();
   const debit=$("rbTxDebit").value,credit=$("rbTxCredit").value,unit=$("rbTxUnit").value||null;
-  const note=$("rbTxNote").value.trim();
-  if(!date||!desc||!Number.isFinite(amount)||amount<=0||!debit||!credit||debit===credit)
-   throw new Error("Lengkapi tanggal, keterangan, nominal, serta dua akun yang berbeda.");
+  const note=[$("rbTxNote").value.trim(),$("rbTxDebitNote").value.trim(),$("rbTxCreditNote").value.trim()].filter(Boolean).join(" | ");
+  if(!date||!desc||!Number.isFinite(debitAmount)||!Number.isFinite(creditAmount)||debitAmount<=0||creditAmount<=0||Math.abs(debitAmount-creditAmount)>0.000001||!debit||!credit||debit===credit)
+   throw new Error("Isi dua akun yang berbeda dan pastikan total debit sama dengan total kredit.");
   if(currentAccess?.kind==="unit_user" && unit!==currentAccess.unitId)
    throw new Error("Unit transaksi tidak sesuai dengan hak akses akun.");
   if(unit&&!RB.units.some(u=>u.id===unit))throw new Error("Unit tidak valid atau tidak dapat diakses.");
   if(!RB.activePeriod || date<RB.activePeriod.start_date || date>RB.activePeriod.end_date)
    throw new Error("Tanggal transaksi harus berada dalam periode akuntansi yang masih terbuka.");
+  const allowedAccounts=RB.coa.filter(a=>a.level===4&&a.is_active&&(!unit||a.allow_unit_use));
+  if(!allowedAccounts.some(a=>a.id===debit)||!allowedAccounts.some(a=>a.id===credit))
+   throw new Error("Akun tidak aktif, bukan COA Level 4, atau tidak diizinkan untuk unit ini.");
+  if(unit){
+   const q=await supabase.from("unit_coa_accounts").select("account_id").eq("bumdes_id",rbTenant()).eq("unit_id",unit).eq("is_enabled",true);
+   if(q.error)throw q.error;
+   const enabled=new Set((q.data||[]).map(x=>x.account_id));
+   if(!enabled.has(debit)||!enabled.has(credit))throw new Error("Salah satu akun belum diaktifkan untuk unit usaha ini.");
+  }
   const result=rbCheck(await supabase.rpc("create_posted_transaction",{
    p_unit_id:unit,p_transaction_date:date,p_description:desc,
-   p_transaction_type:$("rbTxType").value,p_amount:amount,
+   p_transaction_type:"lainnya",p_amount:amount,
    p_debit_account_id:debit,p_credit_account_id:credit,p_note:note||null
   }));
   const txNo=result?.transaction_number||"";
   rbToast(`Transaksi ${txNo} berhasil diposting.`,true);
   await rbLoadTransactions();await rbLoadDashboard();
  });
- if(!$("rbTxUnit"))return;
- $("rbTxUnit").addEventListener("change",async()=>{
-  const unit=$("rbTxUnit").value;
-  let accounts=RB.coa.filter(a=>a.level===4&&a.is_active);
+ const updateTotals=()=>{
+  const d=Number($("rbTxDebitAmount")?.value||0),c=Number($("rbTxCreditAmount")?.value||0);
+  $("rbTxDebitTotal").textContent=rbMoney(d);$("rbTxCreditTotal").textContent=rbMoney(c);
+  const ok=d>0&&Math.abs(d-c)<0.000001;
+  $("rbTxBalance").textContent=ok?"Seimbang":"Belum seimbang";
+  $("rbTxBalance").classList.toggle("is-balanced",ok);
+ };
+ ["rbTxDebitAmount","rbTxCreditAmount"].forEach(id=>$(id)?.addEventListener("input",updateTotals));
+ const refreshAccounts=async()=>{
+  const unit=$("rbTxUnit")?.value||null;
+  let accounts=RB.coa.filter(a=>a.level===4&&a.is_active&&(!unit||a.allow_unit_use));
   if(unit){
-   const a=await supabase.from("unit_coa_accounts").select("account_id").eq("bumdes_id",rbTenant()).eq("unit_id",unit).eq("is_enabled",true);
-   if(a.error)throw a.error;
-   const allowed=new Set((a.data||[]).map(x=>x.account_id));accounts=accounts.filter(x=>allowed.has(x.id));
+   const q=await supabase.from("unit_coa_accounts").select("account_id").eq("bumdes_id",rbTenant()).eq("unit_id",unit).eq("is_enabled",true);
+   if(q.error)throw q.error;
+   const enabled=new Set((q.data||[]).map(x=>x.account_id));accounts=accounts.filter(a=>enabled.has(a.id));
   }
-  $("rbTxDebit").innerHTML=rbSelect(accounts,"id","code");
-  $("rbTxCredit").innerHTML=rbSelect(accounts,"id","code");
- });
+  const options=`<option value="">Pilih akun Level 4</option>`+accounts.map(a=>`<option value="${rbEsc(a.id)}">${rbEsc(a.code)} - ${rbEsc(a.name)}</option>`).join("");
+  $("rbTxDebit").innerHTML=options;$("rbTxCredit").innerHTML=options;
+ };
+ $("rbTxUnit")?.addEventListener("change",()=>refreshAccounts().catch(rbErr));
+ updateTotals();
 }
 async function rbLoadCoa(){
  await rbLoadBase();const search=$("rbCoaSearch").value.toLowerCase(),status=$("rbCoaStatus").value;
