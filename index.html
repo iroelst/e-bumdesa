@@ -3368,7 +3368,9 @@
     // =========================================================
     $("pusatLoginBtn").addEventListener("click", async () => {
         const btn = $("pusatLoginBtn");
-        const email = $("pusatLoginEmail").value.trim();
+        // Email dinormalisasi agar spasi tak sengaja dan huruf kapital
+        // tidak menyebabkan kredensial dikirim dalam format yang berbeda.
+        const email = $("pusatLoginEmail").value.trim().toLowerCase();
         const password = $("pusatLoginPassword").value;
         hideError("loginMessage");
 
@@ -3397,10 +3399,18 @@
             await withLoginTimeout(handleUser(data.user), "Pemeriksaan profil / pemuatan dashboard", 30000);
         } catch (error) {
             console.error("Login gagal:", error);
-            showError("loginMessage", error.message || "Login gagal. Periksa email, password, dan koneksi.");
-            // Jika autentikasi berhasil tetapi pemuatan profil gagal, keluarkan sesi
-            // agar pengguna tidak tertinggal dalam kondisi setengah login.
-            try { await supabaseClient.auth.signOut(); } catch (signOutError) { console.warn("Gagal membersihkan sesi login:", signOutError); }
+            const authCode = error?.code || error?.name || "";
+            const authStatus = Number(error?.status || 0);
+            const invalidCredentials = authStatus === 400 &&
+                /invalid login credentials/i.test(String(error?.message || ""));
+            if (invalidCredentials) {
+                showError("loginMessage", "Supabase menolak email atau password. Email sudah dinormalisasi otomatis; password tidak diubah. Periksa kembali kredensial akun yang tersimpan di Supabase Auth.");
+            } else {
+                showError("loginMessage", error.message || "Login gagal. Periksa koneksi dan konfigurasi Supabase.");
+            }
+            console.warn("Detail autentikasi:", { code: authCode, status: authStatus });
+            // Jangan signOut saat percobaan login gagal: itu dapat menghapus
+            // sesi aktif yang mungkin sudah dimiliki pengguna.
             showOnly("loginPage");
         } finally {
             btn.disabled = false;
@@ -3435,8 +3445,7 @@
         const btn = $("sendPusatRecoveryBtn");
         btn.disabled = true; btn.textContent = "Mengirim...";
         try {
-            const recoveryRedirect = new URL("/", window.location.origin).toString();
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: recoveryRedirect });
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
             if (error) throw error;
             msg.style.color = "#16865b";
             msg.textContent = "Jika email terdaftar, tautan pengaturan password akan dikirim. Periksa Inbox dan Spam.";
@@ -11449,42 +11458,18 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     // =========================================================
     // AUTH STATE
     // =========================================================
-    supabaseClient.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (event === "SIGNED_OUT") {
             showOnly("loginPage");
         } else if (event === "PASSWORD_RECOVERY" && session?.user) {
-            // Tautan pemulihan valid: tampilkan form password baru, bukan dashboard/login lama.
             showOnly("loginPage");
             $("pusatLoginPanel").classList.add("active");
             $("unitLoginPanel").classList.remove("active");
             $("pusatNewPasswordBox").classList.remove("hidden");
             $("pusatPasswordRecoveryBox").classList.add("hidden");
             $("loginMessage").classList.add("hidden");
-            $("savePusatPasswordMessage").textContent = "";
-            $("pusatNewPassword").value = "";
-            $("pusatNewPasswordConfirm").value = "";
         }
     });
-
-    // Tampilkan penjelasan jika Supabase mengembalikan tautan yang kedaluwarsa/tidak valid.
-    // Hash dibersihkan setelah dibaca agar pesan error tidak muncul terus saat halaman dibuka ulang.
-    (() => {
-        const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        const errorCode = params.get("error_code");
-        const errorDescription = params.get("error_description");
-        if (errorCode) {
-            showOnly("loginPage");
-            $("pusatLoginPanel").classList.add("active");
-            $("unitLoginPanel").classList.remove("active");
-            $("pusatPasswordRecoveryBox").classList.remove("hidden");
-            $("pusatRecoveryMessage").style.color = "#c44747";
-            $("pusatRecoveryMessage").textContent =
-                errorCode === "otp_expired"
-                    ? "Tautan pemulihan sudah kedaluwarsa atau tidak valid. Minta tautan baru, lalu buka email terbaru segera setelah diterima."
-                    : (errorDescription ? decodeURIComponent(errorDescription.replace(/\+/g, " ")) : "Tautan pemulihan tidak dapat digunakan. Silakan minta tautan baru.");
-            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-        }
-    })();
 
     $("loginYear").textContent = new Date().getFullYear();
     $("subscriptionYear").textContent = new Date().getFullYear();
