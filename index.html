@@ -2396,8 +2396,24 @@
                         <button id="pusatLoginBtn" type="button" class="btn btn-primary w-100">
                             <i class="bi bi-box-arrow-in-right me-1"></i> Masuk sebagai Admin Pusat
                         </button>
+                        <button id="forgotPusatPasswordBtn" type="button" class="btn btn-link btn-sm w-100 mt-2">Belum punya password / lupa password?</button>
+                        <div id="pusatPasswordRecoveryBox" class="mt-3 p-3 border rounded-3 hidden">
+                            <strong class="d-block mb-2">Buat password Admin Pusat</strong>
+                            <p class="small text-muted mb-2">Masukkan email akun. Kami akan mengirim tautan untuk membuat atau mengatur ulang password.</p>
+                            <button id="sendPusatRecoveryBtn" type="button" class="btn btn-outline-primary btn-sm w-100">Kirim tautan pengaturan password</button>
+                            <div id="pusatRecoveryMessage" class="small mt-2" role="status"></div>
+                        </div>
                     </div>
-                    <div class="login-role-hint"><i class="bi bi-shield-check"></i> Gunakan email dan password yang terdaftar pada sistem.</div>
+                    <div id="pusatNewPasswordBox" class="unit-login-box hidden">
+                        <strong class="d-block mb-2">Atur password baru</strong>
+                        <label for="pusatNewPassword" class="form-label small fw-semibold">Password baru</label>
+                        <input id="pusatNewPassword" type="password" class="form-control mb-2" minlength="8" autocomplete="new-password" placeholder="Minimal 8 karakter">
+                        <label for="pusatNewPasswordConfirm" class="form-label small fw-semibold">Ulangi password baru</label>
+                        <input id="pusatNewPasswordConfirm" type="password" class="form-control mb-2" minlength="8" autocomplete="new-password" placeholder="Ulangi password">
+                        <button id="savePusatNewPasswordBtn" type="button" class="btn btn-primary w-100">Simpan password</button>
+                        <div id="savePusatPasswordMessage" class="small mt-2" role="status"></div>
+                    </div>
+                    <div class="login-role-hint"><i class="bi bi-shield-check"></i> Gunakan email dan password akun Admin Pusat.</div>
                 </div>
 
                 <div id="unitLoginPanel" class="role-login-panel">
@@ -3400,6 +3416,47 @@
     });
     $("pusatLoginEmail").addEventListener("keydown", event => {
         if (event.key === "Enter") { event.preventDefault(); $("pusatLoginPassword").focus(); }
+    });
+
+    // Pengguna yang sebelumnya masuk dengan Google mungkin belum memiliki password.
+    // Kirim email pemulihan Supabase agar dapat menetapkan password tanpa Google OAuth.
+    $("forgotPusatPasswordBtn").addEventListener("click", () => {
+        $("pusatPasswordRecoveryBox").classList.toggle("hidden");
+        $("pusatRecoveryMessage").textContent = "";
+    });
+    $("sendPusatRecoveryBtn").addEventListener("click", async () => {
+        const email = $("pusatLoginEmail").value.trim();
+        const msg = $("pusatRecoveryMessage");
+        msg.style.color = "#c44747";
+        if (!email) { msg.textContent = "Masukkan email Admin Pusat terlebih dahulu."; $("pusatLoginEmail").focus(); return; }
+        const btn = $("sendPusatRecoveryBtn");
+        btn.disabled = true; btn.textContent = "Mengirim...";
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+            if (error) throw error;
+            msg.style.color = "#16865b";
+            msg.textContent = "Jika email terdaftar, tautan pengaturan password akan dikirim. Periksa Inbox dan Spam.";
+        } catch (error) {
+            msg.textContent = error.message || "Gagal mengirim tautan pengaturan password.";
+        } finally { btn.disabled = false; btn.textContent = "Kirim tautan pengaturan password"; }
+    });
+    $("savePusatNewPasswordBtn").addEventListener("click", async () => {
+        const password = $("pusatNewPassword").value;
+        const confirm = $("pusatNewPasswordConfirm").value;
+        const msg = $("savePusatPasswordMessage");
+        msg.style.color = "#c44747";
+        if (password.length < 8) { msg.textContent = "Password minimal 8 karakter."; return; }
+        if (password !== confirm) { msg.textContent = "Konfirmasi password tidak sama."; return; }
+        const btn = $("savePusatNewPasswordBtn"); btn.disabled = true; btn.textContent = "Menyimpan...";
+        try {
+            const { data, error } = await supabaseClient.auth.updateUser({ password });
+            if (error) throw error;
+            msg.style.color = "#16865b"; msg.textContent = "Password berhasil dibuat. Memeriksa akses akun...";
+            $("pusatNewPasswordBox").classList.add("hidden");
+            if (data?.user) await handleUser(data.user);
+        } catch (error) {
+            msg.textContent = error.message || "Gagal menyimpan password.";
+        } finally { btn.disabled = false; btn.textContent = "Simpan password"; }
     });
 
     // =========================================================
@@ -11439,6 +11496,13 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (event === "SIGNED_OUT") {
             showOnly("loginPage");
+        } else if (event === "PASSWORD_RECOVERY" && session?.user) {
+            showOnly("loginPage");
+            $("pusatLoginPanel").classList.add("active");
+            $("unitLoginPanel").classList.remove("active");
+            $("pusatNewPasswordBox").classList.remove("hidden");
+            $("pusatPasswordRecoveryBox").classList.add("hidden");
+            $("loginMessage").classList.add("hidden");
         }
     });
 
