@@ -3184,7 +3184,13 @@
             return;
         }
 
-        await handleUser(data.session.user);
+        try {
+            await withLoginTimeout(handleUser(data.session.user), "Pemeriksaan hak akses", 30000);
+        } catch (err) {
+            console.error("Pemulihan sesi gagal:", err);
+            showError("loginMessage", err.message || "Gagal memuat hak akses akun.");
+            showOnly("loginPage");
+        }
     }
 
     // =========================================================
@@ -3200,92 +3206,83 @@
     }
 
     async function handleUser(user) {
-        const { data: profile, error } = await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
+        // Skema autentikasi aktual: platform_admins, bumdes_memberships,
+        // dan unit_user_access. Tidak menggunakan tabel profiles/subscriptions.
+        const uid = user?.id;
+        if (!uid) throw new Error("ID pengguna Supabase tidak ditemukan.");
+
+        const { data: platformAdmin, error: platformError } = await supabaseClient
+            .from("platform_admins")
+            .select("user_id,display_name,is_active")
+            .eq("user_id", uid)
+            .eq("is_active", true)
             .maybeSingle();
+        if (platformError) throw new Error("Gagal memeriksa Platform Owner: " + platformError.message);
 
-        if (error) {
-            console.error(error);
-            showError("loginMessage", "Gagal membaca profil: " + error.message);
-            showOnly("loginPage");
+        if (platformAdmin) {
+            await loadSuperAdminDashboard({
+                id: uid,
+                email: user.email || "",
+                nama: platformAdmin.display_name || "Platform Owner",
+                role: "super_admin"
+            });
             return;
         }
 
-        if (!profile) {
-            showOnly("registerPage");
+        const { data: memberships, error: membershipError } = await supabaseClient
+            .from("bumdes_memberships")
+            .select("id,bumdes_id,user_id,role,is_active,created_at")
+            .eq("user_id", uid)
+            .eq("is_active", true)
+            .order("created_at", { ascending: true });
+        if (membershipError) throw new Error("Gagal memeriksa keanggotaan BUMDes: " + membershipError.message);
+
+        const pusatMembership = (memberships || []).find(x => x.role === "admin_pusat");
+        if (pusatMembership) {
+            const { data: bumdes, error: bumdesError } = await supabaseClient
+                .from("bumdes")
+                .select("id,name,slug,is_active")
+                .eq("id", pusatMembership.bumdes_id)
+                .maybeSingle();
+            if (bumdesError) throw new Error("Gagal membaca data BUMDes: " + bumdesError.message);
+            if (!bumdes || !bumdes.is_active) throw new Error("BUMDes belum aktif atau tidak ditemukan.");
+            await loadDashboard({
+                id: uid, email: user.email || "", nama: user.user_metadata?.full_name || user.email || "Admin Pusat",
+                role: "admin_pusat", bumdes_id: pusatMembership.bumdes_id,
+                membership_id: pusatMembership.id
+            });
             return;
         }
 
-        if (profile.status !== "aktif") {
-            await supabaseClient.auth.signOut();
-            showError("loginMessage", "Akun Anda sedang tidak aktif.");
-            showOnly("loginPage");
-            return;
-        }
-
-        // Super Admin adalah pengelola platform e-BUMDesa, bukan pelanggan BUMDes.
-        if (profile.role === "super_admin") {
-            await loadSuperAdminDashboard(profile);
-            return;
-        }
-
-        // Return dari Midtrans. Gunakan sessionStorage sebagai jalur yang
-        // tetap bekerja walaupun Snap menutup popup lalu me-reload halaman
-        // tanpa membawa query payment_return.
-        const urlParams = new URLSearchParams(window.location.search);
-        const paymentReturn = urlParams.get("payment_return");
-        const returnInvoiceId = urlParams.get("invoice_id");
-        const storedReturnInvoiceId = sessionStorage.getItem("midtrans_return_invoice_id");
-        const effectiveReturnInvoiceId = returnInvoiceId || storedReturnInvoiceId;
-        if ((paymentReturn || storedReturnInvoiceId) && profile.role === "admin_pusat" && profile.bumdes_id && effectiveReturnInvoiceId) {
-            // Selalu siapkan context langganan terlebih dahulu.
-            await openCustomerSubscription();
-
-            const returnMessage = {
-                finish: "Anda kembali dari halaman pembayaran. Status pembayaran sedang disinkronkan.",
-                unfinish: "Pembayaran belum selesai. Silakan pilih pembayaran lagi jika ingin melanjutkan.",
-                error: "Pembayaran tidak dapat diselesaikan. Silakan pilih pembayaran lagi."
-            }[paymentReturn];
-
-            if (returnMessage) alert(returnMessage);
-
-            // Jika Midtrans mengembalikan browser melalui Finish/Unfinish/Error URL,
-            // jangan berhenti di halaman Langganan. Buka langsung detail invoice.
-            if (customerSubscriptionContext?.profile?.bumdes_id) {
-                await openCustomerInvoice(effectiveReturnInvoiceId);
-            }
-
-            // Bersihkan penanda return setelah invoice berhasil dibuka.
-            sessionStorage.removeItem("midtrans_return_invoice_id");
-            window.history.replaceState({}, document.title, window.location.pathname);
-            return;
-        }
-
-        // Semua pengguna BUMDes harus memiliki langganan aktif.
-        const { data: subscription, error: subscriptionError } = await supabaseClient
-            .from("subscriptions")
-            .select("id, plan_name, amount, billing_period_months, status, started_at, expires_at")
-            .eq("bumdes_id", profile.bumdes_id)
+        const { data: unitAccess, error: unitError } = await supabaseClient
+            .from("unit_user_access")
+            .select("id,bumdes_id,unit_id,user_id,role,is_active,created_at")
+            .eq("user_id", uid)
+            .eq("is_active", true)
+            .order("created_at", { ascending: true })
+            .limit(1)
             .maybeSingle();
+        if (unitError) throw new Error("Gagal memeriksa akses unit: " + unitError.message);
 
-        if (subscriptionError) {
-            console.error(subscriptionError);
-            showError("loginMessage", "Gagal memeriksa status langganan: " + subscriptionError.message);
-            showOnly("loginPage");
+        if (unitAccess) {
+            const { data: bumdes, error: bumdesError } = await supabaseClient
+                .from("bumdes")
+                .select("id,name,slug,is_active")
+                .eq("id", unitAccess.bumdes_id)
+                .maybeSingle();
+            if (bumdesError) throw new Error("Gagal membaca data BUMDes: " + bumdesError.message);
+            if (!bumdes || !bumdes.is_active) throw new Error("BUMDes belum aktif atau tidak ditemukan.");
+            await loadDashboard({
+                id: uid, email: user.email || "", nama: user.user_metadata?.full_name || user.email || "Pengguna Unit",
+                role: unitAccess.role, bumdes_id: unitAccess.bumdes_id,
+                unit_id: unitAccess.unit_id, unit_access_id: unitAccess.id
+            });
             return;
         }
 
-        const expiresAt = subscription?.expires_at ? new Date(subscription.expires_at) : null;
-        const isActive = subscription?.status === "active" && expiresAt && expiresAt > new Date();
-
-        if (isActive) {
-            await loadDashboard(profile);
-            return;
-        }
-
-        await loadSubscriptionPage(profile, subscription);
+        await supabaseClient.auth.signOut();
+        showError("loginMessage", "Akun berhasil diautentikasi, tetapi belum memiliki hak akses aktif di e-BUMDesa.");
+        showOnly("loginPage");
     }
 
     async function loadSubscriptionPage(profile, subscription) {
@@ -3651,7 +3648,7 @@
 
         const { data: bumdes, error } = await supabaseClient
             .from("bumdes")
-            .select("id,nama,kode,desa,kecamatan,kabupaten,status,created_at")
+            .select("id,name,slug,village,district,regency,province,is_active,created_at")
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -3671,10 +3668,10 @@
             <table class="sa-table">
                 <thead><tr><th>BUMDes</th><th>Kode</th><th>Lokasi</th><th>Status</th></tr></thead>
                 <tbody>${rows.map(b => `<tr>
-                    <td><strong>${escapeHtml(b.nama || "-")}</strong></td>
-                    <td>${escapeHtml(b.kode || "-")}</td>
-                    <td>${escapeHtml([b.desa,b.kecamatan,b.kabupaten].filter(Boolean).join(", ") || "-")}</td>
-                    <td><span class="sa-badge ${statusClass(b.status)}">${escapeHtml(statusLabel(b.status))}</span></td>
+                    <td><strong>${escapeHtml(b.name || "-")}</strong></td>
+                    <td>${escapeHtml(b.slug || "-")}</td>
+                    <td>${escapeHtml([b.village,b.district,b.regency].filter(Boolean).join(", ") || "-")}</td>
+                    <td><span class="sa-badge ${statusClass(b.is_active ? "aktif" : "nonaktif")}">${escapeHtml(statusLabel(b.is_active ? "aktif" : "nonaktif"))}</span></td>
                 </tr>`).join("")}</tbody>
             </table>` : '<div class="sa-empty">Belum ada BUMDes terdaftar.</div>';
 
@@ -4326,9 +4323,9 @@
             ? (profile.nama || "Admin Unit")
             : (profile.nama || profile.email || "Admin");
 
-        $("topBumdesName").textContent = bumdes?.nama || "";
-        $("infoBumdesName").textContent = bumdes?.nama || "-";
-        $("infoBumdesCode").textContent = bumdes?.kode || "-";
+        $("topBumdesName").textContent = bumdes?.name || "";
+        $("infoBumdesName").textContent = bumdes?.name || "-";
+        $("infoBumdesCode").textContent = bumdes?.slug || "-";
         $("infoTahunBuku").textContent = bumdes?.tahun_buku || "-";
 
         const dashboardUnits = await loadUnits(profile.bumdes_id, profile);
@@ -10950,37 +10947,8 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     let currentInvoice = null;
 
     async function openCustomerSubscription() {
-        const { data: sessionData } = await supabaseClient.auth.getSession();
-        if (!sessionData.session) return;
-
-        const { data: profile, error: profileError } = await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("id", sessionData.session.user.id)
-            .maybeSingle();
-
-        if (profileError || !profile || profile.role !== "admin_pusat" || !profile.bumdes_id) {
-            alert("Menu Langganan hanya tersedia untuk Admin Pusat.");
-            return;
-        }
-
-        const [{ data: bumdes }, { data: subscription }] = await Promise.all([
-            supabaseClient.from("bumdes").select("id,nama,desa,kecamatan,kabupaten,provinsi,alamat,logo_kop").eq("id",profile.bumdes_id).maybeSingle(),
-            supabaseClient.from("subscriptions").select("id,plan_name,amount,billing_period_months,status,started_at,expires_at").eq("bumdes_id",profile.bumdes_id).maybeSingle()
-        ]);
-
-        customerSubscriptionContext = { profile, bumdes, subscription };
-        $("customerSubUserName").textContent = profile.nama || "";
-        $("customerSubUserEmail").textContent = profile.email || "";
-        $("customerSubBumdesName").textContent = bumdes?.nama || "-";
-        $("customerSubStatus").textContent = subscription?.status === "active" ? "Aktif" : (subscription?.status || "Belum aktif");
-        $("customerSubExpires").textContent = subscription?.expires_at ? fmtDate(subscription.expires_at) : "-";
-        $("customerSubPlan").textContent = subscription?.plan_name || "e-BUMDesa";
-
-        showOnly("customerSubscriptionPage");
-        await loadCustomerInvoices(profile.bumdes_id);
+        alert("Fitur langganan telah dinonaktifkan pada aplikasi ini.");
     }
-
 
     function invoiceStatusLabel(status) {
         const map = {
@@ -11339,7 +11307,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         $("invoicePrintKopName").textContent = b.nama || "BUM Desa";
         $("invoicePrintKopLocation").textContent = [b.desa?`Desa ${b.desa}`:"",b.kecamatan?`Kecamatan ${b.kecamatan}`:"",b.kabupaten?`Kabupaten ${b.kabupaten}`:"",b.provinsi?`Provinsi ${b.provinsi}`:""].filter(Boolean).join(" · ") || "-";
         $("invoicePrintKopContact").textContent = [b.alamat?`Alamat ${b.alamat}`:"",(b.telepon||b.no_tlp||b.no_telp||b.phone)?`No. Tlp. ${b.telepon||b.no_tlp||b.no_telp||b.phone}`:"",b.no_ahu?`No. AHU. ${b.no_ahu}`:""].filter(Boolean).join(" · ") || "-";
-        $("invoicePrintBumdes").textContent = b.nama || "-";
+        $("invoicePrintBumdes").textContent = b.name || "-";
         $("invoicePrintAddress").textContent = [b.alamat,b.desa,b.kecamatan,b.kabupaten,b.provinsi].filter(Boolean).join(", ") || "-";
         $("invoicePrintDate").textContent = fmtDateTime(p.created_at);
         $("invoicePrintDue").textContent = p.expired_at ? fmtDateTime(p.expired_at) : "-";
