@@ -3640,8 +3640,10 @@
     // SUPER ADMIN DASHBOARD
     // =========================================================
     async function loadSuperAdminDashboard(profile) {
-        $("saUserName").textContent = profile.nama || "Super Admin";
-        $("saUserEmail").textContent = profile.email || "";
+        const saUserNameEl = $("saUserName");
+        if (saUserNameEl) saUserNameEl.textContent = profile.nama || "Super Admin";
+        const saUserEmailEl = $("saUserEmail");
+        if (saUserEmailEl) saUserEmailEl.textContent = profile.email || "";
 
         const { data: bumdes, error } = await supabaseClient
             .from("bumdes")
@@ -3656,8 +3658,12 @@
         }
 
         const rows = bumdes || [];
-        $("saTotalBumdes").textContent = rows.length;
-        $("saBumdesCount").textContent = `${rows.length} data`;
+        // saTotalBumdes tidak ada pada markup dashboard versi ringkas.
+        // Elemen opsional harus diperiksa agar tidak menghentikan proses login.
+        const totalBumdesEl = $("saTotalBumdes");
+        if (totalBumdesEl) totalBumdesEl.textContent = rows.length;
+        const bumdesCountEl = $("saBumdesCount");
+        if (bumdesCountEl) bumdesCountEl.textContent = `${rows.length} data`;
         const statusClass = status => String(status || "").toLowerCase().replace(/[^a-z]/g, "") || "pending";
         const statusLabel = status => ({aktif:"Aktif",active:"Aktif",pending:"Menunggu",nonaktif:"Nonaktif",rejected:"Ditolak"}[String(status || "").toLowerCase()] || status || "-");
 
