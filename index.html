@@ -3159,6 +3159,19 @@
         $(id).classList.add("hidden");
     }
 
+    // Batasi waktu tunggu proses login agar UI tidak berhenti selamanya di "Memeriksa...".
+    function withLoginTimeout(promise, label, ms = 20000) {
+        let timer;
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(
+                    `${label} belum mendapat respons setelah ${Math.round(ms / 1000)} detik. Periksa koneksi, Supabase, dan hak akses (RLS), lalu coba lagi.`
+                )), ms);
+            })
+        ]).finally(() => clearTimeout(timer));
+    }
+
     function rupiah(value) {
         return new Intl.NumberFormat("id-ID", {
             style: "currency",
@@ -3391,15 +3404,24 @@
 
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memeriksa...`;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Menghubungkan...`;
         try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { data, error } = await withLoginTimeout(
+                supabaseClient.auth.signInWithPassword({ email, password }),
+                "Autentikasi Supabase", 20000
+            );
             if (error) throw error;
             if (!data?.user) throw new Error("Login berhasil tetapi data pengguna tidak ditemukan.");
-            await handleUser(data.user);
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Memuat profil dan hak akses...`;
+            await withLoginTimeout(handleUser(data.user), "Pemeriksaan profil / pemuatan dashboard", 30000);
         } catch (error) {
             console.error("Login Admin Pusat gagal:", error);
-            showError("loginMessage", error.message || "Email atau password salah.");
+            showError("loginMessage", error.message || "Login gagal. Periksa email, password, dan koneksi.");
+            // Jika autentikasi berhasil tetapi pemuatan profil gagal, keluarkan sesi
+            // agar pengguna tidak tertinggal dalam kondisi setengah login.
+            try { await supabaseClient.auth.signOut(); } catch (signOutError) { console.warn("Gagal membersihkan sesi login:", signOutError); }
+            showOnly("loginPage");
+        } finally {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
         }
