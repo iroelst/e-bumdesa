@@ -3156,6 +3156,15 @@
     // Supabase > Project Settings > API
     const SUPABASE_ANON_KEY = "sb_publishable_v5NicntVr5n-DmK39QmZxA_wJvhPz0x";
 
+    // Tandai tautan pemulihan SEBELUM Supabase memproses token dari URL.
+    // Ini mencegah startApp() mengarahkan sesi recovery ke dashboard.
+    const recoveryUrlParams = new URLSearchParams(window.location.search);
+    const recoveryHashParams = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
+    let passwordRecoveryMode =
+        recoveryUrlParams.get("type") === "recovery" ||
+        recoveryHashParams.get("type") === "recovery" ||
+        recoveryUrlParams.has("code") && recoveryUrlParams.get("flow") === "recovery";
+
     // Samakan inisialisasi SDK dengan file lama yang terbukti berhasil login.
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -3163,6 +3172,18 @@
     // HELPERS
     // =========================================================
     const $ = (id) => document.getElementById(id);
+
+    function showPasswordRecoveryForm() {
+        passwordRecoveryMode = true;
+        showOnly("loginPage");
+        $("pusatLoginPanel").classList.add("active");
+        $("unitLoginPanel").classList.remove("active");
+        $("pusatNewPasswordBox").classList.remove("hidden");
+        $("pusatPasswordRecoveryBox").classList.add("hidden");
+        $("loginMessage").classList.add("hidden");
+        // Arahkan layar ke form password agar langsung terlihat di HP.
+        requestAnimationFrame(() => $("pusatNewPasswordBox").scrollIntoView({ behavior: "smooth", block: "center" }));
+    }
 
     // Format tanggal aplikasi: DD-MM-YYYY
 
@@ -3248,6 +3269,11 @@
         if (error) {
             console.error(error);
             showOnly("loginPage");
+            return;
+        }
+
+        if (passwordRecoveryMode) {
+            showPasswordRecoveryForm();
             return;
         }
 
@@ -11526,12 +11552,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
         if (event === "SIGNED_OUT") {
             showOnly("loginPage");
         } else if (event === "PASSWORD_RECOVERY" && session?.user) {
-            showOnly("loginPage");
-            $("pusatLoginPanel").classList.add("active");
-            $("unitLoginPanel").classList.remove("active");
-            $("pusatNewPasswordBox").classList.remove("hidden");
-            $("pusatPasswordRecoveryBox").classList.add("hidden");
-            $("loginMessage").classList.add("hidden");
+            showPasswordRecoveryForm();
         }
     });
 
@@ -11541,6 +11562,7 @@ function printCashBankMutation({ account, from, to, opening, saldoSebelum, total
     // =========================================================
     // START
     // =========================================================
+    if (passwordRecoveryMode) showPasswordRecoveryForm();
     startApp();
 </script>
 
