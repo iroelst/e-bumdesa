@@ -2288,6 +2288,82 @@
         .cashbank-account-meta span{padding:4px 7px;border-radius:7px;background:#f7f8fa;}
         .cashbank-detail-panel{scroll-margin-top:20px;}
         @media(max-width:700px){.cashbank-head{align-items:stretch;flex-direction:column}.cashbank-filters{min-width:0;flex-direction:column}.cashbank-account-balance{font-size:.9rem}.cashbank-account-top{align-items:flex-start}}
+
+        /* ===== FIX FORM LOGIN / RESET PASSWORD DI LAYAR HP ===== */
+        @media (max-width: 900px) {
+            html, body {
+                height: auto !important;
+                min-height: 100% !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+            }
+
+            body.login-active {
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+            }
+
+            #loginPage {
+                height: auto !important;
+                min-height: 100dvh !important;
+                overflow: visible !important;
+            }
+
+            .login-shell {
+                height: auto !important;
+                min-height: 100dvh !important;
+                overflow: visible !important;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .login-brand-panel {
+                flex: 0 0 auto;
+            }
+
+            .login-form-panel {
+                flex: 0 0 auto;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                align-items: flex-start;
+                padding-bottom: 42px;
+            }
+
+            .login-card {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                flex: 0 0 auto;
+                margin-bottom: 8px;
+            }
+
+            #pusatNewPasswordBox {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                margin-bottom: 4px;
+            }
+
+            #savePusatNewPasswordBtn {
+                display: block;
+                width: 100%;
+                min-height: 44px;
+                margin-top: 8px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .login-form-panel {
+                padding-top: 20px;
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .login-card {
+                padding-bottom: 24px !important;
+            }
+        }
 </style>
 
 
